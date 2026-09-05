@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+.DS_Store
+.vscode/settings.json
+*.zip
+*.local.md
+scratch/
