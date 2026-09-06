@@ -65,7 +65,8 @@ def test_price_refuses_a_rejected_calibration(tmp_path, capsys):
     (d / "calibration_result.json").write_text(json.dumps({
         "calibration_accepted": False, "optimizer_success": True,
         "acceptance_checks": [{"check": "monthly_delivery_average_matches_quote",
-                               "passed": False, "detail": "RMSE 2.5e6"}]}))
+                               "passed": False, "detail": "RMSE 2.5e6"}]}),
+        encoding="utf-8")
     rc = run_pde.main(["price", "--model", "forward_centered", "--curve", str(d),
                        "--no-mc"])
     assert rc == 1
@@ -118,7 +119,7 @@ def test_calibrated_config_is_loadable_yaml(tmp_path):
     outdir = tmp_path / "cfg"
     assert run_pde.main(["calibrate-market", "--outdir", str(outdir),
                          "--no-sensitivity"]) == 0
-    cfg = yaml.safe_load((outdir / "calibrated_config.yaml").read_text())
+    cfg = yaml.safe_load((outdir / "calibrated_config.yaml").read_text(encoding="utf-8"))
     assert cfg["model"]["mode"] == "forward_centered"
     assert cfg["acceptance"]["calibration_accepted"] is True
     assert "Fully market-calibrated" in cfg["_warning"]
@@ -133,7 +134,7 @@ def test_january_anchor_override_from_cli(tmp_path, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "3100.00" in out or "3100.0" in out
-    blob = json.loads((outdir / "calibration_result.json").read_text())
+    blob = json.loads((outdir / "calibration_result.json").read_text(encoding="utf-8"))
     assert blob["january_calibration_status"]["anchor_mode"] == "explicit_level"
     assert blob["january_calibration_status"]["anchor_level_TRY_MWh"] == 3100.0
     assert blob["calibration_accepted"] is True
@@ -144,6 +145,6 @@ def test_piecewise_curve_mode_from_cli(tmp_path):
     assert run_pde.main(["calibrate-market", "--outdir", str(outdir),
                          "--curve-mode", "piecewise_constant",
                          "--no-sensitivity"]) == 0
-    blob = json.loads((outdir / "calibration_result.json").read_text())
+    blob = json.loads((outdir / "calibration_result.json").read_text(encoding="utf-8"))
     assert blob["calibration_accepted"] is True
     assert blob["maximum_absolute_monthly_error"] < 0.10

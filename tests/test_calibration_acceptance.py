@@ -70,7 +70,7 @@ def test_rejected_run_writes_no_calibrated_config(tmp_path, quotes, params):
     assert "calibrated_config.yaml" not in out.files
     assert "CALIBRATION_REJECTED.txt" in out.files
     assert "calibration_result.json" in out.files, "audit trail must still be written"
-    blob = json.loads((out.directory / "calibration_result.json").read_text())
+    blob = json.loads((out.directory / "calibration_result.json").read_text(encoding="utf-8"))
     assert blob["calibration_accepted"] is False
     assert blob["optimizer_success"] is True
 

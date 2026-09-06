@@ -469,31 +469,45 @@ def near_term_anchor_sensitivity(
     option: Optional[EuropeanOption] = None,
     grid_settings: Optional[ResidualGridSettings] = None,
 ) -> pd.DataFrame:
-    """Sensitivity of near-term results to the January baseload assumption.
+    """Sensitivity of near-term results to the anchor level, under the
+    production ``spot_to_next_linear`` mode.
 
-    Each row re-solves the curve with ``NearTermAnchor('explicit_level', L)``
-    and, when an option is supplied, re-prices it.  The quoted months stay
-    exactly matched throughout: the January assumption moves only the
-    unconstrained near-term window.
+    Each row re-solves the curve with the SAME shape as production (a linear
+    ramp from the anchor value at t_0 to the first quoted monthly level at
+    t_M) but with the anchor value swept over the supplied levels.  This is
+    the counterfactual "what if the spot were different by X%": the shape of
+    the near-term window is held fixed and only its level moves.  The row
+    with ``anchor == params.spot_price_TRY_MWh`` is the only spot-consistent
+    case.
+
+    Rationale (see ``outputs/market_calibration_final/archive/near_term_anchor_review/``):
+    a prior version used ``explicit_level`` (flat) which (i) collapsed
+    ``expected_spot_{72,168,336}h`` to a single number for every swept level,
+    hiding the term structure of near-term ES, and (ii) reported
+    ``spot_consistent_at_t0=False`` for every non-trivial row, misleadingly
+    implying the model was mispricing the spot for every counterfactual.  The
+    ramp-based sensitivity preserves the shape actually used in production.
     """
     rows: List[Dict[str, Any]] = []
     for lev in anchor_levels_TRY_MWh:
-        anchor = NearTermAnchor(mode="explicit_level", level_TRY_MWh=float(lev))
+        anchor = NearTermAnchor(mode="spot_to_next_linear")
         curve = build_forward_curve(quotes, mode=curve_mode, anchor=anchor,
-                                    spot_price_TRY_MWh=params.spot_price_TRY_MWh)
+                                    spot_price_TRY_MWh=float(lev))
         model = ForwardCenteredModel(
             curve=curve, spec=ResidualSpec.from_frozen(params),
             tvtp=TVTPCoefficients(params.alpha01, params.gamma01,
                                   params.alpha10, params.gamma10),
             pi_filtered=params.pi_filtered, valuation_utc=params.valuation_utc,
-            spot_price_TRY_MWh=params.spot_price_TRY_MWh,
+            spot_price_TRY_MWh=float(lev),
             allow_spot_mismatch=True)
         es = model.expected_spot(np.array(REPORTING_HORIZONS_HOURS, dtype=float))
         row: Dict[str, Any] = {
             "january_anchor_TRY_MWh": float(lev),
             "anchor_vs_spot_pct": float(100.0 * (lev / params.spot_price_TRY_MWh - 1.0)),
             "max_abs_monthly_error_TRY_MWh": curve.max_abs_monthly_error(),
-            "spot_consistent_at_t0": bool(model.spot_consistent),
+            "spot_consistent_at_t0": bool(
+                abs(float(lev) - params.spot_price_TRY_MWh) < 1e-6),
+            "anchor_mode": "spot_to_next_linear",
         }
         for h, v in zip(REPORTING_HORIZONS_HOURS, es):
             row[f"expected_spot_{h}h_TRY_MWh"] = float(v)

@@ -1,0 +1,71 @@
+{
+  "price_label": "VEP-forward-curve anchored option prices",
+  "must_not_be_called": "Fully market-calibrated option prices",
+  "1_calibrated_from_market_data": {
+    "hourly_forward_curve_F_t": {
+      "unit": "TRY/MWh",
+      "source": "EPİAŞ VEP monthly baseload quotes",
+      "constraint": "mean of F over each delivery month = observed quote",
+      "identified": true
+    }
+  },
+  "2_inherited_from_historical_M2_fit": {
+    "kappa_per_hour": {
+      "value": 0.000385228557,
+      "source": "AR(1) phi of the historical M2 fit"
+    },
+    "sigma_y_normal": {
+      "value": 0.0075052,
+      "unit": "per sqrt(hour), y units",
+      "source": "M2 regime-0 residual sd, AR->OU mapped"
+    },
+    "sigma_y_stress": {
+      "value": 0.1729706,
+      "unit": "per sqrt(hour), y units",
+      "source": "M2 regime-1 residual sd, AR->OU mapped"
+    },
+    "scale_P": {
+      "value": 282.48,
+      "unit": "TRY/MWh",
+      "source": "asinh transform scale of the preprocessing"
+    },
+    "tvtp_coefficients": {
+      "alpha01": -0.876728,
+      "gamma01": -0.680174,
+      "alpha10": -1.347666,
+      "gamma10": 0.203006,
+      "source": "historical TVTP logistic fit",
+      "placeholder": false,
+      "placeholder_fields": []
+    },
+    "pi_filtered": {
+      "value": [
+        0.931977,
+        0.068023
+      ],
+      "source": "filtered regime probabilities at valuation"
+    }
+  },
+  "3_fixed_by_assumption": {
+    "residual_mode": "additive",
+    "residual_kappa_per_hour": 0.000385228557,
+    "residual_regime_means_m_i": [
+      0.0,
+      0.0
+    ],
+    "residual_x0_mode": "zero",
+    "sigma_transfer_rule": "delta method: sigma^X_i(t) = sigma^y_i * sqrt(F(t)^2 + scale_P^2)",
+    "january_anchor_mode": "spot_flat",
+    "january_anchor_level_TRY_MWh": null,
+    "discount_rate_r_annual": 0.4
+  },
+  "4_not_identified_without_option_prices": {
+    "volatility_risk_premium": null,
+    "sigma_risk_premium": null,
+    "eta01_transition_premium": null,
+    "eta10_transition_premium": null,
+    "regime_market_price_of_risk_lambda_i": null,
+    "reason": "Forward prices constrain only E^Q[P_t], i.e. the first moment. Volatility and regime-transition premia enter the pricing measure through higher moments and the generator, and are not identified by any number of forward quotes. Option premia are required.",
+    "how_to_identify_later": "With observed option premia, hold F(t) fixed (it is already matched) and calibrate sigma multipliers plus eta01/eta10 to the implied-volatility surface: the level of implied vol pins the sigma premium, its term structure and skew pin the transition premia."
+  }
+}
