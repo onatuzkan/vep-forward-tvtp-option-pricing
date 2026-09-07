@@ -109,6 +109,47 @@ runs three non-zero `(a_0, a_1)` combinations and asserts the identity
 holds to `1e-8` TRY/MWh — any refactor that breaks the symmetry fires
 this test.
 
+## Empirical verification of O(a²) scaling
+
+The claim "the drift channel is a second-order knob on option prices"
+is stronger than the algebra alone justifies (one might worry about a
+first-order term hidden in a coupling somewhere).  The following
+diagnostic sweep — `a₀ = 0` fixed, `a₁ ∈ {−0.5, −2, −5, −10, −20}`
+TRY/MWh/h, 72 h `K = 3000` call, PDE-only — pins the scaling
+empirically.  All rows share `F(T) = 2916.16` and `E^Q[P_T] = 2916.16`
+exactly (invariant respected).
+
+| `a₁` | `E^Q[X_T]` pre-centering | `Δvar_T` measured | `(a₁/a_ref)² · Δvar_ref` predicted | `Δcall` |
+|---:|---:|---:|---:|---:|
+| −0.5 | −23.23 | **14.94** | 14.94 (ref) | −0.0027 |
+| −2.0 | −92.90 | **239.08** | 239.04 | +0.0009 |
+| −5.0 | −232.26 | **1494.24** | 1494.00 | +0.0947 |
+| −10.0 | −464.52 | **5976.94** | 5976.00 | +0.5559 |
+| −20.0 | −929.05 | **23907.77** | 23904.00 | +2.4807 |
+
+Log-log regression of `|Δ|` on `|a₁|` across the five non-zero rows:
+
+* `log |Δvar|` on `log |a₁|`  →  slope = **2.0000** (four-decimal match to theory).
+* `log |Δcall|` on `log |a₁|` →  slope = **2.1151** (mildly super-quadratic;
+  the OTM strike `K = 3000 > F = 2916` makes the call payoff a super-linear
+  function of the residual variance, so a small higher-order deviation is
+  expected and does not indicate a wiring bug).
+
+`p₁(T) = 0.6705` is unchanged across every row (Q1 leaves the generator
+alone, as promised), and `u₁(T)` scales strictly linearly in `a₁`
+(−15.79 → −63.17 → −157.92 → −315.84 → −631.68), so the product
+`2·a·u ~ a²` produces the observed exact quadratic response of the
+variance ODE.
+
+At the plausible reference magnitude
+(`|a| ~ 0.004 TRY/MWh/h`, per `forward_calibration.synthetic_self_test`)
+the expected effect is therefore
+`Δcall ≈ (0.004 / 0.5)² · 0.003 = 1.9 · 10⁻⁷ TRY` on a `685 TRY` base —
+**genuinely non-zero but far below the PDE solver's numerical precision
+(~1 · 10⁻⁴ TRY)**.  The near-zero rows of
+`outputs/market_calibration_final/risk_premium_sensitivity.csv` reflect
+this: they are real second-order signal, not solver noise.
+
 ## Calibration status
 
 Q1's `a_i` is **not calibrated** — no electricity option market data

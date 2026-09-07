@@ -1,0 +1,77 @@
+# Project status and future work
+
+Living document.  Add a bullet under **Completed** each time a milestone
+lands on `main`; add candidates under **Future work** whenever a promising
+extension is scoped but not yet built.
+
+---
+
+## Completed
+
+1. **Handoff baseline** — accepted forward-curve calibration (six VEP monthly
+   quotes exactly reproduced, near-term anchor by `spot_to_next_linear`),
+   154 tests passing.  Commit `e019439`.
+
+2. **Repo reorganisation** — flat top-level layout, `.gitignore` added,
+   source zip removed from tracking, docs consolidated under `docs/`.
+   Commit `aec36eb`.
+
+3. **Windows UTF-8 encoding fix + near-term anchor sensitivity methodology
+   rewrite** — Turkish locale (cp1254) failures on `Path.read_text` /
+   `Path.write_text` closed by explicit `encoding="utf-8"`;
+   `near_term_anchor_sensitivity()` switched from a flat `explicit_level`
+   sweep to the production `spot_to_next_linear` ramp so the table matches
+   the anchor mode actually shipped.  Commit `72ceea2`.
+
+4. **TVTP M9 integration** — `inputs/historical/m2_frozen_parameters.yaml`
+   now carries the M9 fit under the yaml regime-label convention
+   (`index 0 = normal`, `index 1 = stress`).  Sigmas and gammas are the raw
+   M9 numbers; the missing `alpha01` / `alpha10` intercepts are DERIVED by
+   root-finding on the reported M9 mean-duration diagnostics
+   (`scripts/tvtp_derivation/derive_tvtp_parameters.py`; full write-up in
+   `docs/tvtp_derivation_methodology.md`).  `--pi-override
+   {filtered,stationary}` added to the `price` CLI so the M2-sourced
+   `pi_filtered` is switchable to the M9 stationary occupancy for short-
+   horizon work.  Placeholder-keyword detector strengthened in
+   `params_frozen.py`.  Model_limitations.md items (a)-(e) auto-generated
+   thereafter.  Commit `59955ee`.
+
+5. **Sigma-dependent diagnostic regeneration + sensitivity z-path
+   alignment + source-zip archival** — every artefact that depended on
+   the OLD placeholder sigmas rebuilt under the M9 yaml
+   (`outputs/forward_centered_diagnostics/`, `legacy_vs_forward_centered`,
+   `inputs/legacy_reference/`).  `near_term_anchor_sensitivity` now uses
+   the same climatology z path as `run_pde.py price`, so the sensitivity
+   base row reproduces the 72h benchmark (677.23 TRY/MWh) to solver
+   precision.  Raw M9 zip archived at
+   `inputs/historical/archive/calibration_bundle/`.  Commit `7986b44`.
+
+6. **Professional repo cleanup** — dead backup files removed
+   (`forward_calibration_backup.py`, `forward_centered_before_*.py`),
+   dev/derivation scripts moved to `scripts/dev_checks/` and
+   `scripts/tvtp_derivation/`, `.gitignore` UTF-16 artefact corrected,
+   `README.md` upgraded to professional standard, `requirements.txt`
+   and `requirements-dev.txt` pinned to test-verified versions.
+   Commit `07c587a`.
+
+7. **Risk-neutral Q1 drift channel wired** — `ResidualSpec` grows an
+   optional `drift_shift_per_hour`; the term enters the moment ODE
+   (`+ a_i p_i` on `u_i'`, `+ 2 a_i u_i` on `w_i'`), the pricing PDE
+   stencil (`+ a_i` on the drift row), and the MC simulator (effective
+   mean `m_eff_i = m_i + a_i/κ`).  Symmetric wiring preserves
+   `E^Q[P_t] = F(t)` exactly (verified by
+   `test_q1_drift_shift_preserves_centering`; three parametrised
+   `(a_0, a_1)` cases).  New CLI flags `--risk-premium-a0` and
+   `--risk-premium-a1` on `price`, default `(0, 0)` = physical measure =
+   every prior benchmark reproduced bit-for-bit.  Log-log diagnostic
+   confirmed the O(a²) scaling of the variance channel to 4 significant
+   digits.  Model_limitations item (f) auto-generated; full methodology
+   in `docs/risk_neutral_methodology.md`.  Commit `53adf35`.
+
+---
+
+## Future work
+
+*(To be populated iteratively.  Empty by design at first — items will be
+added per prompt, each one scoped enough to become a paper "future work"
+paragraph or a next-increment issue.)*
