@@ -87,3 +87,28 @@ extension is scoped but not yet built.
    sweep with (i) constant-transition M0 and (ii) M9, holding sigma
    values and forward curve identical, so the pure "does TVTP add value
    over constant-transition" contribution can be quantified.
+
+2. **Reconcile yaml `phi` with the M9 CSV `phi`.**  Surfaced during the
+   M8-vs-M9 robustness check
+   (`outputs/market_calibration_final/model_robustness_M8_vs_M9.md`):
+   the current `inputs/historical/m2_frozen_parameters.yaml` carries
+   `phi = 0.99961485` (kappa = 3.85e-4 /h, half-life ≈ 1799 h), while
+   the shipped `parameter_estimates.csv` reports **both** M9 and M8
+   with `phi ≈ 0.999996` (kappa ≈ 4.11e-6 /h, near unit-root, half-
+   life ≈ 168 000 h).  Investigation of the metadata JSON shows the
+   yaml `phi` was inherited from the `physical_measure_parameters`
+   fallback block — which describes a *different* model
+   (`M2_tvtp_TVTP-1`) than any row in the CSV.  The sigmas were
+   updated to M9's CSV values during the integration commit
+   (`59955ee`) while `phi` was silently left at the fallback value.
+   This is a **first-order** inconsistency: substituting M9's CSV
+   `phi` into the same pipeline moves the 336 h call by ~6 %, which
+   is 10× the M8-vs-M9 sigma-difference effect.  Action item: decide
+   which `phi` represents the physical dynamics of the transformed
+   variable `y = asinh(P / scale_P)` (there may be a delta-method /
+   preprocessing reason the fallback block used a different value),
+   commit the reconciled value into the yaml with provenance, and
+   re-run acceptance + benchmark suite.  A companion inspection of
+   whether the acceptance thresholds themselves need updating (they
+   were calibrated against the current yaml `phi` regime) should
+   accompany the change.
