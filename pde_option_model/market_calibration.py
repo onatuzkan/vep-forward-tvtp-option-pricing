@@ -480,6 +480,7 @@ def near_term_anchor_sensitivity(
     curve_mode: str = "smooth_constrained",
     option: Optional[EuropeanOption] = None,
     grid_settings: Optional[ResidualGridSettings] = None,
+    z_lagged_fn: Optional[Any] = None,
 ) -> pd.DataFrame:
     """Sensitivity of near-term results to the anchor level, under the
     production ``spot_to_next_linear`` mode.
@@ -499,6 +500,13 @@ def near_term_anchor_sensitivity(
     ``spot_consistent_at_t0=False`` for every non-trivial row, misleadingly
     implying the model was mispricing the spot for every counterfactual.  The
     ramp-based sensitivity preserves the shape actually used in production.
+
+    ``z_lagged_fn`` (optional callable ``t -> z_lagged(t)``) is forwarded to
+    the option pricer so the sensitivity uses the SAME climatology path as
+    the production ``run_pde.py price`` command; without it the pricer falls
+    back to a constant (z=0) exogenous path, which drifts by 1-2% from the
+    production benchmark.  ``cmd_calibrate_market`` in ``run_pde.py`` builds
+    the production z path once and passes it here.
     """
     rows: List[Dict[str, Any]] = []
     for lev in anchor_levels_TRY_MWh:
@@ -524,7 +532,8 @@ def near_term_anchor_sensitivity(
         for h, v in zip(REPORTING_HORIZONS_HOURS, es):
             row[f"expected_spot_{h}h_TRY_MWh"] = float(v)
         if option is not None:
-            pr = price_forward_centered(model, option, grid_settings)
+            pr = price_forward_centered(model, option, grid_settings,
+                                        z_lagged_fn=z_lagged_fn)
             row["option_type"] = option.option_type
             row["strike_TRY_MWh"] = float(option.strike)
             row["option_value_TRY_MWh"] = float(pr.value)

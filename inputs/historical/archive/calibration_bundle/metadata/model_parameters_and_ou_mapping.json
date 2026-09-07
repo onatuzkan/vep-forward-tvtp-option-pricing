@@ -1,0 +1,186 @@
+{
+  "model": "M2_tvtp_TVTP-1",
+  "target": "asinh(PTF_TRY_MWh)",
+  "time_step_hours": 1.0,
+  "n_regimes": 2,
+  "parameterization_warning": "Verify in the estimation code whether mu_i is an AR intercept or a long-run regime mean before mapping it to OU theta_i.",
+  "physical_measure_parameters": {
+    "mu0": -0.00086431,
+    "mu1": 0.00087611,
+    "sigma0_discrete": 0.0075052,
+    "sigma1_discrete": 0.1729706,
+    "phi": 0.9996148,
+    "alpha01": -0.876728,
+    "gamma01": -0.680174,
+    "alpha10": -1.347666,
+    "gamma10": 0.203006
+  },
+  "fallback_note": "These are fallback values from the current recorded M2 run. A discovered parameter file takes precedence.",
+  "discovered_parameter_files": [
+    "metadata\\deseasonalized_stationarity_summary.csv",
+    "metadata\\parameter_estimates.csv",
+    "metadata\\run_summary.json",
+    "metadata\\transition_coefficients.csv"
+  ],
+  "parsed_parameter_files": {
+    "C:\\Users\\koray\\OneDrive\\Desktop\\MarkovProject\\res-markov\\outputs\\markov_usd_final\\deseasonalized_stationarity_summary.csv": {
+      "observations": 78905.0,
+      "ADF_statistic": -8.832749832254285,
+      "ADF_p_value": 1.7517949996371363e-14,
+      "ADF_used_lags": 48.0,
+      "KPSS_statistic": 3.162884018463428,
+      "KPSS_p_value": 0.01,
+      "AR_intercept": -1.4535252007447722e-06,
+      "AR_phi": 0.924597347388146,
+      "half_life_hours": 8.841508517196026,
+      "half_life_days": 0.368396188216501
+    },
+    "C:\\Users\\koray\\OneDrive\\Desktop\\MarkovProject\\res-markov\\outputs\\markov_usd_final\\parameter_estimates.csv": {
+      "columns": [
+        "model",
+        "mu0",
+        "mu1",
+        "sigma0",
+        "sigma1",
+        "phi",
+        "loglik",
+        "swapped_labels",
+        "ambiguous_labels"
+      ],
+      "rows": 3
+    },
+    "C:\\Users\\koray\\OneDrive\\Desktop\\MarkovProject\\res-markov\\outputs\\markov_usd_final\\run_summary.json": {
+      "runtime_sec": 6873.8,
+      "n_train": 78905,
+      "n_total": 87665,
+      "best_model_val_log_score": "M9",
+      "best_model_bic": "M9",
+      "criteria_agree": true,
+      "bootstrap": null,
+      "model_table": [
+        {
+          "model": "M9",
+          "spec": "M9_student_t_tvtp_TVTP-2",
+          "k": 30,
+          "loglik_train": 100515.67695414889,
+          "AIC": -200971.35390829778,
+          "BIC": -200693.0739120123,
+          "HQIC": -200885.99331456152,
+          "converged": true,
+          "valid": true,
+          "grad_norm": 0.01917307262251502,
+          "hess_cond": 13128352911.366123,
+          "n_success_starts": 12,
+          "warnings": "large gradient norm 0.0192",
+          "val_log_score": 8502.879337158862,
+          "val_avg_log_score": 0.9706483261596874,
+          "val_nll": -8502.879337158862,
+          "val_mae_y": 0.08993885259202057,
+          "val_rmse_y": 0.14925839074365602,
+          "val_mae_price": 7.12205498765872,
+          "val_rmse_price": 11.249305591423106,
+          "val_pit_ks_p": 5.88170230877976e-17
+        },
+        {
+          "model": "M8",
+          "spec": "M8_student_t",
+          "k": 26,
+          "loglik_train": 99236.28359102552,
+          "AIC": -198420.56718205105,
+          "BIC": -198179.3911852703,
+          "HQIC": -198346.58800081295,
+          "converged": true,
+          "valid": true,
+          "grad_norm": 0.020435412209961097,
+          "hess_cond": 12101756663.688011,
+          "n_success_starts": 12,
+          "warnings": "large gradient norm 0.0204",
+          "val_log_score": 8436.245489993795,
+          "val_avg_log_score": 0.9630417226020314,
+          "val_nll": -8436.245489993795,
+          "val_mae_y": 0.08996478665707237,
+          "val_rmse_y": 0.14924493006511294,
+          "val_mae_price": 7.124744843203351,
+          "val_rmse_price": 11.247844445419874,
+          "val_pit_ks_p": 3.416477264492196e-10
+        },
+        {
+          "model": "M0",
+          "spec": "M0_constant",
+          "k": 25,
+          "loglik_train": 91921.42279559572,
+          "AIC": -183792.84559119144,
+          "BIC": -183560.94559428687,
+          "HQIC": -183721.71176307788,
+          "converged": true,
+          "valid": true,
+          "grad_norm": 0.008396328730208827,
+          "hess_cond": 353655632.6019034,
+          "n_success_starts": 0,
+          "warnings": "",
+          "val_log_score": 7245.874884173639,
+          "val_avg_log_score": 0.8271546671431095,
+          "val_nll": -7245.874884173639,
+          "val_mae_y": 0.08965634573988235,
+          "val_rmse_y": 0.1489623248270106,
+          "val_mae_price": 7.106170735445268,
+          "val_rmse_price": 11.235918660056509,
+          "val_pit_ks_p": 1.2075935394033706e-24
+        }
+      ],
+      "diagnostics": {
+        "generalized_resid_mean": -0.32476332077135234,
+        "generalized_resid_std": 10.733642681554645,
+        "rosenblatt_mean": -0.016668532564870456,
+        "rosenblatt_std": 0.9964384451410861,
+        "ljung_box_stat": 27879.732242160426,
+        "ljung_box_p": 0.0,
+        "ljung_box_lags": 24,
+        "ljung_box_sq_stat": 24979.637249331427,
+        "ljung_box_sq_p": 0.0,
+        "arch_lm_stat": 4696.5109989840785,
+        "arch_lm_p": 0.0,
+        "arch_lm_lags": 12,
+        "pit_ks_p": 8.116167574506963e-23,
+        "occupancy": [
+          0.6745780174292473,
+          0.32542198257074967
+        ],
+        "mean_duration_state0": 7.559715945771465,
+        "mean_duration_state1": 3.7591994835377665,
+        "mean_expected_duration_state0": 8.585120922438264,
+        "mean_expected_duration_state1": 4.134849768671386,
+        "expected_duration_note": "1/(1-p_ii,t) is a local approximation when P_t is time-varying",
+        "best_model": "M9"
+      },
+      "pde_generator_method": "matrix_log"
+    },
+    "C:\\Users\\koray\\OneDrive\\Desktop\\MarkovProject\\res-markov\\outputs\\markov_usd_final\\transition_coefficients.csv": {
+      "columns": [
+        "model",
+        "covariate",
+        "gamma01",
+        "gamma10",
+        "ame_p01",
+        "ame_p10"
+      ],
+      "rows": 2
+    }
+  },
+  "ou_conversion": {
+    "dt_hours": 1.0,
+    "mapping_warning": "Choose mapping A or B only after checking the exact emission equation in the fitted Markov code.",
+    "kappa_per_hour": 0.000385274208577349,
+    "half_life_hours": 1799.1009133973387,
+    "sigma0_continuous": 0.007506645826404911,
+    "sigma1_continuous": 0.17300392162510703,
+    "mapping_A_mu_is_intercept": {
+      "theta0": -2.2437954309451125,
+      "theta1": 2.2744288681206077
+    },
+    "mapping_B_mu_is_long_run_mean": {
+      "theta0": -0.00086431,
+      "theta1": 0.00087611
+    }
+  }
+}

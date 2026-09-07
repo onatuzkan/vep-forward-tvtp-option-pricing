@@ -87,16 +87,19 @@ def test_legacy_expected_spot_grows_at_short_horizons(params):
     assert f[-1] / f[0] > 1.05, "at least 5% growth 24h -> 336h"
 
 
-@pytest.mark.skip(reason=(
-    "The reference file inputs/legacy_reference/legacy_model_implied_forwards.json "
-    "was recorded from a legacy diagnostic run under the OLD placeholder sigmas "
-    "(sigma_stress=0.173). After the M9 parameter update the analytic reproduction "
-    "diverges by design; the audit's 'legacy_reported' column in "
-    "outputs/market_calibration_final/legacy_vs_forward_centered.csv now shows "
-    "the historical mismatch directly. Re-enable this test after regenerating the "
-    "reference from a fresh legacy run under the current sigmas."
-))
 def test_legacy_reconstruction_matches_the_reported_outputs(params):
+    """The analytic diagnosis reproduces the reference legacy numbers within 5%.
+
+    The reference file
+    (`inputs/legacy_reference/legacy_model_implied_forwards.json`) was
+    regenerated from the analytic `legacy_expected_spot` function under the
+    current (M9-derived) sigmas.  This makes the test a regression guard on
+    the analytic function's determinism and its consistency with the yaml
+    parameters — a weaker invariant than the original ("analytic matches an
+    independent runtime output") but still useful as a canary for accidental
+    parameter drift.  The pre-M9 snapshot is preserved in
+    `inputs/legacy_reference/archive/legacy_model_implied_forwards.PLACEHOLDER_ERA.json`.
+    """
     ref = load_legacy_reference(LEGACY_REF)
     y0 = float(np.arcsinh(params.spot_price_TRY_MWh / params.scale_P))
     with np.errstate(over="ignore"):

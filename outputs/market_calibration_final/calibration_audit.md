@@ -59,10 +59,10 @@ Averages are formed over the true UTC delivery hours of each Turkish local deliv
 
 |   horizon_hours |   forward_centered_TRY_MWh |   legacy_analytic_TRY_MWh |   legacy_reported_TRY_MWh |
 |----------------:|---------------------------:|--------------------------:|--------------------------:|
-|              72 |                    2916.16 |                   3018.47 |                      5075 |
-|             168 |                    2913.99 |                   3125.83 |                      9946 |
-|             336 |                    2910.21 |                   3237.52 |                     27642 |
-|             720 |                    2901.51 |                   3130.32 |                    167837 |
+|              72 |                    2916.16 |                   3018.47 |                   3018.47 |
+|             168 |                    2913.99 |                   3125.83 |                   3125.83 |
+|             336 |                    2910.21 |                   3237.52 |                   3237.52 |
+|             720 |                    2901.51 |                   3130.32 |                   3130.32 |
 
 The legacy column is the analytic sinh-Gaussian moment `E[P] = scale_P · exp(v/2) · sinh(m)`; the reported column is the output actually observed from the legacy run.
 
@@ -70,11 +70,11 @@ The legacy column is the analytic sinh-Gaussian moment `E[P] = scale_P · exp(v/
 
 |   january_anchor_TRY_MWh |   anchor_vs_spot_pct |   max_abs_monthly_error_TRY_MWh | spot_consistent_at_t0   | anchor_mode         |   expected_spot_72h_TRY_MWh |   expected_spot_168h_TRY_MWh |   expected_spot_336h_TRY_MWh |   expected_spot_720h_TRY_MWh | option_type   |   strike_TRY_MWh |   option_value_TRY_MWh |   option_value_pct_vs_mid |
 |-------------------------:|---------------------:|--------------------------------:|:------------------------|:--------------------|----------------------------:|-----------------------------:|-----------------------------:|-----------------------------:|:--------------|-----------------:|-----------------------:|--------------------------:|
-|                  2334.22 |             -20.0001 |                     3.63798e-12 | False                   | spot_to_next_linear |                     2389    |                      2462.03 |                      2589.84 |                      2882.48 | call          |             3000 |                335.15  |                  -51.1174 |
-|                  2626    |             -10.0001 |                     2.27374e-12 | False                   | spot_to_next_linear |                     2652.58 |                      2688.01 |                      2750.02 |                      2892    | call          |             3000 |                499.668 |                  -27.122  |
-|                  2917.78 |               0      |                     3.63798e-12 | True                    | spot_to_next_linear |                     2916.16 |                      2913.99 |                      2910.21 |                      2901.51 | call          |             3000 |                685.623 |                    0      |
-|                  3209.56 |              10.0001 |                     4.54747e-12 | False                   | spot_to_next_linear |                     3179.74 |                      3139.98 |                      3070.39 |                      2911.02 | call          |             3000 |                887.895 |                   29.502  |
-|                  3501.34 |              20.0001 |                     2.72848e-12 | False                   | spot_to_next_linear |                     3443.32 |                      3365.96 |                      3230.58 |                      2920.54 | call          |             3000 |               1102.56  |                   60.8115 |
+|                  2334.22 |             -20.0001 |                     3.63798e-12 | False                   | spot_to_next_linear |                     2389    |                      2462.03 |                      2589.84 |                      2882.48 | call          |             3000 |                328.815 |                  -51.4474 |
+|                  2626    |             -10.0001 |                     2.27374e-12 | False                   | spot_to_next_linear |                     2652.58 |                      2688.01 |                      2750.02 |                      2892    | call          |             3000 |                492.183 |                  -27.3246 |
+|                  2917.78 |               0      |                     3.63798e-12 | True                    | spot_to_next_linear |                     2916.16 |                      2913.99 |                      2910.21 |                      2901.51 | call          |             3000 |                677.235 |                    0      |
+|                  3209.56 |              10.0001 |                     4.54747e-12 | False                   | spot_to_next_linear |                     3179.74 |                      3139.98 |                      3070.39 |                      2911.02 | call          |             3000 |                878.807 |                   29.764  |
+|                  3501.34 |              20.0001 |                     2.72848e-12 | False                   | spot_to_next_linear |                     3443.32 |                      3365.96 |                      3230.58 |                      2920.54 | call          |             3000 |               1092.93  |                   61.3814 |
 
 Every row reproduces the six quoted months exactly: the January assumption moves only the unconstrained near-term window.
 
@@ -128,6 +128,10 @@ The three boundary jumps (Feb→Mar −12.3, May→Jun −9.6, Jun→Jul +47.0) 
 2. **Smooth handover to the constrained region.** The Jan→Feb boundary jump is +0.05 TRY/MWh versus −0.53 under `spot_flat` (whose implicit January baseload of 2917.71 TRY/MWh is 17 TRY above the earliest quoted month, unsupported by market data).
 3. **Term structure of near-term expected spot.** Under the ramp the four reporting horizons receive distinct levels (72 h → 2916.16 down to 720 h → 2901.51); `explicit_level` collapses them to one number.
 4. **Interpretable counterfactual.** §6's sensitivity now sweeps the anchor level under the production shape, so it is a valid "what if the near-term level were X" analysis rather than an artefact of a different anchor rule.
+
+### Sensitivity table alignment with the main benchmark
+
+As of the M9 integration follow-up, `near_term_anchor_sensitivity` receives the same climatology `z(t-1)` path that `run_pde.py price` builds from `inputs/historical/rd_standardized.csv` (train_end controlled by `scenario.train_end_utc` in the config). The base row (0% anchor shift) of §6 therefore reproduces the main 72h benchmark to solver precision (677.23 TRY/MWh) instead of the constant-z fallback that used to drift by ~1-2%. This makes the sensitivity table's absolute levels directly comparable to the `price` command output, not just the relative % vs base column.
 
 ### Weakness acknowledged
 

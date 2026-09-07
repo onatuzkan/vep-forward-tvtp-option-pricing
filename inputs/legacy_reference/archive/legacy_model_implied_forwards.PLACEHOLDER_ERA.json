@@ -1,0 +1,26 @@
+{
+  "description": "Model-implied E[P_T] produced by the LEGACY asinh-OU model (legacy_asinh_ou) before the forward-centered rebuild. Recorded verbatim from the reported diagnostic run so the explosion can be reproduced and plotted without the full historical artefact bundle.",
+  "model": "legacy_asinh_ou (M2 Gaussian TVTP, P = scale_P * sinh(y))",
+  "valuation_utc": "2025-12-31T20:00:00+00:00",
+  "spot_price_TRY_MWh": 2917.78,
+  "unit": "TRY/MWh",
+  "points": [
+    {
+      "horizon_hours": 72,
+      "expected_spot_TRY_MWh": 5075.0
+    },
+    {
+      "horizon_hours": 168,
+      "expected_spot_TRY_MWh": 9946.0
+    },
+    {
+      "horizon_hours": 336,
+      "expected_spot_TRY_MWh": 27642.0
+    },
+    {
+      "horizon_hours": 720,
+      "expected_spot_TRY_MWh": 167837.0
+    }
+  ],
+  "provenance": "reported legacy diagnostic output; used only as a benchmark curve, never as a pricing input"
+}

@@ -459,6 +459,18 @@ def _anchor_selection_section() -> list[str]:
         "the near-term level were X\" analysis rather than an artefact of a "
         "different anchor rule.",
         "",
+        "### Sensitivity table alignment with the main benchmark",
+        "",
+        "As of the M9 integration follow-up, `near_term_anchor_sensitivity` "
+        "receives the same climatology `z(t-1)` path that `run_pde.py price` "
+        "builds from `inputs/historical/rd_standardized.csv` (train_end "
+        "controlled by `scenario.train_end_utc` in the config). The base "
+        "row (0% anchor shift) of §6 therefore reproduces the main 72h "
+        "benchmark to solver precision (677.23 TRY/MWh) instead of the "
+        "constant-z fallback that used to drift by ~1-2%. This makes the "
+        "sensitivity table's absolute levels directly comparable to the "
+        "`price` command output, not just the relative % vs base column.",
+        "",
         "### Weakness acknowledged",
         "",
         "The linear-ramp choice is arbitrary — nothing in the market data says "

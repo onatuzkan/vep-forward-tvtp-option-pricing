@@ -305,9 +305,21 @@ def cmd_calibrate_market(args: argparse.Namespace) -> int:
             maturity_utc=params.valuation_utc + pd.Timedelta(
                 hours=int(_get(cfg, "contract.maturity_hours", 72))),
             r_annual=r_annual)
+        sens_gs = _grid_settings(cfg)
+        # Use the same climatology z path as `run_pde.py price`, so the
+        # sensitivity table's base row is directly comparable to the main
+        # 72h benchmark (~677 TRY/MWh under M9 sigmas) rather than to the
+        # constant-z fallback (~686).
+        try:
+            _sens_scen, sens_z_fn = _build_tvtp_scenario(opt, sens_gs, cfg, args)
+        except Exception as exc:                              # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "sensitivity climatology z path unavailable (%s); "
+                "falling back to constant z=0", exc)
+            sens_z_fn = None
         sens = near_term_anchor_sensitivity(
             quotes, params, levels, curve_mode=curve_mode, option=opt,
-            grid_settings=_grid_settings(cfg))
+            grid_settings=sens_gs, z_lagged_fn=sens_z_fn)
 
     out = write_calibration_outputs(
         result, params, args.outdir, anchor_sensitivity=sens,

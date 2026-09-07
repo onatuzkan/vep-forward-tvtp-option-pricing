@@ -3,11 +3,11 @@
   "kappa_per_hour": 0.000385228557,
   "half_life_hours": 1799.3141161649273,
   "occupancy_stress_used": 0.6746,
-  "mixture_variance_rate_per_hour": 0.02020157082205607,
-  "variance_doubling_time_hours": 68.62309734876332,
-  "stationary_variance_normal": 0.07310987985763476,
-  "stationary_variance_stress": 38.83256825163146,
-  "stationary_inflation_normal": 1.0372312878655137,
-  "stationary_inflation_stress": 270635681.5345471,
-  "stationary_inflation_mixture": 493915.75674762565
+  "mixture_variance_rate_per_hour": 0.0057644683314503065,
+  "variance_doubling_time_hours": 240.48954411917236,
+  "stationary_variance_normal": 0.016217464022597113,
+  "stationary_variance_stress": 11.08301762971461,
+  "stationary_inflation_normal": 1.0081416968194052,
+  "stationary_inflation_stress": 255.06255144388734,
+  "stationary_inflation_mixture": 42.13759891111469
 }
