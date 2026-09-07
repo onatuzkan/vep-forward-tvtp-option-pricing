@@ -59,10 +59,10 @@ Averages are formed over the true UTC delivery hours of each Turkish local deliv
 
 |   horizon_hours |   forward_centered_TRY_MWh |   legacy_analytic_TRY_MWh |   legacy_reported_TRY_MWh |
 |----------------:|---------------------------:|--------------------------:|--------------------------:|
-|              72 |                    2916.16 |                   3018.47 |                   3018.47 |
-|             168 |                    2913.99 |                   3125.83 |                   3125.83 |
-|             336 |                    2910.21 |                   3237.52 |                   3237.52 |
-|             720 |                    2901.51 |                   3130.32 |                   3130.32 |
+|              72 |                    2916.16 |                   3583.96 |                   3583.96 |
+|             168 |                    2913.99 |                   4713.7  |                   4713.7  |
+|             336 |                    2910.21 |                   7609.95 |                   7609.95 |
+|             720 |                    2901.51 |                  22686.9  |                  22686.9  |
 
 The legacy column is the analytic sinh-Gaussian moment `E[P] = scale_P · exp(v/2) · sinh(m)`; the reported column is the output actually observed from the legacy run.
 
@@ -70,11 +70,11 @@ The legacy column is the analytic sinh-Gaussian moment `E[P] = scale_P · exp(v/
 
 |   january_anchor_TRY_MWh |   anchor_vs_spot_pct |   max_abs_monthly_error_TRY_MWh | spot_consistent_at_t0   | anchor_mode         |   expected_spot_72h_TRY_MWh |   expected_spot_168h_TRY_MWh |   expected_spot_336h_TRY_MWh |   expected_spot_720h_TRY_MWh | option_type   |   strike_TRY_MWh |   option_value_TRY_MWh |   option_value_pct_vs_mid |
 |-------------------------:|---------------------:|--------------------------------:|:------------------------|:--------------------|----------------------------:|-----------------------------:|-----------------------------:|-----------------------------:|:--------------|-----------------:|-----------------------:|--------------------------:|
-|                  2334.22 |             -20.0001 |                     3.63798e-12 | False                   | spot_to_next_linear |                     2389    |                      2462.03 |                      2589.84 |                      2882.48 | call          |             3000 |                328.815 |                  -51.4474 |
-|                  2626    |             -10.0001 |                     2.27374e-12 | False                   | spot_to_next_linear |                     2652.58 |                      2688.01 |                      2750.02 |                      2892    | call          |             3000 |                492.183 |                  -27.3246 |
-|                  2917.78 |               0      |                     3.63798e-12 | True                    | spot_to_next_linear |                     2916.16 |                      2913.99 |                      2910.21 |                      2901.51 | call          |             3000 |                677.235 |                    0      |
-|                  3209.56 |              10.0001 |                     4.54747e-12 | False                   | spot_to_next_linear |                     3179.74 |                      3139.98 |                      3070.39 |                      2911.02 | call          |             3000 |                878.807 |                   29.764  |
-|                  3501.34 |              20.0001 |                     2.72848e-12 | False                   | spot_to_next_linear |                     3443.32 |                      3365.96 |                      3230.58 |                      2920.54 | call          |             3000 |               1092.93  |                   61.3814 |
+|                  2334.22 |             -20.0001 |                     3.63798e-12 | False                   | spot_to_next_linear |                     2389    |                      2462.03 |                      2589.84 |                      2882.48 | call          |             3000 |                336.077 |                  -51.0835 |
+|                  2626    |             -10.0001 |                     2.27374e-12 | False                   | spot_to_next_linear |                     2652.58 |                      2688.01 |                      2750.02 |                      2892    | call          |             3000 |                500.846 |                  -27.101  |
+|                  2917.78 |               0      |                     3.63798e-12 | True                    | spot_to_next_linear |                     2916.16 |                      2913.99 |                      2910.21 |                      2901.51 | call          |             3000 |                687.041 |                    0      |
+|                  3209.56 |              10.0001 |                     4.54747e-12 | False                   | spot_to_next_linear |                     3179.74 |                      3139.98 |                      3070.39 |                      2911.02 | call          |             3000 |                889.536 |                   29.4735 |
+|                  3501.34 |              20.0001 |                     2.72848e-12 | False                   | spot_to_next_linear |                     3443.32 |                      3365.96 |                      3230.58 |                      2920.54 | call          |             3000 |               1104.41  |                   60.7485 |
 
 Every row reproduces the six quoted months exactly: the January assumption moves only the unconstrained near-term window.
 

@@ -1,13 +1,13 @@
 {
   "warning": "legacy_asinh_ou: E[P_t] = scale_P * exp(v(t)/2) * sinh(m(t)) grows exponentially in the variance v(t) = sigma^2 (1 - e^{-2 kappa t}) / (2 kappa). With the fitted near-unit-root kappa and the stress-regime sigma this makes long-horizon expected prices economically meaningless. Use the legacy mode for short-horizon benchmarking and diagnostics only.",
-  "kappa_per_hour": 0.000385228557,
-  "half_life_hours": 1799.3141161649273,
+  "kappa_per_hour": 4.108274e-06,
+  "half_life_hours": 168719.80314846218,
   "occupancy_stress_used": 0.6746,
   "mixture_variance_rate_per_hour": 0.0057644683314503065,
   "variance_doubling_time_hours": 240.48954411917236,
-  "stationary_variance_normal": 0.016217464022597113,
-  "stationary_variance_stress": 11.08301762971461,
-  "stationary_inflation_normal": 1.0081416968194052,
-  "stationary_inflation_stress": 255.06255144388734,
-  "stationary_inflation_mixture": 42.13759891111469
+  "stationary_variance_normal": 1.520694642963079,
+  "stationary_variance_stress": 1039.2429737404368,
+  "stationary_inflation_normal": 2.13901901874909,
+  "stationary_inflation_stress": 4.6638484108498614e+225,
+  "stationary_inflation_mixture": 2.2059051553626913e+152
 }

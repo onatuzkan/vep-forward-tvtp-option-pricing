@@ -1,13 +1,13 @@
 maturity_h,model,F_T_TRY_MWh,residual_sd_T_TRY_MWh,V_regime0_TRY_MWh,V_regime1_TRY_MWh,call_TRY_MWh
-24,"M0_effective (pooled sigma, M0 kappa)",2917.2391,1919.009,724.0918,724.1042,724.0926
-24,"M0_same_kappa (pooled sigma, M9 kappa)",2917.2391,1928.993,728.0664,728.079,728.0673
-24,"M9_prod (2-regime TVTP, production)",2917.2391,1041.4672,367.8208,395.6284,369.7124
-72,"M0_effective (pooled sigma, M0 kappa)",2916.1573,3259.3169,1254.6503,1254.6571,1254.6508
-72,"M0_same_kappa (pooled sigma, M9 kappa)",2916.1573,3309.9611,1274.7814,1274.7885,1274.7819
-72,"M9_prod (2-regime TVTP, production)",2916.1573,1834.0446,684.6044,699.5721,685.6225
-168,"M0_effective (pooled sigma, M0 kappa)",2913.9938,4790.9034,1854.3089,1854.3128,1854.3092
-168,"M0_same_kappa (pooled sigma, M9 kappa)",2913.9938,4962.9604,1922.4187,1922.423,1922.4189
-168,"M9_prod (2-regime TVTP, production)",2913.9938,2769.7607,1052.1455,1061.285,1052.7672
-336,"M0_effective (pooled sigma, M0 kappa)",2910.2076,6349.8479,2450.7047,2450.707,2450.7049
-336,"M0_same_kappa (pooled sigma, M9 kappa)",2910.2076,6797.6646,2626.6286,2626.6314,2626.6288
-336,"M9_prod (2-regime TVTP, production)",2910.2076,3803.7785,1449.098,1454.8952,1449.4923
+24,"pooled_M0_kappa (pooled sigma, M0 kappa)",2917.2391,1919.0053,724.0903,724.1022,724.0911
+24,"pooled_M9_kappa (pooled sigma, M9 kappa)",2917.2391,1937.8183,731.5799,731.5921,731.5807
+24,"M9_prod (2-regime TVTP, production)",2917.2391,1038.1586,366.324,393.4486,368.1691
+72,"pooled_M0_kappa (pooled sigma, M0 kappa)",2916.1573,3259.3072,1254.6465,1254.6529,1254.6469
+72,"pooled_M9_kappa (pooled sigma, M9 kappa)",2916.1573,3355.4713,1292.8719,1292.8788,1292.8724
+72,"M9_prod (2-regime TVTP, production)",2916.1573,1838.2959,686.0264,700.9413,687.041
+168,"pooled_M0_kappa (pooled sigma, M0 kappa)",2913.9938,4790.8876,1854.3027,1854.3064,1854.3029
+168,"pooled_M9_kappa (pooled sigma, M9 kappa)",2913.9938,5122.6816,1985.6461,1985.6506,1985.6464
+168,"M9_prod (2-regime TVTP, production)",2913.9938,2823.7732,1073.2485,1082.8792,1073.9036
+336,"pooled_M0_kappa (pooled sigma, M0 kappa)",2910.2076,6349.8263,2450.6962,2450.6983,2450.6964
+336,"pooled_M9_kappa (pooled sigma, M9 kappa)",2910.2076,7237.4115,2799.3851,2799.3883,2799.3853
+336,"M9_prod (2-regime TVTP, production)",2910.2076,3998.6075,1525.3246,1532.0577,1525.7826

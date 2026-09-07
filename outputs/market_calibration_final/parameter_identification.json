@@ -11,7 +11,7 @@
   },
   "2_inherited_from_historical_M2_fit": {
     "kappa_per_hour": {
-      "value": 0.000385228557,
+      "value": 4.108274e-06,
       "source": "AR(1) phi of the historical fit"
     },
     "sigma_y_normal": {
@@ -49,7 +49,7 @@
   },
   "3_fixed_by_assumption": {
     "residual_mode": "additive",
-    "residual_kappa_per_hour": 0.000385228557,
+    "residual_kappa_per_hour": 4.108274e-06,
     "residual_regime_means_m_i": [
       0.0,
       0.0

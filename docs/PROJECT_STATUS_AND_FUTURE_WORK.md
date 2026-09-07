@@ -68,6 +68,27 @@ extension is scoped but not yet built.
    digits.  Model_limitations item (f) auto-generated; full methodology
    in `docs/risk_neutral_methodology.md`.  Commit `53adf35`.
 
+8. **`phi` reconciliation with the M9 CSV row.**  Surfaced during the
+   M8-vs-M9 robustness check: the yaml carried `phi = 0.99961485`
+   (kappa = 3.85e-4 /h, half-life ~1799 h) inherited from the metadata
+   `physical_measure_parameters` fallback block (a different model,
+   `M2_tvtp_TVTP-1`), while the shipped `parameter_estimates.csv`
+   assigns both M9 and M8 the same `phi ≈ 0.999996` (kappa 4.11e-6/h,
+   half-life ~19 years — essentially a random walk on the transformed
+   variable).  Yaml updated to the M9 CSV value; `kappa_per_hour` and
+   `half_life_hours` re-derived; pre-fix yaml archived to
+   `inputs/historical/archive/m2_frozen_parameters.PRE_PHI_FIX.yaml`.
+   Test thresholds updated for the new stationary quantities: the
+   normal-regime stationary inflation factor is now O(1) instead of
+   ~1.04, the stress-regime factor is astronomical (~1e225), the OU
+   half-life invariant expects ~168720 h instead of ~1800 h.  All
+   sigma-dependent artefacts (calibration outputs, scenario sweep,
+   risk-premium sensitivity, pooled-vs-M9 comparison, robustness
+   comparison, diagnostics, legacy reference) regenerated under the
+   reconciled kappa; the M8-vs-M9 robustness gap is preserved
+   (~-0.60 % at every maturity, up from -0.62 % pre-fix), confirming
+   the sigma-difference finding is kappa-independent.
+
 ---
 
 ## Future work
@@ -88,20 +109,15 @@ extension is scoped but not yet built.
    values and forward curve identical, so the pure "does TVTP add value
    over constant-transition" contribution can be quantified.
 
-2. **Reconcile yaml `phi` with the M9 CSV `phi`.**  Surfaced during the
-   M8-vs-M9 robustness check
-   (`outputs/market_calibration_final/model_robustness_M8_vs_M9.md`):
-   the current `inputs/historical/m2_frozen_parameters.yaml` carries
-   `phi = 0.99961485` (kappa = 3.85e-4 /h, half-life ≈ 1799 h), while
-   the shipped `parameter_estimates.csv` reports **both** M9 and M8
-   with `phi ≈ 0.999996` (kappa ≈ 4.11e-6 /h, near unit-root, half-
-   life ≈ 168 000 h).  Investigation of the metadata JSON shows the
-   yaml `phi` was inherited from the `physical_measure_parameters`
+2. ~~**Reconcile yaml `phi` with the M9 CSV `phi`.**~~
+   **RESOLVED** in the phi-fix commit; see Completed item 8.  Note
+   retained here in strikethrough for audit continuity:
+   the yaml `phi` was inherited from the `physical_measure_parameters`
    fallback block — which describes a *different* model
    (`M2_tvtp_TVTP-1`) than any row in the CSV.  The sigmas were
    updated to M9's CSV values during the integration commit
    (`59955ee`) while `phi` was silently left at the fallback value.
-   This is a **first-order** inconsistency: substituting M9's CSV
+   This was a **first-order** inconsistency: substituting M9's CSV
    `phi` into the same pipeline moves the 336 h call by ~6 %, which
    is 10× the M8-vs-M9 sigma-difference effect.  Action item: decide
    which `phi` represents the physical dynamics of the transformed
@@ -112,3 +128,22 @@ extension is scoped but not yet built.
    whether the acceptance thresholds themselves need updating (they
    were calibrated against the current yaml `phi` regime) should
    accompany the change.
+
+3. **Legacy-explosion figure as motivation for the paper's "why
+   forward-centering" section.**  Under the reconciled near-unit-root
+   kappa (4.11e-6/h), the legacy sinh-Gaussian model's stress-regime
+   stationary inflation factor is `exp(sigma_stress² / (4 kappa)) ≈
+   4.66e+225` — up from ~255 under the pre-fix kappa.  This is *not
+   a bug*: it is the same `exp(v(t)/2)` pathology of the legacy asinh-
+   OU model, just more sharply exposed once the near-unit-root
+   dynamics are correctly represented.  For the paper's "why we chose
+   forward-centering over the legacy transform" section, the
+   astronomical figure is a **far stronger quantitative argument** than
+   the pre-fix 255× number: it directly demonstrates that the legacy
+   model's long-horizon expected price is not merely "inflated" but
+   *catastrophically undefined* at pricing-relevant horizons.  Action
+   item: promote this figure (with the derivation
+   `exp(sigma²/(4 kappa))`, the sigma_stress = 0.0924 M9 value, and
+   the reconciled kappa) into the "Model choice" or "Motivation"
+   section of the manuscript, with a plot from
+   `outputs/forward_centered_diagnostics/legacy_explosion_table.csv`.

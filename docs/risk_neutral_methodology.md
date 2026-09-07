@@ -14,7 +14,10 @@ the **Q1 drift channel** into the forward-centered model.
 
 Under Q1, transition intensities are unchanged (`q_ij^Q = q_ij^P`) and only
 the per-regime drift is shifted.  Three equivalent parameterisations are
-exposed in `MeasureAdjustment`; because `kappa ≈ 3.852e-4/h` is tiny, the
+exposed in `MeasureAdjustment`; because `kappa ≈ 4.11e-6/h` is tiny (near
+unit-root, half-life ~19 years — reconciled from the earlier 3.85e-4/h in the
+phi-fix commit; see `docs/tvtp_derivation_methodology.md` and
+`docs/PROJECT_STATUS_AND_FUTURE_WORK.md` completed item 8), the
 raw drift shift is the numerically best-conditioned knob:
 
 ```

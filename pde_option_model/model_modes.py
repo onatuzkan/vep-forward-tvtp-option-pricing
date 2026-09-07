@@ -666,5 +666,19 @@ def _limitations_markdown(result: CalibrationResult,
         "the drift channel leaves the forward-curve identity intact and only "
         "moves higher moments (variance -> option value).",
         "",
+        "### (g) Within-regime phi vs deseasonalized single-regime AR fit — open consistency question",
+        "",
+        "M9's regime-conditional phi (0.999996) implies a within-regime OU "
+        "half-life of ~19.25 years -- three orders of magnitude longer than the "
+        "~8.84-hour half-life computed on the deseasonalized single-regime "
+        "series (`metadata/model_parameters_and_ou_mapping.json`, "
+        "`discovered_parameter_files`).  This divergence is plausible in "
+        "principle for a Markov-switching AR(1) (high within-regime persistence "
+        "combined with frequent regime transitions can still produce "
+        "fast-appearing marginal dynamics), but has NOT been independently "
+        "verified against the original M9 fitting process.  Treated as an open "
+        "consistency question, not a resolved one; flagged for follow-up with "
+        "the original model author if possible.",
+        "",
     ]
     return "\n".join(lines) + "\n"

@@ -24,9 +24,20 @@ def test_price_transform_roundtrip():
 
 
 def test_ar_to_ou_mapping_matches_the_frozen_parameters(params):
+    """kappa = -ln(phi)/dt; half-life = ln(2)/kappa.
+
+    After the phi-fix commit (reconciling yaml phi to the M9 CSV phi
+    = 0.999995891734), kappa ~4.11e-6/h and half-life ~168 720 h ~19.25
+    years — essentially a random walk on the transformed variable.
+    """
     ou = transformations.ar_to_ou(params.phi, (1e-3, -1e-3), (0.0075, 0.1730))
     assert abs(ou.kappa_per_hour + np.log(params.phi)) < 1e-12
-    assert abs(ou.half_life_hours - 1800.0) < 5.0
+    expected_half_life = float(np.log(2) / (-np.log(params.phi)))
+    assert abs(ou.half_life_hours - expected_half_life) < 5.0
+    assert expected_half_life > 100_000.0, (
+        "phi is expected to be near unit-root; if this fires, either the yaml "
+        "regressed or the estimation output has been re-fitted at a different "
+        "time scale")
 
 
 def test_generator_matrix_log_roundtrip():

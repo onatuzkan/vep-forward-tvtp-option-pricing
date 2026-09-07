@@ -1,6 +1,6 @@
 scenario,a0_normal_TRY_MWh_per_hour,a1_stress_TRY_MWh_per_hour,F_T_TRY_MWh,expected_spot_T_TRY_MWh,residual_sd_T_TRY_MWh,V_regime0_normal_TRY_MWh,V_regime1_stress_TRY_MWh,call_value_TRY_MWh,call_delta_vs_baseline_TRY_MWh,call_delta_vs_baseline_pct
-baseline (P measure),0.0,0.0,2916.1573,2916.1573,1834.0446,684.6044,699.5721,685.6225,0.0,0.0
-symmetric small positive,0.004,0.004,2916.1573,2916.1573,1834.0446,684.6046,699.5723,685.6228,0.0002,0.0
-symmetric small negative,-0.004,-0.004,2916.1573,2916.1573,1834.0446,684.6041,699.5718,685.6223,-0.0003,-0.0
-asymmetric stress-only,0.0,-0.02,2916.1573,2916.1573,1834.0446,684.6045,699.5537,685.6214,-0.0011,-0.0002
-large-magnitude stress,0.0,-0.5,2916.1573,2916.1573,1834.0487,684.6332,699.1384,685.6199,-0.0027,-0.0004
+baseline (P measure),0.0,0.0,2916.1573,2916.1573,1838.2959,686.0264,700.9413,687.041,0.0,0.0
+symmetric small positive,0.004,0.004,2916.1573,2916.1573,1838.2959,686.0267,700.9416,687.0412,0.0003,0.0
+symmetric small negative,-0.004,-0.004,2916.1573,2916.1573,1838.2959,686.0262,700.941,687.0407,-0.0003,-0.0
+asymmetric stress-only,0.0,-0.02,2916.1573,2916.1573,1838.2959,686.0265,700.9234,687.0398,-0.0012,-0.0002
+large-magnitude stress,0.0,-0.5,2916.1573,2916.1573,1838.3003,686.0545,700.5199,687.0385,-0.0025,-0.0004

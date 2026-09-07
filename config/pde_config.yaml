@@ -66,8 +66,8 @@ measure:
   # Q2 — Q1 plus regime-switching premia q^Q = q^P e^eta
   spec: Q1
   # Long-run-mean shift delta_i (in y units) applied to theta_i. Near-unit-root
-  # phi makes this a WEAK lever (1/(1-phi) ~ 2600 amplification of intercepts
-  # but delta itself enters 1:1 while the pull kappa ~ 3.85e-4/h is tiny).
+  # phi makes this a WEAK lever (1/(1-phi) ~ 244000 amplification of intercepts
+  # but delta itself enters 1:1 while the pull kappa ~ 4.11e-6/h is tiny).
   theta_shift: [0.0, 0.0]
   # Direct additive drift a_i (per hour, y units): dy += a_i dt. The EFFECTIVE
   # lever for matching forwards at day-ahead horizons (a ~ -0.0088/h flattens

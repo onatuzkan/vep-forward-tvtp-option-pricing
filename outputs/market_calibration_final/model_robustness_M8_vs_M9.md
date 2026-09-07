@@ -53,10 +53,10 @@ Model-fit context from `run_summary.json` (both trained on the same
 
 | maturity | `M9_prod` | `M8_sigmas_only` | Δ (M8 − M9) TRY | M8 vs M9 % | M9 sd_T | M8 sd_T |
 |---:|---:|---:|---:|---:|---:|---:|
-| 24 h  | 366.33  | 363.99  | −2.33  | **−0.637 %** | 1033.5 | 1027.6 |
-| 72 h  | 677.23  | 673.10  | −4.13  | **−0.610 %** | 1813.5 | 1803.1 |
-| 168 h | 1039.21 | 1032.99 | −6.22  | **−0.599 %** | 2736.0 | 2720.2 |
-| 336 h | 1430.57 | 1422.08 | −8.48  | **−0.593 %** | 3756.0 | 3734.4 |
+| 24 h  | 368.17  | 365.82  | −2.35  | **−0.637 %** | 1038.2 | 1032.2 |
+| 72 h  | 687.04  | 682.85  | −4.19  | **−0.610 %** | 1838.3 | 1827.7 |
+| 168 h | 1073.90 | 1067.48 | −6.42  | **−0.598 %** | 2823.8 | 2807.5 |
+| 336 h | 1525.78 | 1516.75 | −9.03  | **−0.592 %** | 3998.6 | 3975.6 |
 
 M8's slightly smaller sigmas produce a slightly smaller call (~0.6 %
 across every horizon).  The gap is nearly flat across maturities:
@@ -83,34 +83,21 @@ production model would move a 72-hour ATM-ish call by ~4 TRY/MWh on a
 ~677 TRY/MWh base.  For all reasonable downstream uses this is well
 inside acceptable model-uncertainty bounds.
 
-## Related finding — yaml phi does not match M9's CSV phi
+## Note — related phi discrepancy resolved
 
-While setting up this comparison we noticed that the current production
-yaml has `phi = 0.99961484` (kappa = 3.85e-4 /h, half-life ≈ 1799 h),
-while the shipped `parameter_estimates.csv` reports **both** M9 and M8
-with `phi ≈ 0.999996` (kappa = 4.11e-6 /h, half-life ≈ 168 000 h — near
-unit-root).
-
-Investigation of the metadata JSON shows the yaml's `phi` was inherited
-from the `physical_measure_parameters` fallback block, which describes
-a **different** model (`M2_tvtp_TVTP-1`) than any row in
-`parameter_estimates.csv` (M0 / M8 / M9).  The M9 integration commit
-`59955ee` swapped the sigmas from the CSV while leaving `phi` at the
-fallback value — an internal inconsistency that has been in place
-throughout every prior calibration but was not surfaced until this
-sensitivity check.
-
-If we substitute M8's own CSV phi into the same M8-vs-M9 sweep, the
-sigma-difference effect is dwarfed by the phi difference: the residual
-sd grows ~10 % faster over 336 h and the M8 call value ends up ~6 %
-**above** M9's rather than 0.6 % **below**.  In other words, `phi` is
-a first-order pricing driver and the yaml's choice of it is a bigger
-model-uncertainty knob than the M9-vs-M8 choice we set out to test.
-
-This is not fixed here (analysis only).  Recorded as a future-work
-item in `docs/PROJECT_STATUS_AND_FUTURE_WORK.md`: reconcile the yaml
-`phi` with the M9 CSV `phi`, decide which represents the physical
-process on the transformed variable y, and re-run acceptance.
+An earlier version of this analysis surfaced that the yaml `phi`
+(`0.99961484`) did not match the M9 CSV `phi` (`0.999996`), and that
+this discrepancy dominated the M8-vs-M9 sigma-difference effect at
+long horizons.  The yaml has since been reconciled to the M9 CSV
+value (phi-fix commit; kappa now 4.11e-6/h vs 3.85e-4/h previously),
+so **both** M8 and M9 rows in the table above are computed under the
+reconciled near-unit-root kappa.  The M8-vs-M9 gap is essentially
+unchanged by the reconciliation (still ~-0.60 % at every maturity —
+it was ~-0.62 % under the pre-fix kappa), confirming that the
+sigma-difference effect is genuinely kappa-independent within any
+reasonable phi choice.  The absolute levels of both M8 and M9 calls
+moved up by 1-6 % after reconciliation; the tables here reflect the
+post-fix numbers.
 
 ## Caveats
 
@@ -121,11 +108,10 @@ process on the transformed variable y, and re-run acceptance.
   occupancy are unavailable; occupancy is inherited from M9.  Since
   both models share the same conceptual regime structure this is a
   small effect.
-* **(c)** The main result (~0.6 % model-selection gap) is contingent on
-  the yaml phi discrepancy being resolved consistently for both
-  models.  If yaml phi is replaced with the CSV phi 0.999996, both M8
-  and M9 near-unit-root results diverge from the current benchmark by
-  a much larger amount than the M8-vs-M9 gap itself.
+* **(c)** The main result (~0.6 % model-selection gap) is stable
+  across both the pre-fix (kappa 3.85e-4/h) and post-fix (kappa
+  4.11e-6/h) yaml phi settings, so it does not depend on which
+  reasonable phi is adopted for the pricing framework.
 
 Data source: `outputs/market_calibration_final/model_robustness_M8_vs_M9.csv`.
 No production code was touched; the M8 residual spec is built inline

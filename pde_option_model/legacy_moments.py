@@ -22,10 +22,16 @@ is the SIZE of the growth.  The inflation factor at stationarity is
 
     exp( v_inf / 2 ) = exp( sigma^2 / (4 kappa) )
 
-and with the fitted M2 numbers (kappa = 3.85e-4 /h, half-life ~1800 h) this is:
+and with the reconciled M9 numbers (kappa = 4.11e-6 /h, half-life ~19 years)
+this is:
 
-    normal regime  sigma = 0.0075  ->  v_inf =  0.073  ->  factor 1.04   (harmless)
-    stress regime  sigma = 0.1730  ->  v_inf = 38.9    ->  factor 2.7e8  (fatal)
+    normal regime  sigma = 0.00353 ->  v_inf =  1.52   ->  factor 2.14    (already O(1))
+    stress regime  sigma = 0.0924  ->  v_inf = 1039    ->  factor ~1e225  (astronomical)
+
+The pre-2026 fallback-sourced yaml carried kappa = 3.85e-4 /h and reported
+normal-regime factor ~1.04, stress-regime factor ~1e8; the reconciled
+near-unit-root kappa makes the legacy sinh-Gaussian output even more
+unusable at long horizons, without changing the qualitative diagnosis.
 
 For short horizons v(t) ~ sigma^2 t, so the bias DOUBLES every
 ``2 ln 2 / sigma^2`` hours.  With the long-run stress occupancy of the fitted

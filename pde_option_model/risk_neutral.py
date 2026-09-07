@@ -11,11 +11,13 @@ Q1 (baseline)  -- transition intensities unchanged, q_ij^Q = q_ij^P;
                     * theta_shift  delta_i : theta_i^Q = theta_i^P + delta_i
                     * drift_shift  a_i     : b_i^Q = b_i^P + a_i   [per hour]
                     * market price of risk lambda_i : b_i^Q = b_i^P - lambda_i sigma_i
-                  Because kappa = -ln(phi) ~ 3.85e-4 / h is tiny, theta shifts
-                  act on the drift only through kappa*delta_i; the direct
-                  drift shift a_i (= kappa * delta_i) is the numerically
-                  better-conditioned knob and is the one exposed to the
-                  forward calibrator by default.
+                  Because kappa = -ln(phi) ~ 4.11e-6 /h is tiny (near unit
+                  root; the older fallback-sourced yaml carried 3.85e-4/h
+                  before commit reconciling phi to the M9 CSV row), theta
+                  shifts act on the drift only through kappa*delta_i;
+                  the direct drift shift a_i (= kappa * delta_i) is the
+                  numerically better-conditioned knob and is the one
+                  exposed to the forward calibrator by default.
 
 Q2 (extended)  -- additionally allows transition risk premia
                     q_ij^Q(t) = q_ij^P(t) * exp(eta_ij),

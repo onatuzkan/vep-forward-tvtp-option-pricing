@@ -42,11 +42,18 @@ def test_monthly_average_of_expected_spot_equals_the_vep_quote(model, quotes):
 
 
 def test_centering_works_with_nonzero_regime_means(curve_smooth, params, make_model):
-    """E[P_t] = F(t) must hold even when the conditional regime means are non-zero."""
+    """E[P_t] = F(t) must hold even when the conditional regime means are non-zero.
+
+    Under the M9-CSV-reconciled kappa (~4.1e-6/h, half-life ~19 years) the
+    residual mean moves much more slowly than under the previous fallback
+    kappa; the "non-zero E[X] before centering" check is therefore run on
+    a longer 5000 h horizon so the drift toward the regime means is
+    observable.  The centering invariant itself is horizon-independent.
+    """
     m = make_model(curve_smooth, params, regime_means=(150.0, -400.0))
-    t = np.arange(0.0, 721.0, 1.0)
+    t = np.arange(0.0, 5001.0, 5.0)
     mom = m.moments(t)
-    assert np.max(np.abs(mom.mean)) > 1.0, "regime means should move E[X] before centering"
+    assert np.max(np.abs(mom.mean)) > 0.1, "regime means should move E[X] before centering"
     s = m.residual_summary(t)
     assert np.max(np.abs(s["expected_spot_TRY_MWh"] - s["forward_TRY_MWh"])) < 1e-8
 

@@ -29,15 +29,9 @@ model: "M9_student_t_tvtp (single-covariate reduction: RD_lag1 only; yaml-swappe
 scale_P: 282.48                # TRY/MWh; y = asinh(P/scale_P), P = scale_P*sinh(y)
 
 # --- mean reversion ----------------------------------------------------------
-# phi/kappa reconciled to the M9 CSV row on the shipped calibration bundle
-# (`parameter_estimates.csv`).  The prior yaml carried phi=0.99961485 from
-# the metadata JSON `physical_measure_parameters` fallback block, which
-# described a different model (M2_tvtp_TVTP-1); this was a silent
-# inconsistency introduced by commit 59955ee (sigmas swapped to M9 while
-# phi was left at the fallback).  See docs/tvtp_derivation_methodology.md.
-phi: 0.999995891734
-kappa_per_hour: 4.108274e-06
-half_life_hours: 168719.8         # = ln(2)/kappa  (essentially a random walk on this scale)
+phi: 0.999614845634
+kappa_per_hour: 0.000385228557
+half_life_hours: 1799.3141        # = ln(2)/kappa  (near unit root)
 
 # --- regime volatilities (per sqrt(hour), in y units) ------------------------
 sigma_y_normal: 0.0035348070      # raw M9 sigma1 (low-vol state, yaml-swapped)
@@ -84,16 +78,8 @@ provenance:
     prepared_meta.json) are NOT present in the current inputs/ tree, so 282.48
     is trusted on faith and cannot be re-derived from the shipped historical
     series alone.  Documented in model_limitations.md.
-  phi: >-
-    estimated: M9 row of parameter_estimates.csv (0.999995891734).
-    Reconciled from the prior handoff value 0.99961484 (which came from
-    an unrelated metadata block) during the phi-fix commit; see
-    docs/tvtp_derivation_methodology.md.
-  kappa_per_hour: >-
-    transformed: kappa = -ln(phi)/dt, dt = 1 h.  With phi 0.999995891734
-    this gives kappa 4.11e-6/h (half-life ~19 years), i.e. the residual
-    process is essentially a random walk on the transformed variable
-    y = asinh(P/scale_P) over any pricing-relevant horizon.
+  phi: "estimated: M2 row of parameter_estimates.csv"
+  kappa_per_hour: "transformed: kappa = -ln(phi)/dt, dt = 1 h"
   sigma_y_normal: >-
     estimated: M9 parameter_estimates.csv sigma1 (low-vol state);
     regime-label swapped to match yaml convention (index 0 = normal).

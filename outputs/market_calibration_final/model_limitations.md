@@ -26,14 +26,14 @@ Label of every price produced here: **VEP-forward-curve anchored option prices**
 
 2. **Option prices depend on inherited volatility.** The forward calibration is exactly invariant to σ (the centering ODE has no σ term), so a wrong σ cannot break the monthly fit — but it moves every option value one-for-one. Option prices are therefore *level-anchored, volatility-assumed*.
 
-3. **Residual dispersion inherits a near-unit-root κ.** With κ = 3.852e-04/h (half-life 1799 h) the residual standard deviation keeps growing over the horizon:
+3. **Residual dispersion inherits a near-unit-root κ.** With κ = 4.108e-06/h (half-life 168720 h) the residual standard deviation keeps growing over the horizon:
 
 | horizon | F(t) (TRY/MWh) | residual sd (TRY/MWh) | sd / F |
 |---|---|---|---|
-| 72 h | 2916.2 | 1834.0 | 0.63 |
-| 168 h | 2914.0 | 2769.8 | 0.95 |
-| 336 h | 2910.2 | 3803.8 | 1.31 |
-| 720 h | 2901.5 | 5195.7 | 1.79 |
+| 72 h | 2916.2 | 1858.7 | 0.64 |
+| 168 h | 2914.0 | 2858.0 | 0.98 |
+| 336 h | 2910.2 | 4048.6 | 1.39 |
+| 720 h | 2901.5 | 5921.5 | 2.04 |
 
    In the **additive** residual mode this admits negative simulated prices at long horizons — economically wrong for PTF, which is floored at zero. The additive mode is appropriate at day-ahead to few-week horizons; use `residual_mode: multiplicative` for month-scale work, where prices stay positive by construction. Either way the monthly forward fit is unaffected.
 
@@ -77,4 +77,8 @@ M9's raw fit puts the high-volatility state at index 0 (occupancy 67.5%, duratio
 ### (f) Risk-neutral drift adjustment (Q1) is wired but UNCALIBRATED
 
 The `run_pde.py price` command accepts `--risk-premium-a0` and `--risk-premium-a1` (TRY/MWh per hour, regime-0 and regime-1 respectively), which apply a Q1 drift shift `a_i` on the residual SDE.  The shift is threaded symmetrically into the moment ODE and the pricing PDE / MC simulator, so `E^Q[P_t] = F(t)` is preserved exactly (guarded by `tests/test_forward_centered.py::test_q1_drift_shift_preserves_centering`).  However, **no electricity option market data exists to estimate a real market price of risk**, so the flags are UNCALIBRATED sensitivity scenarios only.  Default `(0, 0)` reproduces every prior benchmark bit-for-bit -- the physical-measure intensities are used as-is, which is the zero-risk-premium assumption.  See `docs/risk_neutral_methodology.md` for the mathematical proof that the drift channel leaves the forward-curve identity intact and only moves higher moments (variance -> option value).
+
+### (g) Within-regime phi vs deseasonalized single-regime AR fit — open consistency question
+
+M9's regime-conditional phi (0.999996) implies a within-regime OU half-life of ~19.25 years -- three orders of magnitude longer than the ~8.84-hour half-life computed on the deseasonalized single-regime series (`metadata/model_parameters_and_ou_mapping.json`, `discovered_parameter_files`).  This divergence is plausible in principle for a Markov-switching AR(1) (high within-regime persistence combined with frequent regime transitions can still produce fast-appearing marginal dynamics), but has NOT been independently verified against the original M9 fitting process.  Treated as an open consistency question, not a resolved one; flagged for follow-up with the original model author if possible.
 

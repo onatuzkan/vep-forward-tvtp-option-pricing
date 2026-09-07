@@ -38,18 +38,21 @@ def test_second_moment_identity():
 def test_stress_regime_stationary_inflation_is_catastrophic(params):
     """The core regression: sigma_stress with a near-unit-root kappa explodes.
 
-    Numerical threshold updated for the M9-derived sigmas (sigma_stress
-    ~0.092 vs the old placeholder ~0.173).  Under the new sigmas the
-    stationary inflation factor is ~255 (was ~1e37 under the placeholder);
-    still 2+ orders of magnitude above the normal regime, still catastrophic
-    for long-horizon expected-price computations.
+    After the phi-fix commit (kappa ~4.1e-6/h, half-life ~19 years), the
+    stationary inflation factor `exp(sigma^2/(4 kappa))` is exp(~0.76) ~
+    2.14 for the normal regime and vastly larger for the stress regime.
+    Both regimes are technically unbounded at infinity; the "normal is
+    harmless" threshold is relaxed accordingly.  What still matters is the
+    stress-vs-normal contrast, which grows because kappa is in the
+    exponent's denominator.
     """
     f_normal = stationary_inflation_factor(params.sigma_normal, params.kappa_per_hour)
     f_stress = stationary_inflation_factor(params.sigma_stress, params.kappa_per_hour)
-    assert f_normal < 1.1, "the normal regime alone is harmless"
-    assert f_stress > 100.0, "the stress regime must be flagged as explosive"
-    assert f_stress / max(f_normal, 1.0) > 100.0, "stress/normal ratio must be large"
-    assert stationary_variance(params.sigma_stress, params.kappa_per_hour) > 5.0
+    assert f_normal < 10.0, "the normal regime is O(1) under near-unit-root kappa"
+    assert f_stress > 1.0e6, "the stress regime must be flagged as explosive"
+    assert f_stress / max(f_normal, 1.0) > 1.0e5, (
+        "stress/normal contrast must dominate normal-regime uncertainty")
+    assert stationary_variance(params.sigma_stress, params.kappa_per_hour) > 100.0
 
 
 def test_variance_doubling_time_is_short_relative_to_a_month(params):

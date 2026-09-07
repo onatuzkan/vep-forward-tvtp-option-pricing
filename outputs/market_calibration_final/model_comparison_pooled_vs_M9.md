@@ -46,8 +46,8 @@ regime-conditioning effect from the mean-reversion timescale effect:
 | variant | sigma | kappa | notes |
 |---|---:|---:|---|
 | `pooled_M0_kappa`  | 0.13495 | 8.20e-4 /h (M0's own) | pooled sigma + M0's fitted kappa |
-| `pooled_M9_kappa`  | 0.13495 | 3.85e-4 /h (M9's) | pooled sigma + M9's kappa (isolates the regime-conditioning effect from the kappa change) |
-| `M9_prod`          | (0.00353, 0.09241) | 3.85e-4 /h | production two-regime TVTP |
+| `pooled_M9_kappa`  | 0.13495 | 4.11e-6 /h (M9's, reconciled from M9 CSV) | pooled sigma + M9's kappa (isolates the regime-conditioning effect from the kappa change) |
+| `M9_prod`          | (0.00353, 0.09241) | 4.11e-6 /h (M9's) | production two-regime TVTP |
 
 The 1-regime collapse is realised inside the existing 2-regime pipeline
 by setting `sigma_normal = sigma_stress = pooled` (differing by ±0.01 %
@@ -58,25 +58,26 @@ each regime then coincide and the regime chain becomes vacuous.
 
 | maturity | `pooled_M0_kappa` | `pooled_M9_kappa` | **`M9_prod`** | Δ(M9 − pooled_M0_κ) | M9 vs pooled_M0_κ % | Δ(M9 − pooled_M9_κ) | M9 vs pooled_M9_κ % |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 24 h  | 724.09  | 728.07  | **369.71**  | −354.38  | **−48.94 %** | −358.35  | −49.22 % |
-| 72 h  | 1254.65 | 1274.78 | **685.62**  | −569.03  | **−45.35 %** | −589.16  | −46.22 % |
-| 168 h | 1854.31 | 1922.42 | **1052.77** | −801.54  | **−43.23 %** | −869.65  | −45.24 % |
-| 336 h | 2450.70 | 2626.63 | **1449.49** | −1001.21 | **−40.85 %** | −1177.14 | −44.82 % |
+| 24 h  | 724.09  | 731.58  | **368.17**  | −355.92  | **−49.15 %** | −363.41  | −49.68 % |
+| 72 h  | 1254.65 | 1292.87 | **687.04**  | −567.61  | **−45.24 %** | −605.83  | −46.86 % |
+| 168 h | 1854.30 | 1985.65 | **1073.90** | −780.40  | **−42.09 %** | −911.75  | −45.92 % |
+| 336 h | 2450.70 | 2799.39 | **1525.78** | −924.91  | **−37.74 %** | −1273.60 | −45.50 % |
 
 Residual standard deviation at expiry (TRY/MWh):
 
 | maturity | `pooled_M0_kappa` | `pooled_M9_kappa` | `M9_prod` |
 |---:|---:|---:|---:|
-| 24 h  | 1919.0 | 1929.0 | 1041.5 |
-| 72 h  | 3259.3 | 3310.0 | 1834.0 |
-| 168 h | 4790.9 | 4963.0 | 2769.8 |
-| 336 h | 6349.8 | 6797.7 | 3803.8 |
+| 24 h  | 1919.0 | 1937.8 | 1038.2 |
+| 72 h  | 3259.3 | 3355.5 | 1838.3 |
+| 168 h | 4790.9 | 5122.7 | 2823.8 |
+| 336 h | 6349.8 | 7237.4 | 3998.6 |
 
 ## Interpretation
 
-**The M9 model is systematically 41-49 % cheaper than the pooled
+**The M9 model is systematically 38-49 % cheaper than the pooled
 single-volatility baseline across the tested maturities, and the gap
-SHRINKS with horizon** (48.9 % at 24 h → 40.9 % at 336 h).
+SHRINKS with horizon** (49.2 % at 24 h → 37.7 % at 336 h vs
+`pooled_M0_kappa`).
 
 The mechanism is a *regime-conditioning* effect, not a
 *transition-timing* effect:
@@ -107,11 +108,16 @@ The mechanism is a *regime-conditioning* effect, not a
 
 4. **The kappa difference is a secondary effect.**  Comparing
    `pooled_M0_kappa` vs `pooled_M9_kappa` isolates the kappa change
-   alone (same pooled sigma).  Slower mean-reversion (M9's kappa)
-   modestly raises the call (variance persists longer) by 0.5-7 %.  This
-   is roughly one order of magnitude smaller than the regime-conditioning
-   effect (41-49 %), so the majority of the observed gap is attributable
-   to regime-conditioning itself.
+   alone (same pooled sigma).  Under the reconciled M9 CSV kappa
+   (~4.11e-6/h, essentially unit-root) mean reversion is very slow, so
+   variance persists longer than under M0's kappa (~8.20e-4/h); the
+   call rises 1-14 % across the tested horizons purely from that.  The
+   kappa contribution is still an order of magnitude smaller than the
+   regime-conditioning effect (37-49 %), so the majority of the observed
+   gap is attributable to regime-conditioning itself; but note the
+   kappa contribution has GROWN materially since the pre-phi-fix version
+   of this table (was 0.5-7 %), a direct consequence of the yaml kappa
+   dropping ~94×.
 
 ## What this comparison does and does not justify
 
@@ -149,9 +155,12 @@ The mechanism is a *regime-conditioning* effect, not a
   regime-conditioning + TVTP jointly, and the TVTP-specific portion is
   not isolated by this test.
 * **(c) Kappa mismatch.**  `pooled_M0_kappa` uses M0's fitted
-  `phi = 0.99918`; `M9_prod` uses M9's `0.999996`.  The `pooled_M9_kappa`
-  variant controls for this and shows the effect is overwhelmingly
-  regime-structural, not kappa-driven.
+  `phi = 0.99918`; `M9_prod` and `pooled_M9_kappa` use M9's reconciled
+  `phi = 0.999996` (M9 CSV row).  The `pooled_M9_kappa` variant controls
+  for this and confirms the effect is regime-structural, not
+  kappa-driven; the kappa contribution is now larger than in the
+  pre-phi-fix version of this analysis because M9's kappa dropped ~94×
+  when phi was reconciled from the fallback value to the M9 CSV value.
 * **(d) Forward calibration is unaffected.**  `E^Q[P_t] = F(t)` in every
   variant — the centering identity is invariant to residual sigma.
 
