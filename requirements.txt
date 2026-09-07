@@ -1,0 +1,7 @@
+# Runtime dependencies for the forward-centered PDE option model.
+# Pinned to the versions the current test suite (169 passed) is verified against.
+numpy==1.26.4
+pandas==2.3.3
+scipy==1.16.2
+matplotlib==3.10.7
+PyYAML==6.0.3

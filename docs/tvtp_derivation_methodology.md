@@ -1,15 +1,16 @@
 # M9 → yaml Convention TVTP Derivation
 
-**Draft only.** No production file was modified. Nothing is committed.
+Methodology appendix.  The values produced by this derivation live in
+`inputs/historical/m2_frozen_parameters.yaml` (committed in `59955ee`).
 
 Purpose: (a) re-label the M9 fit under the yaml convention (`index0=normal`,
 `index1=stress`), and (b) recover the missing `alpha01`, `alpha10` from the
 long-run duration/occupancy diagnostics reported alongside the M9 fit.
 
 Artefacts:
-* `_derive.py` — the derivation script
-* `derived_tvtp_parameters.yaml` — the draft parameter set
-* `derivation_summary.json` — machine-readable diagnostic block
+* `scripts/tvtp_derivation/derive_tvtp_parameters.py` — the derivation script
+* `outputs/market_calibration_final/archive/tvtp_integration_draft/derived_tvtp_parameters.yaml` — the draft parameter set
+* `outputs/market_calibration_final/archive/tvtp_integration_draft/derivation_summary.json` — machine-readable diagnostic block
 
 ---
 
@@ -220,17 +221,17 @@ re-run the full acceptance suite AND spot-check the option value change.
 
 ---
 
-## Files in this draft folder
+## Files that back this derivation
 
-* `_derive.py` — reproducible derivation script (no external dependencies
-  beyond scipy)
-* `derived_tvtp_parameters.yaml` — the draft parameter set with full
-  provenance comments
-* `derivation_summary.json` — machine-readable summary of raw inputs, yaml
-  outputs, and cross-check numbers
-* `DERIVATION_REPORT.md` — this report
+* `scripts/tvtp_derivation/derive_tvtp_parameters.py` — reproducible
+  derivation script (no external dependencies beyond scipy)
+* `outputs/market_calibration_final/archive/tvtp_integration_draft/derived_tvtp_parameters.yaml`
+  — the draft parameter set with full provenance comments
+* `outputs/market_calibration_final/archive/tvtp_integration_draft/derivation_summary.json`
+  — machine-readable summary of raw inputs, yaml outputs, and cross-check numbers
+* `outputs/market_calibration_final/archive/tvtp_integration_draft/DERIVATION_REPORT.md`
+  — the frozen-in-time version of this report (as it was at draft time)
 
-Production files unchanged: `inputs/historical/m2_frozen_parameters.yaml`,
-`pde_option_model/params_frozen.py`, everything under
-`outputs/market_calibration_final/*` outside `archive/`.
-No commit; nothing staged.
+Production consumers of these values: `inputs/historical/m2_frozen_parameters.yaml`,
+`pde_option_model/params_frozen.py`, and every artefact under
+`outputs/market_calibration_final/*` produced by `run_pde.py calibrate-market`.
