@@ -72,6 +72,18 @@ extension is scoped but not yet built.
 
 ## Future work
 
-*(To be populated iteratively.  Empty by design at first — items will be
-added per prompt, each one scoped enough to become a paper "future work"
-paragraph or a next-increment issue.)*
+1. **TVTP-specific ablation.**  The current pooled-baseline-vs-M9
+   comparison (`outputs/market_calibration_final/model_comparison_pooled_vs_M9.md`)
+   demonstrates that *regime-conditioning* materially changes option
+   prices, but cannot separate the contribution of *time-varying*
+   transition probabilities from that of a plain two-regime
+   *constant-transition* alternative.  Isolating the TVTP-specific
+   contribution requires M0's fitted alpha / gamma (constant-transition
+   logistic coefficients), which are **not present in this handoff
+   bundle** — `inputs/historical/archive/calibration_bundle/transition_coefficients.csv`
+   contains only M9 rows.  When M0's alpha / gamma become available
+   (either recovered from the estimation team or re-estimated on the
+   shipped hourly series), run the same 24 / 72 / 168 / 336 h call
+   sweep with (i) constant-transition M0 and (ii) M9, holding sigma
+   values and forward curve identical, so the pure "does TVTP add value
+   over constant-transition" contribution can be quantified.
