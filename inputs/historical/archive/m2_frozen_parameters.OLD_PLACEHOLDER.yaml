@@ -1,0 +1,78 @@
+# =============================================================================
+# Frozen historical M2 TVTP parameters (residual dynamics only)
+# =============================================================================
+# These are the ONLY quantities the forward-centered model inherits from the
+# historical estimation.  The price LEVEL comes entirely from the EPİAŞ VEP
+# forward curve; these parameters shape the residual around it.
+#
+# Regenerate from a full artefact bundle with:
+#     python run_pde.py freeze-params --input-root inputs --out inputs/historical/m2_frozen_parameters.yaml
+# =============================================================================
+description: >-
+  Frozen M2 Gaussian TVTP parameters for the Turkish day-ahead market (EPİAŞ PTF,
+  TRY/MWh).  Regime 0 = normal / low volatility, regime 1 = stress / high volatility.
+model: M2_tvtp (Gaussian TVTP, 2 regimes, transition covariate = standardized RD_WS lag 1h)
+
+# --- price transform ---------------------------------------------------------
+scale_P: 282.48                # TRY/MWh; y = asinh(P/scale_P), P = scale_P*sinh(y)
+
+# --- mean reversion ----------------------------------------------------------
+phi: 0.999614845634
+kappa_per_hour: 0.000385228557
+half_life_hours: 1799.3141        # = ln(2)/kappa  (near unit root)
+
+# --- regime volatilities (per sqrt(hour), in y units) ------------------------
+sigma_y_normal: 0.0075052
+sigma_y_stress: 0.1729706
+
+# --- TVTP logistic transition coefficients -----------------------------------
+# p01 = logistic(alpha01 + gamma01 * z_{t-1}),  p10 = logistic(alpha10 + gamma10 * z_{t-1})
+tvtp:
+  alpha01: -0.876728
+  gamma01: -0.680174
+  alpha10: -1.347666
+  gamma10:  0.203006
+  covariate: RD_WS_standardized_lag1h
+  placeholder: false
+  placeholder_note: >-
+    The uploaded calibration bundle contains only the pde_option_model package
+    source; parameter_estimates.csv, transition_coefficients.csv and
+    metadata/model_parameters_and_ou_mapping.json were NOT included, so the
+    fitted TVTP intercepts and slopes could not be read.  The stand-in values
+    encode expected regime durations of ~300 h (normal) and ~20 h (stress) at
+    z = 0, giving a stationary stress share of ~6.3% consistent with the
+    reported filtered pi_stress = 0.068, and the economically signed slopes
+    gamma01 > 0 > gamma10 (higher residual demand raises stress risk).
+    They affect ONLY option prices, never the forward-curve calibration or its
+    acceptance criteria.  Replace via `run_pde.py freeze-params`.
+
+# --- valuation state ---------------------------------------------------------
+pi_filtered: [0.931977, 0.068023]    # [normal, stress] filtered probabilities at valuation
+spot_price_TRY_MWh: 2917.78
+valuation_utc: "2025-12-31T20:00:00+00:00"   # = 2025-12-31 23:00 Turkish time
+covariate_lag_hours: 1.0
+
+# --- legacy diagnostic reference ---------------------------------------------
+# Long-run stress occupancy documented in the bundle's own markov_adapter
+# docstring (shipped occupancy 0.6746 / 0.3254, high-vol state first).
+stationary_pi_stress: 0.6746
+# Effective long-run theta (y units) that reproduces the four reported legacy
+# model-implied forwards to within 2% under the frozen-occupancy sinh-Gaussian
+# moment formula.  Used ONLY to draw the legacy benchmark curve.
+legacy_theta_effective: -3.074964
+
+provenance:
+  scale_P: "estimated: preprocessing metadata (training median absolute price)"
+  phi: "estimated: M2 row of parameter_estimates.csv"
+  kappa_per_hour: "transformed: kappa = -ln(phi)/dt, dt = 1 h"
+  sigma_y_normal: "transformed: exact AR(1)->OU map of sigma_eps_0"
+  sigma_y_stress: "transformed: exact AR(1)->OU map of sigma_eps_1"
+  pi_filtered: "estimated: filtered regime probabilities at the valuation timestamp"
+  spot_price_TRY_MWh: "estimated: last observed hourly PTF of the sample"
+  valuation_utc: "estimated: last timestamp of the historical hourly sample"
+  stationary_pi_stress: "estimated: long-run smoothed stress occupancy of the shipped filter"
+  legacy_theta_effective: "transformed: 1-parameter fit to the four reported legacy forwards"
+tvtp.alpha01: "estimated: M2 transition_coefficients.csv"
+tvtp.gamma01: "estimated: M2 transition_coefficients.csv"
+tvtp.alpha10: "estimated: M2 transition_coefficients.csv"
+tvtp.gamma10: "estimated: M2 transition_coefficients.csv"

@@ -12,29 +12,30 @@
   "2_inherited_from_historical_M2_fit": {
     "kappa_per_hour": {
       "value": 0.000385228557,
-      "source": "AR(1) phi of the historical M2 fit"
+      "source": "AR(1) phi of the historical fit"
     },
     "sigma_y_normal": {
-      "value": 0.0075052,
+      "value": 0.003534807,
       "unit": "per sqrt(hour), y units",
-      "source": "M2 regime-0 residual sd, AR->OU mapped"
+      "source": "M9 sigma1 (low-vol state), regime-label swapped to yaml convention"
     },
     "sigma_y_stress": {
-      "value": 0.1729706,
+      "value": 0.0924066544,
       "unit": "per sqrt(hour), y units",
-      "source": "M2 regime-1 residual sd, AR->OU mapped"
+      "source": "M9 sigma0 (high-vol state), regime-label swapped to yaml convention"
     },
     "scale_P": {
       "value": 282.48,
       "unit": "TRY/MWh",
-      "source": "asinh transform scale of the preprocessing"
+      "source": "preprocessing metadata (training median absolute price); source files pde_export.json / prepared_meta.json NOT present in current inputs, value trusted on faith"
     },
     "tvtp_coefficients": {
-      "alpha01": -0.876728,
-      "gamma01": -0.680174,
-      "alpha10": -1.347666,
-      "gamma10": 0.203006,
-      "source": "historical TVTP logistic fit",
+      "alpha01": -1.0156656066,
+      "gamma01": -0.5837780825,
+      "alpha10": -1.8952294098,
+      "gamma10": 0.0776983936,
+      "gamma_source": "M9 transition_coefficients.csv (RD_lag1 covariate only; RD_Ramp_1h_lag1 excluded — omitted-variable risk documented in model_limitations.md), regime-label swapped to yaml convention",
+      "alpha_source": "DERIVED, not estimated: occupancy/duration-constrained root-finding on the M9 gamma coefficients (see docs/tvtp_derivation_methodology.md); NOT an MLE estimate, no standard error attached",
       "placeholder": false,
       "placeholder_fields": []
     },

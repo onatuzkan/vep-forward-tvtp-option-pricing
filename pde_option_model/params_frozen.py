@@ -37,6 +37,30 @@ logger = logging.getLogger(__name__)
 
 PLACEHOLDER_TAG = "placeholder"
 
+# Provenance-text markers that flag a field as a placeholder even when the
+# structured `tvtp.placeholder` flag is False.  Matched case-insensitively as
+# whole-word substrings.  Kept small and specific to reduce false positives:
+# "assumed"/"trusted on faith" are legitimate provenance qualifiers for values
+# that are known but unverifiable, whereas the words below all imply the value
+# itself is a stand-in.
+_PLACEHOLDER_KEYWORDS: tuple[str, ...] = (
+    "placeholder",
+    "stand-in",
+    "standin",
+    "stand in",
+    "not included",
+    "not present in the bundle",
+    "fallback",
+)
+
+
+def _provenance_indicates_placeholder(text: str) -> bool:
+    """True if the provenance string contains any placeholder-signalling keyword."""
+    if not text:
+        return False
+    lo = str(text).lower()
+    return any(k in lo for k in _PLACEHOLDER_KEYWORDS)
+
 
 class FrozenParameterError(ValueError):
     """Raised on a malformed or internally inconsistent frozen parameter file."""
@@ -60,6 +84,7 @@ class FrozenM2Parameters:
     covariate_lag_hours: float = 1.0
     stationary_pi_stress: Optional[float] = None
     legacy_theta_effective: Optional[float] = None
+    m9_stationary_pi: Optional[np.ndarray] = None    # optional alternative for --pi-override
     provenance: Dict[str, str] = field(default_factory=dict)
     placeholders: List[str] = field(default_factory=list)
     source_file: Optional[str] = None
@@ -79,6 +104,13 @@ class FrozenM2Parameters:
             raise FrozenParameterError("pi_filtered must have shape (2,)")
         if np.any(self.pi_filtered < 0) or abs(self.pi_filtered.sum() - 1.0) > 1e-8:
             raise FrozenParameterError("pi_filtered must be a probability vector")
+        if self.m9_stationary_pi is not None:
+            self.m9_stationary_pi = np.asarray(self.m9_stationary_pi, dtype=float)
+            if (self.m9_stationary_pi.shape != (2,)
+                    or np.any(self.m9_stationary_pi < 0)
+                    or abs(self.m9_stationary_pi.sum() - 1.0) > 1e-6):
+                raise FrozenParameterError(
+                    "m9_stationary_pi must be a two-vector on the simplex")
         if not 0.0 < self.phi < 1.0:
             raise FrozenParameterError("phi must lie in (0, 1)")
         if self.kappa_per_hour <= 0:
@@ -150,7 +182,16 @@ def load_frozen_parameters(path: str | Path) -> FrozenM2Parameters:
         raise FrozenParameterError(f"{p.name}: expected a YAML mapping")
 
     prov: Dict[str, str] = dict(blob.get("provenance", {}) or {})
-    placeholders = [k for k, v in prov.items() if str(v).startswith(PLACEHOLDER_TAG)]
+    # Two placeholder signals, taken as OR:
+    #   (1) provenance string starts with the "placeholder" tag OR contains any
+    #       of the keywords in _PLACEHOLDER_KEYWORDS.  Catches stand-in fields
+    #       whose author forgot to also flip the structured flag.
+    #   (2) the structured tvtp.placeholder boolean, which flags all four
+    #       TVTP coefficients at once.
+    placeholders: list[str] = [
+        k for k, v in prov.items()
+        if str(v).startswith(PLACEHOLDER_TAG) or _provenance_indicates_placeholder(str(v))
+    ]
 
     def need(key: str) -> Any:
         if key not in blob or blob[key] is None:
@@ -186,6 +227,8 @@ def load_frozen_parameters(path: str | Path) -> FrozenM2Parameters:
                               else float(blob["stationary_pi_stress"])),
         legacy_theta_effective=(None if blob.get("legacy_theta_effective") is None
                                 else float(blob["legacy_theta_effective"])),
+        m9_stationary_pi=(None if blob.get("m9_stationary_pi") is None
+                          else np.asarray(blob["m9_stationary_pi"], dtype=float)),
         provenance=prov, placeholders=sorted(set(placeholders)), source_file=str(p),
     )
     logger.info("frozen M2 parameters loaded from %s (%d placeholder fields)",

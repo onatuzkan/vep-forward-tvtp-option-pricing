@@ -1,0 +1,56 @@
+# =============================================================================
+# DRAFT — Derived TVTP parameters under the yaml convention (index0=normal,
+# index1=stress).  Produced by outputs/tvtp_integration_draft/_derive.py.
+# NOT a production artefact.  Do not merge into inputs/historical/ without an
+# explicit review sign-off.
+# =============================================================================
+
+model: M9_student_t_tvtp_TVTP-2 (single-covariate reduction: RD_lag1 only)
+convention: "index 0 = normal (low sigma), index 1 = stress (high sigma)"
+covariate: RD_WS_standardized_lag1h
+
+# --- regime volatilities (per sqrt(hour), y = asinh(P / scale_P)) ----------
+# Discrete AR(1) sigma_eps; near-unit-root kappa makes continuous OU sigma
+# numerically identical to two decimals.
+sigma_y_normal: 0.0035348070       # = raw M9 sigma1 (low-vol state)
+sigma_y_stress: 0.0924066544       # = raw M9 sigma0 (high-vol state)
+
+# --- TVTP logistic transition coefficients (yaml convention) --------------
+tvtp:
+  alpha01: -1.0156656066      # derived by root-finding
+  gamma01: -0.5837780825      # = raw M9 gamma10 (state1->state0 raw = normal->stress in yaml)
+  alpha10: -1.8952294098      # derived by root-finding
+  gamma10: 0.0776983936      # = raw M9 gamma01 (state0->state1 raw = stress->normal in yaml)
+  placeholder: false
+
+# --- yaml-convention diagnostics (from raw M9, swap-applied) --------------
+occupancy_normal: 0.325422     # = raw M9 occupancy_state1
+occupancy_stress: 0.674578     # = raw M9 occupancy_state0
+mean_duration_normal_hours: 3.759199
+mean_duration_stress_hours: 7.559716
+
+# --- consistency check (target 0 <= diff <= 0.05 for a good fit) -----------
+consistency_check:
+  target_avg_p01_normal_to_stress: 0.266014
+  achieved_avg_p01: 0.266014
+  target_avg_p10_stress_to_normal: 0.132280
+  achieved_avg_p10: 0.132280
+  implied_pi_stress_ergodic_avg_rate: 0.667883   # target 0.674578
+  implied_pi_stress_simulated_mean:  0.644119
+  implied_pi_stress_simulated_sd:    0.002614
+  simulation_reps: 10
+  simulation_seed: 20260906
+
+provenance:
+  sigma_y_normal:  "raw M9 parameter_estimates.csv sigma1 (state1=low-vol)"
+  sigma_y_stress:  "raw M9 parameter_estimates.csv sigma0 (state0=high-vol)"
+  gamma01:         "raw M9 transition_coefficients.csv gamma10 (RD_lag1); swap enforces yaml convention"
+  gamma10:         "raw M9 transition_coefficients.csv gamma01 (RD_lag1); swap enforces yaml convention"
+  alpha01:         "DERIVED: brentq root-finding, target E_z[logistic(a+gamma01*z)] = 1/mean_duration_normal, z = inputs/historical/rd_standardized.csv (87665 hours)"
+  alpha10:         "DERIVED: brentq root-finding, target E_z[logistic(a+gamma10*z)] = 1/mean_duration_stress"
+  occupancy_normal: "raw M9 occupancy[1] (yaml swap)"
+  occupancy_stress: "raw M9 occupancy[0] (yaml swap)"
+
+invariant_check:
+  sigma_normal_lt_sigma_stress: true
+  # params_frozen.py FrozenM2Parameters.__post_init__ requires True.

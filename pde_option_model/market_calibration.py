@@ -181,19 +181,31 @@ def parameter_identification(params: FrozenM2Parameters,
         },
         "2_inherited_from_historical_M2_fit": {
             "kappa_per_hour": {"value": params.kappa_per_hour,
-                               "source": "AR(1) phi of the historical M2 fit"},
+                               "source": "AR(1) phi of the historical fit"},
             "sigma_y_normal": {"value": params.sigma_normal,
                                "unit": "per sqrt(hour), y units",
-                               "source": "M2 regime-0 residual sd, AR->OU mapped"},
+                               "source": ("M9 sigma1 (low-vol state), "
+                                          "regime-label swapped to yaml convention")},
             "sigma_y_stress": {"value": params.sigma_stress,
                                "unit": "per sqrt(hour), y units",
-                               "source": "M2 regime-1 residual sd, AR->OU mapped"},
+                               "source": ("M9 sigma0 (high-vol state), "
+                                          "regime-label swapped to yaml convention")},
             "scale_P": {"value": params.scale_P, "unit": "TRY/MWh",
-                        "source": "asinh transform scale of the preprocessing"},
+                        "source": ("preprocessing metadata (training median absolute "
+                                   "price); source files pde_export.json / "
+                                   "prepared_meta.json NOT present in current inputs, "
+                                   "value trusted on faith")},
             "tvtp_coefficients": {
                 "alpha01": params.alpha01, "gamma01": params.gamma01,
                 "alpha10": params.alpha10, "gamma10": params.gamma10,
-                "source": "historical TVTP logistic fit",
+                "gamma_source": ("M9 transition_coefficients.csv (RD_lag1 covariate "
+                                 "only; RD_Ramp_1h_lag1 excluded — omitted-variable "
+                                 "risk documented in model_limitations.md), "
+                                 "regime-label swapped to yaml convention"),
+                "alpha_source": ("DERIVED, not estimated: occupancy/duration-"
+                                 "constrained root-finding on the M9 gamma "
+                                 "coefficients (see docs/tvtp_derivation_methodology.md); "
+                                 "NOT an MLE estimate, no standard error attached"),
                 "placeholder": bool(params.placeholders),
                 "placeholder_fields": params.placeholders,
             },

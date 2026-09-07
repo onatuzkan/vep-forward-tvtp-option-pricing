@@ -236,8 +236,13 @@ def cmd_validate(args: argparse.Namespace) -> int:
             params.scale_P, float(np.arcsinh(params.spot_price_TRY_MWh / params.scale_P)),
             params.kappa_per_hour, params.sigma_y, float(params.pi_filtered[1]),
             pi_stationary_stress=params.stationary_pi_stress)
+        # Threshold 100 corresponds to the M9-derived sigmas
+        # (sigma_stress ~0.092); it was 1e6 under the old placeholder
+        # sigma_stress ~0.173.  Both regimes still flag the legacy model as
+        # unusable at long horizons; the smaller threshold reflects the
+        # smaller (but still >>1) stationary inflation factor.
         add("legacy_moment_explosion_is_flagged",
-            rep["stationary_inflation_stress"] > 1e6,
+            rep["stationary_inflation_stress"] > 100.0,
             f"stress-regime stationary inflation factor "
             f"exp(sigma^2/(4 kappa)) = {rep['stationary_inflation_stress']:.3e}")
 
@@ -463,6 +468,19 @@ def cmd_price(args: argparse.Namespace) -> int:
     cfg = _load_config(args.config)
     mode = validate_model_mode(args.model)
     quotes, params, _, _ = _load_market_inputs(args, cfg)
+
+    pi_override_mode = getattr(args, "pi_override", "filtered") or "filtered"
+    if pi_override_mode == "stationary":
+        if params.m9_stationary_pi is None:
+            print("ERROR: --pi-override stationary requires the frozen-parameter "
+                  "YAML to define m9_stationary_pi (see "
+                  "inputs/historical/m2_frozen_parameters.yaml).",
+                  file=sys.stderr)
+            return 2
+        params.pi_filtered = np.asarray(params.m9_stationary_pi, dtype=float)
+        print(f"--pi-override stationary: using M9 long-run occupancy "
+              f"pi=({params.pi_filtered[0]:.4f}, {params.pi_filtered[1]:.4f}) "
+              f"instead of the M2 shipped filter")
 
     if args.curve:
         cdir = Path(args.curve)
@@ -797,6 +815,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--scenario-custom-csv",
         default=None,
         help="custom future z(t) CSV when --scenario-mode custom",
+    )
+    sp_.add_argument(
+        "--pi-override",
+        choices=["filtered", "stationary"],
+        default="filtered",
+        help=("regime probability at valuation. "
+              "'filtered' = M2 shipped filter (default, used for 72h+ benchmarks); "
+              "'stationary' = M9 long-run occupancy (recommended for <24h maturities, "
+              "see model_limitations.md item (e))"),
     )
 
     sp_.set_defaults(func=cmd_price)

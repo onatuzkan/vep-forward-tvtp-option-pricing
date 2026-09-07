@@ -32,12 +32,12 @@ historical_parameters:
   phi: 0.999614845634
   kappa_per_hour: 0.000385228557
   half_life_hours: 1799.3141161649273
-  sigma_y_normal_per_sqrt_hour: 0.0075052
-  sigma_y_stress_per_sqrt_hour: 0.1729706
-  tvtp_alpha01: -0.876728
-  tvtp_gamma01: -0.680174
-  tvtp_alpha10: -1.347666
-  tvtp_gamma10: 0.203006
+  sigma_y_normal_per_sqrt_hour: 0.003534807
+  sigma_y_stress_per_sqrt_hour: 0.0924066544
+  tvtp_alpha01: -1.0156656066
+  tvtp_gamma01: -0.5837780825
+  tvtp_alpha10: -1.8952294098
+  tvtp_gamma10: 0.0776983936
   pi_filtered_normal: 0.931977
   pi_filtered_stress: 0.068023
   spot_price_TRY_MWh: 2917.78
