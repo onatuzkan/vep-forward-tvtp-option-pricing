@@ -77,6 +77,33 @@ def test_multiplicative_mode_is_also_centred(curve_smooth, params, make_model):
     assert np.max(np.abs(s["expected_spot_TRY_MWh"] - s["forward_TRY_MWh"])) < 1e-6
 
 
+@pytest.mark.parametrize("a0,a1", [
+    (0.01, -0.02),          # asymmetric small
+    (0.05, 0.05),           # symmetric positive
+    (-0.03, 0.02),          # asymmetric mixed-sign
+])
+def test_q1_drift_shift_preserves_centering(curve_smooth, params, make_model,
+                                            a0, a1):
+    """A non-zero Q1 drift shift must NOT break E^Q[P_t] = F(t).
+
+    The drift shift enters both the moment ODE (via + a_i p_i on u_i and
+    + 2 a_i u_i on w_i) and the pricing PDE drift (via + a_i in
+    price_forward_centered.drift_fn) symmetrically, so mu_X(t) absorbs it
+    exactly and the residual mean cancels in F(t) + X_t - mu_X(t).
+    Also verifies that the mean residual E[X_t] is meaningfully non-zero
+    before centering (otherwise the test would be vacuous).
+    """
+    m = make_model(curve_smooth, params,
+                   drift_shift_per_hour=(a0, a1))
+    t = np.arange(0.0, 721.0, 1.0)
+    mom = m.moments(t)
+    assert np.max(np.abs(mom.mean)) > 1e-3, (
+        "drift shift should move E[X] meaningfully before centering")
+    s = m.residual_summary(t)
+    assert np.max(np.abs(s["expected_spot_TRY_MWh"]
+                         - s["forward_TRY_MWh"])) < 1e-8
+
+
 # --------------------------------------------------------------------------
 # finite moments
 # --------------------------------------------------------------------------

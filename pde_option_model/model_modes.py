@@ -648,5 +648,23 @@ def _limitations_markdown(result: CalibrationResult,
         "yaml) for sensitivity analysis; see "
         "`docs/tvtp_derivation_methodology.md` for the full derivation.",
         "",
+        "### (f) Risk-neutral drift adjustment (Q1) is wired but UNCALIBRATED",
+        "",
+        "The `run_pde.py price` command accepts `--risk-premium-a0` and "
+        "`--risk-premium-a1` (TRY/MWh per hour, regime-0 and regime-1 "
+        "respectively), which apply a Q1 drift shift `a_i` on the residual "
+        "SDE.  The shift is threaded symmetrically into the moment ODE and "
+        "the pricing PDE / MC simulator, so `E^Q[P_t] = F(t)` is preserved "
+        "exactly (guarded by `tests/test_forward_centered.py::"
+        "test_q1_drift_shift_preserves_centering`).  However, **no electricity "
+        "option market data exists to estimate a real market price of risk**, "
+        "so the flags are UNCALIBRATED sensitivity scenarios only.  Default "
+        "`(0, 0)` reproduces every prior benchmark bit-for-bit -- the "
+        "physical-measure intensities are used as-is, which is the "
+        "zero-risk-premium assumption.  See "
+        "`docs/risk_neutral_methodology.md` for the mathematical proof that "
+        "the drift channel leaves the forward-curve identity intact and only "
+        "moves higher moments (variance -> option value).",
+        "",
     ]
     return "\n".join(lines) + "\n"

@@ -109,7 +109,16 @@ class ForwardCenteredError(ValueError):
 # ---------------------------------------------------------------------------
 @dataclass
 class ResidualSpec:
-    """Configuration of the two-regime residual process."""
+    """Configuration of the two-regime residual process.
+
+    ``drift_shift_per_hour`` is a Q1-style per-regime drift adjustment
+    (``a_i`` in TRY/MWh per hour): the residual SDE becomes
+    ``dX = [kappa (m_i - X) + a_i] dt + sigma_i dW``.  It is threaded
+    symmetrically into both the moment ODE and the pricing PDE / MC
+    simulator, so ``E^Q[P_t] = F(t)`` is preserved by construction (see
+    ``docs/risk_neutral_methodology.md``).  Default (0, 0) reproduces the
+    physical measure exactly.
+    """
 
     kappa_per_hour: float
     sigma_y: np.ndarray                       # (2,) historical y-space volatilities
@@ -119,14 +128,18 @@ class ResidualSpec:
     mode: ResidualMode = "additive"
     x0_mode: X0Mode = "zero"
     sigma_multipliers: np.ndarray = field(default_factory=lambda: np.ones(2))
+    drift_shift_per_hour: np.ndarray = field(  # a_i, TRY/MWh per hour, Q1 drift channel
+        default_factory=lambda: np.zeros(2))
 
     def __post_init__(self) -> None:
         self.sigma_y = np.asarray(self.sigma_y, dtype=float)
         self.regime_means = np.asarray(self.regime_means, dtype=float)
         self.sigma_multipliers = np.asarray(self.sigma_multipliers, dtype=float)
+        self.drift_shift_per_hour = np.asarray(self.drift_shift_per_hour, dtype=float)
         for nm, arr in (("sigma_y", self.sigma_y),
                         ("regime_means", self.regime_means),
-                        ("sigma_multipliers", self.sigma_multipliers)):
+                        ("sigma_multipliers", self.sigma_multipliers),
+                        ("drift_shift_per_hour", self.drift_shift_per_hour)):
             if arr.shape != (2,):
                 raise ForwardCenteredError(f"{nm} must have shape (2,)")
         if np.any(self.sigma_y <= 0) or np.any(self.sigma_multipliers <= 0):
@@ -151,7 +164,8 @@ class ResidualSpec:
                     kappa_per_hour: Optional[float] = None,
                     regime_means: Optional[Sequence[float]] = None,
                     x0_mode: X0Mode = "zero",
-                    sigma_multipliers: Sequence[float] = (1.0, 1.0)) -> "ResidualSpec":
+                    sigma_multipliers: Sequence[float] = (1.0, 1.0),
+                    drift_shift_per_hour: Sequence[float] = (0.0, 0.0)) -> "ResidualSpec":
         return cls(
             kappa_per_hour=float(kappa_per_hour if kappa_per_hour is not None
                                  else params.kappa_per_hour),
@@ -160,6 +174,7 @@ class ResidualSpec:
                                     else (0.0, 0.0), dtype=float),
             mode=mode, x0_mode=x0_mode,
             sigma_multipliers=np.asarray(sigma_multipliers, dtype=float),
+            drift_shift_per_hour=np.asarray(drift_shift_per_hour, dtype=float),
         )
 
 
@@ -233,6 +248,7 @@ def residual_moments(
 
     k = spec.kappa_per_hour
     m = spec.regime_means
+    a = spec.drift_shift_per_hour       # Q1 drift channel (see docs/risk_neutral_methodology.md)
 
     def interp(arr: np.ndarray, tt: float) -> np.ndarray:
         return np.array([np.interp(tt, t, arr[0]), np.interp(tt, t, arr[1])])
@@ -246,10 +262,14 @@ def residual_moments(
         q01t, q10t = float(qq[0]), float(qq[1])
         dp = np.array([-q01t * p[0] + q10t * p[1],
                        q01t * p[0] - q10t * p[1]])
-        du = np.array([k * (m[0] * p[0] - u[0]) - q01t * u[0] + q10t * u[1],
-                       k * (m[1] * p[1] - u[1]) + q01t * u[0] - q10t * u[1]])
-        dw = np.array([2 * k * (m[0] * u[0] - w[0]) + s2[0] * p[0] - q01t * w[0] + q10t * w[1],
-                       2 * k * (m[1] * u[1] - w[1]) + s2[1] * p[1] + q01t * w[0] - q10t * w[1]])
+        # Q1 drift shift enters u_i via  + a_i p_i  and w_i via  + 2 a_i u_i
+        # so mu_X(t) = u_0 + u_1 absorbs the shift and E^Q[P_t] = F(t) exactly.
+        du = np.array([k * (m[0] * p[0] - u[0]) + a[0] * p[0] - q01t * u[0] + q10t * u[1],
+                       k * (m[1] * p[1] - u[1]) + a[1] * p[1] + q01t * u[0] - q10t * u[1]])
+        dw = np.array([2 * k * (m[0] * u[0] - w[0]) + 2 * a[0] * u[0]
+                       + s2[0] * p[0] - q01t * w[0] + q10t * w[1],
+                       2 * k * (m[1] * u[1] - w[1]) + 2 * a[1] * u[1]
+                       + s2[1] * p[1] + q01t * w[0] - q10t * w[1]])
         return np.concatenate([dp, du, dw])
 
     state = np.concatenate([pi0, x0 * pi0, (x0 ** 2) * pi0])
@@ -568,9 +588,10 @@ def price_forward_centered(
             f"[{grid.y_min:.3f}, {grid.y_max:.3f}]")
 
     kappa, m_i = model.spec.kappa_per_hour, model.spec.regime_means
+    a_i = model.spec.drift_shift_per_hour   # Q1 drift channel; symmetric with the moment ODE
 
     def drift_fn(tt: float) -> np.ndarray:
-        return kappa * (m_i[:, None] - grid.y[None, :])
+        return kappa * (m_i[:, None] - grid.y[None, :]) + a_i[:, None]
 
     def sigma_fn(tt: float) -> np.ndarray:
         return np.array([np.interp(tt, t, sig_path[0]),
@@ -644,6 +665,9 @@ The joint CTMC-OU simulation is time-discretized and converges as dt decreases. 
 
     k = model.spec.kappa_per_hour
     m_i = model.spec.regime_means
+    # Q1 drift shift a_i is equivalent to an effective mean m_eff_i = m_i + a_i/kappa,
+    # so the exact conditional-OU step re-uses the closed-form transition with m_eff.
+    m_eff = m_i + model.spec.drift_shift_per_hour / k
     e1 = np.exp(-k * dt)
 
     x = np.full(n_paths, model.x0, dtype=float)
@@ -656,7 +680,7 @@ The joint CTMC-OU simulation is time-discretized and converges as dt decreases. 
                        np.where((reg == 1) & (u < p10j[0]), 0, reg)).astype(np.int8)
         sig_mid = 0.5 * (sig_path[:, j] + sig_path[:, j + 1])
         sd = sig_mid * np.sqrt((1.0 - np.exp(-2 * k * dt)) / (2 * k))
-        x = m_i[reg] + (x - m_i[reg]) * e1 + sd[reg] * rng.standard_normal(n_paths)
+        x = m_eff[reg] + (x - m_eff[reg]) * e1 + sd[reg] * rng.standard_normal(n_paths)
 
     prices = model.price_from_state(x, float(f_path[-1]), float(cen[-1]))
     pay = contract.payoff_from_price(prices)

@@ -519,6 +519,12 @@ def cmd_price(args: argparse.Namespace) -> int:
     otype = args.option_type or _get(cfg, "contract.option_type", "call")
 
     model = _build_model(quotes, params, cfg, anchor, curve_mode)
+    a0 = float(getattr(args, "risk_premium_a0", 0.0) or 0.0)
+    a1 = float(getattr(args, "risk_premium_a1", 0.0) or 0.0)
+    if a0 != 0.0 or a1 != 0.0:
+        model.spec.drift_shift_per_hour = np.asarray([a0, a1], dtype=float)
+        print(f"--risk-premium: applying Q1 drift shift a=({a0:+g}, {a1:+g}) TRY/MWh/h "
+              f"(UNCALIBRATED sensitivity scenario; see model_limitations.md item (f))")
     contract = EuropeanOption(
         option_type=otype, strike=strike, valuation_utc=params.valuation_utc,
         maturity_utc=params.valuation_utc + pd.Timedelta(hours=hours),
@@ -836,6 +842,24 @@ def build_parser() -> argparse.ArgumentParser:
               "'filtered' = M2 shipped filter (default, used for 72h+ benchmarks); "
               "'stationary' = M9 long-run occupancy (recommended for <24h maturities, "
               "see model_limitations.md item (e))"),
+    )
+    sp_.add_argument(
+        "--risk-premium-a0",
+        type=float,
+        default=0.0,
+        help=("Regime-0 (normal) drift shift, TRY/MWh per hour. UNCALIBRATED "
+              "sensitivity scenario -- no electricity option market data exists "
+              "to fit a real market price of risk; see model_limitations.md item "
+              "(f). Default 0.0 reproduces the physical-measure baseline."),
+    )
+    sp_.add_argument(
+        "--risk-premium-a1",
+        type=float,
+        default=0.0,
+        help=("Regime-1 (stress) drift shift, TRY/MWh per hour. UNCALIBRATED "
+              "sensitivity scenario -- no electricity option market data exists "
+              "to fit a real market price of risk; see model_limitations.md item "
+              "(f). Default 0.0 reproduces the physical-measure baseline."),
     )
 
     sp_.set_defaults(func=cmd_price)
