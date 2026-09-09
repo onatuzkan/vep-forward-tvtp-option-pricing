@@ -666,19 +666,47 @@ def _limitations_markdown(result: CalibrationResult,
         "the drift channel leaves the forward-curve identity intact and only "
         "moves higher moments (variance -> option value).",
         "",
-        "### (g) Within-regime phi vs deseasonalized single-regime AR fit — open consistency question",
+        "### (g) Within-regime phi vs deseasonalized single-regime AR fit — resolved as a variable mismatch; downstream fix pending",
         "",
         "M9's regime-conditional phi (0.999996) implies a within-regime OU "
         "half-life of ~19.25 years -- three orders of magnitude longer than the "
         "~8.84-hour half-life computed on the deseasonalized single-regime "
         "series (`metadata/model_parameters_and_ou_mapping.json`, "
-        "`discovered_parameter_files`).  This divergence is plausible in "
-        "principle for a Markov-switching AR(1) (high within-regime persistence "
-        "combined with frequent regime transitions can still produce "
-        "fast-appearing marginal dynamics), but has NOT been independently "
-        "verified against the original M9 fitting process.  Treated as an open "
-        "consistency question, not a resolved one; flagged for follow-up with "
-        "the original model author if possible.",
+        "`discovered_parameter_files`).  Theoretical and numerical analysis in "
+        "`outputs/market_calibration_final/half_life_reconciliation.md` shows "
+        "the two numbers describe **different variables**: 19.25 y is the AR(1) "
+        "persistence of raw `asinh(PTF)` (dominated by TRY-inflation-era trend), "
+        "8.84 h is the AR(1) persistence of the deseasonalized residual "
+        "(the shock-around-anchor component).  Neither is wrong.  The "
+        "downstream issue is that the pricing model inherits the raw-y kappa "
+        "(`4.11e-6 /h`) as the OU rate of the residual X = P − F, which produces "
+        "a residual variance that grows almost linearly in time (7-13× the "
+        "empirical near-saturation observed in the 2026 backtest).  Not a code "
+        "bug in `residual_moments()` — the moment ODE is mathematically correct "
+        "given the inherited kappa.  Fix candidate: refit kappa on (P − F) "
+        "residuals directly; recorded as future-work item 5 in "
+        "`docs/PROJECT_STATUS_AND_FUTURE_WORK.md`.",
+        "",
+        "### (h) `scale_P` was fit on a 9-year window straddling severe TRY "
+        "depreciation — nominal-regime mismatch risk",
+        "",
+        "`scale_P = 282.48` is the training-window median absolute PTF, fit "
+        "over ~9 years (2016 - 2024/2025, `n_train = 78 905` hours).  This "
+        "window spans a period of extreme TRY depreciation and correspondingly "
+        "large nominal PTF inflation (annual mean PTF rose from roughly a few "
+        "hundred TRY/MWh pre-2021 to 2 000 - 3 600 TRY/MWh by 2025-2026, per "
+        "public EPİAŞ-sourced reporting).  A single 9-year median absolute "
+        "price may therefore not represent the same price 'regime' as the "
+        "current valuation point (spot 2917.78 TRY/MWh, end-2025), making the "
+        "`asinh(PTF / scale_P)` normalisation potentially mis-scaled relative "
+        "to the model's actual operating range.  The source files needed to "
+        "verify or recompute `scale_P` (`pde_export.json`, "
+        "`prepared_meta.json`) were not present in this handoff bundle and "
+        "could not be reconstructed.  Recorded as a methodological caveat "
+        "specific to modelling nominal electricity prices in a high-inflation "
+        "currency, and as future work: re-estimation on a real "
+        "(inflation-deflated) price series, or via a rolling / shorter "
+        "estimation window.",
         "",
     ]
     return "\n".join(lines) + "\n"

@@ -147,3 +147,40 @@ extension is scoped but not yet built.
    the reconciled kappa) into the "Model choice" or "Motivation"
    section of the manuscript, with a plot from
    `outputs/forward_centered_diagnostics/legacy_explosion_table.csv`.
+
+4. **Real / inflation-deflated `scale_P` re-estimation.**  Candidate
+   for Faz 3.  The current `scale_P = 282.48` is the training-window
+   median absolute PTF fit on a 9-year (2016 - 2024/25) window that
+   spans severe TRY depreciation, so it may mis-scale the
+   `asinh(PTF / scale_P)` transform relative to the end-2025
+   valuation regime (see `model_limitations.md` item (h)).  Two
+   alternatives worth exploring: (i) re-estimate on a real
+   (inflation-deflated) price series so `scale_P` represents a
+   stationary purchasing-power unit; (ii) use a rolling / shorter
+   estimation window aligned with the valuation date.  Methodologically
+   interesting given TRY's high-inflation context; could be framed as
+   a broader methodological contribution for emerging-market
+   electricity price modelling generally, not just this dataset.
+
+5. **Residual-around-F kappa refit — Faz 3 candidate, likely root cause
+   of the 7-13× variance overshoot found in the 2026 backtest.**
+   `outputs/market_calibration_final/half_life_reconciliation.md`
+   resolves the ~19 000× "half-life discrepancy" flagged in item (g)
+   of `model_limitations.md`.  Both fitted phi values (within-regime
+   0.999996 for M9, and deseasonalized-single-regime 0.9246 in the
+   summary) describe different variables (raw `asinh(PTF)` vs
+   deseasonalized residual) and are individually correct.  However,
+   the pricing model currently uses the raw-y within-regime kappa
+   (`4.11 e-6 /h`, near random walk) as the OU mean-reversion rate of
+   the residual X = P − F, which produces a residual variance that
+   grows almost linearly in time — inconsistent with the empirical
+   near-saturation of the (P − F) residual std at ~1 000 TRY/MWh
+   observed in the 2026 backtest.  Numerical simulation of the M9
+   process confirms marginal ACF ≈ `phi^h` (unit-root-like), so this
+   is a mis-inheritance in the yaml, not a code bug in the moment ODE.
+   Fix: refit `kappa_per_hour` directly on the (P − F) residual over
+   a training window (expected value near `0.0784 /h`, half-life
+   ~8.84 h); the forward-curve identity `E^Q[P_t] = F(t)` is preserved
+   regardless of kappa, so this does not require re-doing the VEP
+   calibration.  Companion sigma re-check on the same residual is
+   also warranted.
