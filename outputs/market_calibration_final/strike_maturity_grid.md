@@ -126,6 +126,63 @@ value decays as strike moves further OTM (K ≫ F).
    meaningful.  This is a strong confidence signal for the PDE stencil
    at every point in the grid.
 
+## 2D slice plots (academic alternative to a 3D surface)
+
+Two additional line plots view the same 66-point surface from the two
+canonical academic angles — a strike-slice ("smile / skew") view and a
+maturity-slice ("term structure") view.  Both use a viridis palette
+ordered by the sliced dimension (colourblind-safe), no top / right
+spines, faint horizontal grid, and 200 dpi for print.
+
+* **`strike_slices.png`** — call value vs strike, one line per maturity
+  (24 / 48 / 72 / 168 / 336 / 720 h).  Per-maturity ATM markers appear
+  as short dashed vertical lines at each maturity's F(T).  Because
+  F(T) drifts only 16 TRY/MWh across the horizon (2917 → 2901), the six
+  ATM lines nearly overlap; a single "F(T) range: 2901-2917"
+  annotation is more informative than six separate labels.
+* **`maturity_slices.png`** — call value vs maturity (log x-axis
+  because maturities span 24 → 720 h), one line per strike (11
+  strikes 2000-4000).  The ATM-like K = 3000 line is drawn in black
+  and thicker so the reader's eye lands on the reference case first;
+  the other 10 strikes fan above and below it, coloured by strike
+  level.
+
+### Pattern in `strike_slices.png` — negatively-sloped, no visible smile
+
+At every maturity the call value is a **monotone-decreasing, mildly
+convex function of strike**.  Slopes near ATM at 72 h:
+
+| K range | ΔC (TRY / 200 TRY strike step) | ΔC/ΔK |
+|---|---:|---:|
+| 2600 → 2800 | −109.12 | −0.546 |
+| 2800 → 3000 | −100.37 | −0.502 |
+| 3000 → 3200 | −91.63 | −0.458 |
+| 3200 → 3400 | −83.00 | −0.415 |
+
+The slope softens monotonically as strike moves OTM, which is the
+`N(d₁)`-style delta compression a standard diffusion model produces.
+**No smile / skew is visible** — expected under this pricing framework
+because the model has neither jump risk nor stochastic-vol overlay
+(only regime-switching mixture of two Gaussian OU sigmas).  A future
+extension that adds skew (e.g. jump-diffusion, or Q2 transition
+premia) should be visible directly as a departure from the near-
+symmetric convexity seen here.
+
+### Pattern in `maturity_slices.png` — concave, sub-linear-in-τ term structure
+
+Every strike's line is monotone-increasing and **concave** in maturity
+(on the log-x axis).  Concavity means the value gained by extending
+maturity from 24 h → 48 h is much larger than from 336 h → 720 h — the
+signature of `σ · √τ` variance accumulation under a diffusion.  ATM
+K = 3000 rises from 368 (24 h) → 687 (72 h) → 1526 (336 h) → 2209
+(720 h), a 6× growth over 30× time (i.e. sub-linear).  Deep-OTM
+K = 4000 grows steepest in log-log terms (80 → 313 → 1091 → 1765 —
+22× growth) because at short τ its value is dominated by the small
+tail probability that F(T) + ε > K, which grows fastest as the
+residual variance grows.  Deep-ITM K = 2000 grows slowest in relative
+terms (1023 → 1275 → 2058 → 2719, 2.7×) because most of its value is
+already intrinsic `F − K` at short τ.
+
 ## Files
 
 * `outputs/market_calibration_final/strike_maturity_grid.csv` —
@@ -134,6 +191,10 @@ value decays as strike moves further OTM (K ≫ F).
   residual_sd_T.
 * `outputs/market_calibration_final/strike_maturity_heatmap_call.png`
 * `outputs/market_calibration_final/strike_maturity_heatmap_moneyness.png`
+* `outputs/market_calibration_final/strike_slices.png` — 2D slice-by-
+  maturity view (see "2D slice plots" section above).
+* `outputs/market_calibration_final/maturity_slices.png` — 2D
+  slice-by-strike view, log x-axis.
 
 No production code was touched.  Full test suite (172 passing)
 unaffected.
