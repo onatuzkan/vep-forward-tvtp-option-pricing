@@ -1,0 +1,212 @@
+{
+  "optimizer_success": true,
+  "calibration_accepted": true,
+  "valuation_date": "2025-12-31T20:00:00+00:00",
+  "quote_source": "EPIAS_VEP_daily_reference_prices",
+  "model_type": "forward_centered",
+  "price_label": "VEP-forward-curve anchored option prices",
+  "monthly_RMSE": 3.3210050939497774e-12,
+  "monthly_MAE": 3.031649005909761e-12,
+  "monthly_MAPE": 1.1009963653122518e-13,
+  "maximum_absolute_monthly_error": 3.637978807091713e-12,
+  "finite_value_checks": {
+    "hourly_forward_curve_finite": true,
+    "monthly_model_averages_finite": true,
+    "monthly_residuals_finite": true,
+    "expected_spot_finite": true
+  },
+  "expected_spot_at_72h": 2916.1573422794963,
+  "expected_spot_at_168h": 2913.993798654658,
+  "expected_spot_at_336h": 2910.2075973146957,
+  "expected_spot_at_720h": 2901.5112124100174,
+  "expected_spot_detail": {
+    "72h": 2916.1573422794963,
+    "72h_detail": {
+      "expected_spot_TRY_MWh": 2916.1573422794963,
+      "timestamp_utc": "2026-01-03T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-03T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    },
+    "168h": 2913.993798654658,
+    "168h_detail": {
+      "expected_spot_TRY_MWh": 2913.993798654658,
+      "timestamp_utc": "2026-01-07T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-07T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    },
+    "336h": 2910.2075973146957,
+    "336h_detail": {
+      "expected_spot_TRY_MWh": 2910.2075973146957,
+      "timestamp_utc": "2026-01-14T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-14T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    },
+    "720h": 2901.5112124100174,
+    "720h_detail": {
+      "expected_spot_TRY_MWh": 2901.5112124100174,
+      "timestamp_utc": "2026-01-30T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-30T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    }
+  },
+  "parameter_provenance": {
+    "price_label": "VEP-forward-curve anchored option prices",
+    "must_not_be_called": "Fully market-calibrated option prices",
+    "1_calibrated_from_market_data": {
+      "hourly_forward_curve_F_t": {
+        "unit": "TRY/MWh",
+        "source": "EPİAŞ VEP monthly baseload quotes",
+        "constraint": "mean of F over each delivery month = observed quote",
+        "identified": true
+      }
+    },
+    "2_inherited_from_historical_M2_fit": {
+      "kappa_per_hour": {
+        "value": 4.108274e-06,
+        "source": "AR(1) phi of the historical fit"
+      },
+      "sigma_y_normal": {
+        "value": 0.003534807,
+        "unit": "per sqrt(hour), y units",
+        "source": "M9 sigma1 (low-vol state), regime-label swapped to yaml convention"
+      },
+      "sigma_y_stress": {
+        "value": 0.0924066544,
+        "unit": "per sqrt(hour), y units",
+        "source": "M9 sigma0 (high-vol state), regime-label swapped to yaml convention"
+      },
+      "scale_P": {
+        "value": 282.48,
+        "unit": "TRY/MWh",
+        "source": "preprocessing metadata (training median absolute price); source files pde_export.json / prepared_meta.json NOT present in current inputs, value trusted on faith"
+      },
+      "tvtp_coefficients": {
+        "alpha01": -1.0156656066,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8952294098,
+        "gamma10": 0.0776983936,
+        "gamma_source": "M9 transition_coefficients.csv (RD_lag1 covariate only; RD_Ramp_1h_lag1 excluded — omitted-variable risk documented in model_limitations.md), regime-label swapped to yaml convention",
+        "alpha_source": "DERIVED, not estimated: occupancy/duration-constrained root-finding on the M9 gamma coefficients (see docs/tvtp_derivation_methodology.md); NOT an MLE estimate, no standard error attached",
+        "placeholder": false,
+        "placeholder_fields": []
+      },
+      "pi_filtered": {
+        "value": [
+          0.931977,
+          0.068023
+        ],
+        "source": "filtered regime probabilities at valuation"
+      }
+    },
+    "3_fixed_by_assumption": {
+      "residual_mode": "additive",
+      "residual_kappa_per_hour": 4.108274e-06,
+      "residual_regime_means_m_i": [
+        0.0,
+        0.0
+      ],
+      "residual_x0_mode": "zero",
+      "sigma_transfer_rule": "delta method: sigma^X_i(t) = sigma^y_i * sqrt(F(t)^2 + scale_P^2)",
+      "january_anchor_mode": "spot_to_next_linear",
+      "january_anchor_level_TRY_MWh": null,
+      "discount_rate_r_annual": 0.4
+    },
+    "4_not_identified_without_option_prices": {
+      "volatility_risk_premium": null,
+      "sigma_risk_premium": null,
+      "eta01_transition_premium": null,
+      "eta10_transition_premium": null,
+      "regime_market_price_of_risk_lambda_i": null,
+      "reason": "Forward prices constrain only E^Q[P_t], i.e. the first moment. Volatility and regime-transition premia enter the pricing measure through higher moments and the generator, and are not identified by any number of forward quotes. Option premia are required.",
+      "how_to_identify_later": "With observed option premia, hold F(t) fixed (it is already matched) and calibrate sigma multipliers plus eta01/eta10 to the implied-volatility surface: the level of implied vol pins the sigma premium, its term structure and skew pin the transition premia."
+    }
+  },
+  "warnings": [
+    "valuation falls inside delivery month(s) ['2025-12']; only the hours from valuation onward are priced and no monthly baseload average is formed for them",
+    "delivery months inside the pricing horizon with NO observed quote: ['2026-01'] -> near-term anchored, not directly constrained by an observed VEP quote",
+    "months ['2026-01'] have no observed VEP quote: near-term anchored, not directly constrained by an observed January VEP quote",
+    "4 of 4 reported horizons (72h, 168h, 336h, 720h) fall in a month WITHOUT an observed VEP quote and are near-term anchored, not directly constrained by market data",
+    "legacy_asinh_ou: E[P_t] = scale_P * exp(v(t)/2) * sinh(m(t)) grows exponentially in the variance v(t) = sigma^2 (1 - e^{-2 kappa t}) / (2 kappa). With the fitted near-unit-root kappa and the stress-regime sigma this makes long-horizon expected prices economically meaningless. Use the legacy mode for short-horizon benchmarking and diagnostics only."
+  ],
+  "january_calibration_status": {
+    "months_without_observed_quote": [
+      "2026-01"
+    ],
+    "flagged_extrapolated": [
+      "2025-12",
+      "2026-01"
+    ],
+    "anchor_mode": "spot_to_next_linear",
+    "anchor_level_TRY_MWh": null,
+    "anchor_pins_spot": true,
+    "spot_used_TRY_MWh": 2917.78,
+    "status": "near-term anchored, not directly constrained by an observed January VEP quote",
+    "how_to_remove": "add an EBM0126 row to inputs/market/vep_monthly_quotes.csv; it becomes a hard monthly constraint with no code change"
+  },
+  "direct_market_constraints": [
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07"
+  ],
+  "extrapolated_periods": [
+    "2025-12",
+    "2026-01"
+  ],
+  "acceptance_checks": [
+    {
+      "check": "forward_curve_solved",
+      "passed": true,
+      "detail": "smooth_constrained: 5089 hourly nodes"
+    },
+    {
+      "check": "monthly_delivery_average_matches_quote",
+      "passed": true,
+      "detail": "max abs monthly error 3.638e-12 TRY/MWh (limit 0.1)"
+    },
+    {
+      "check": "monthly_MAPE_within_tolerance",
+      "passed": true,
+      "detail": "MAPE 1.101e-13% (limit 1.0%)"
+    },
+    {
+      "check": "all_values_finite",
+      "passed": true,
+      "detail": "4/4 finiteness checks passed"
+    },
+    {
+      "check": "no_implausible_forward_magnitude",
+      "passed": true,
+      "detail": "largest |value| 3608.92 TRY/MWh (limit 1e+05)"
+    },
+    {
+      "check": "monthly_average_uses_true_utc_delivery_hours",
+      "passed": true,
+      "detail": "delivery-hour counts: EBM0226=672, EBM0326=744, EBM0426=720, EBM0526=744, EBM0626=720, EBM0726=744"
+    },
+    {
+      "check": "unquoted_months_flagged_as_extrapolation",
+      "passed": true,
+      "detail": "unquoted months ['2026-01']; flagged extrapolated ['2025-12', '2026-01']"
+    }
+  ],
+  "curve_diagnostics": {
+    "n_hours": 5089.0,
+    "min_TRY_MWh": 2193.0697964766982,
+    "max_TRY_MWh": 3608.9157681991283,
+    "mean_TRY_MWh": 2740.798339445628,
+    "first_value_TRY_MWh": 2917.78,
+    "spot_used_TRY_MWh": 2917.78,
+    "max_abs_monthly_error_TRY_MWh": 3.637978807091713e-12
+  }
+}

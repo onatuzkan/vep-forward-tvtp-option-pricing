@@ -1,0 +1,100 @@
+# =============================================================================
+# forward_centered_config.yaml — market pricing configuration
+# =============================================================================
+# Provenance codes:
+#   [CALIBRATED] identified from the observed VEP quotes
+#   [INHERITED]  taken from the historical M2 estimation (frozen parameter file)
+#   [ASSUMED]    chosen here; reported as an assumption in every output
+#   [UNIDENTIFIED] cannot be pinned down without option premia
+#
+# Every price produced from this config is labelled
+#   "VEP-forward-curve anchored option prices"
+# and never "Fully market-calibrated option prices".
+# =============================================================================
+
+model:
+  # legacy_asinh_ou   -> benchmark / short-horizon diagnostics only
+  # forward_centered  -> default market pricing model
+  mode: forward_centered
+
+market:
+  quotes_file: inputs/market/vep_monthly_quotes.csv
+  # piecewise_constant  : F = quote for every hour of the month (blunt, exact)
+  # smooth_constrained  : max-smoothness curve, monthly averages still exact
+  curve_mode: smooth_constrained
+  # Roughness vs level-anchoring weights of the smooth curve. Neither can break
+  # the monthly constraints, which are hard equalities in the KKT system.
+  smoothness_weight: 1.0        # [ASSUMED]
+  level_weight: 1.0e-4          # [ASSUMED]
+
+  # ---- January 2026 -------------------------------------------------------
+  # The 2025-12-31 VEP strip starts at EBM0226, so NO observed contract
+  # constrains January 2026. This block is that assumption, made explicit.
+  #   spot_flat           F = spot for the whole unquoted window
+  #   spot_to_next_linear F ramps from spot at t0 to the February level (default)
+  #   flat_next_month     F = February level (ignores the spot)
+  #   explicit_level      F = january_anchor_level_TRY_MWh
+  january_anchor_mode: spot_to_next_linear     # [ASSUMED]
+  january_anchor_level_TRY_MWh: null           # only for explicit_level
+  # Grid used by the January sensitivity analysis (null -> +/-20% around spot)
+  january_anchor_sensitivity_levels: null
+
+historical:
+  frozen_parameters_file: inputs/historical/m2_frozen_parameters.yaml   # [INHERITED]
+
+residual:
+  # additive       : P_t = F(t) + X_t - mu_X(t)   (default; preferred structure)
+  # multiplicative : P_t = F(t) exp(X_t) / E[exp(X_t)]  (positive prices)
+  mode: additive                # [ASSUMED]
+  # null -> inherit the historical kappa. The residual then keeps the fitted
+  # near-unit-root persistence; see model_limitations.md for what that implies
+  # for long-horizon residual dispersion.
+  kappa_per_hour: null          # [INHERITED when null]
+  # Regime-conditional residual means m_i. Non-zero values are permitted: the
+  # centering ODE zeroes E[X_t] regardless, so E[P_t] = F(t) always holds.
+  regime_means: [0.0, 0.0]      # [ASSUMED]
+  # zero              : residual starts at 0 (spot enters through F(t0))
+  # spot_minus_curve  : residual starts at spot - F(t0)
+  x0_mode: zero                 # [ASSUMED]
+
+contract:
+  # European option on the EXPIRY-HOUR spot PTF, not on a monthly baseload average.
+  option_type: call
+  strike: 3000.0                # TRY/MWh
+  maturity_hours: 72
+  r_annual: 0.40                # [ASSUMED] flat TRY discount rate placeholder
+
+grid:
+  n_space_nodes: 1201           # residual state grid (TRY/MWh)
+  n_time_steps: null            # null -> max(96, 2 steps per hour)
+  n_std: 6.0                    # half-width in analytic residual std devs
+
+acceptance:
+  # Economic acceptance, independent of optimizer convergence.
+  max_abs_monthly_error_TRY_MWh: 0.10
+  max_mape_pct: 1.0
+  max_plausible_forward_TRY_MWh: 1.0e5
+
+legacy:
+  reference_file: inputs/legacy_reference/legacy_model_implied_forwards.json
+
+diagnostics:
+  strikes: [2000, 2500, 3000, 3500, 4000]
+
+# ---- NOT IDENTIFIED without option premia -----------------------------------
+# Listed here only to document that they are deliberately absent:
+#   volatility_risk_premium        [UNIDENTIFIED]
+#   sigma_risk_premium             [UNIDENTIFIED]
+#   eta01, eta10 transition premia [UNIDENTIFIED]
+#   regime market price of risk    [UNIDENTIFIED]
+
+scenario:
+  # M2 transition driver:
+  # standardized contemporaneous RD_WS path, then 1-hour lag is applied
+  # inside ScenarioBuilder before entering the TVTP transition equation.
+  mode: climatology
+  history_file: inputs/historical/rd_standardized.csv
+  train_end_utc: "2022-12-31 20:00:00+00:00"
+  covariate_lag_hours: 1.0
+  offset: 0.0
+  custom_csv: null

@@ -1,0 +1,28 @@
+{
+  "valuation_date": "2025-12-31",
+  "valuation_utc": "2025-12-31T20:00:00+00:00",
+  "valuation_local_turkey": "2025-12-31T23:00:00+03:00",
+  "market": "EPIAS / EXIST Turkish day-ahead market (PTF)",
+  "currency": "TRY",
+  "unit": "TRY/MWh",
+  "product": "monthly baseload (arithmetic mean of hourly PTF over the delivery month)",
+  "quote_source": "EPIAS_VEP_daily_reference_prices",
+  "timezone_convention": "delivery months are Turkish local (UTC+3, fixed, no DST); stored and averaged in UTC",
+  "spot_price_TRY_MWh": 2917.78,
+  "spot_note": "last observed hourly PTF of the historical sample, 2025-12-31 23:00 Turkey time",
+  "quotes": [
+    {"contract_name": "EBM0226", "delivery_year": 2026, "delivery_month": 2, "price_TRY_MWh": 2900.99, "quote_type": "monthly_baseload", "n_delivery_hours": 672, "weight": 1.0},
+    {"contract_name": "EBM0326", "delivery_year": 2026, "delivery_month": 3, "price_TRY_MWh": 2556.31, "quote_type": "monthly_baseload", "n_delivery_hours": 744, "weight": 1.0},
+    {"contract_name": "EBM0426", "delivery_year": 2026, "delivery_month": 4, "price_TRY_MWh": 2500.66, "quote_type": "monthly_baseload", "n_delivery_hours": 720, "weight": 1.0},
+    {"contract_name": "EBM0526", "delivery_year": 2026, "delivery_month": 5, "price_TRY_MWh": 2506.25, "quote_type": "monthly_baseload", "n_delivery_hours": 744, "weight": 1.0},
+    {"contract_name": "EBM0626", "delivery_year": 2026, "delivery_month": 6, "price_TRY_MWh": 2245.33, "quote_type": "monthly_baseload", "n_delivery_hours": 720, "weight": 1.0},
+    {"contract_name": "EBM0726", "delivery_year": 2026, "delivery_month": 7, "price_TRY_MWh": 3558.19, "quote_type": "monthly_baseload", "n_delivery_hours": 744, "weight": 1.0}
+  ],
+  "unquoted_months_in_horizon": ["2026-01"],
+  "january_note": "No EBM0126 quote was observed on 2025-12-31. January 2026 is therefore NEAR-TERM ANCHORED, not directly constrained by an observed VEP quote. Drop an EBM0126 row into the quotes array (or a day-ahead baseload row) and it becomes a hard constraint automatically; the extrapolation flag flips to false with no code change.",
+  "future_extension_schema": {
+    "day_ahead_baseload": {"contract_name": "DA_BASE", "delivery_date": "YYYY-MM-DD", "price_TRY_MWh": 0.0, "quote_type": "daily_baseload"},
+    "option_quotes": {"contract_name": "OPT_...", "strike_TRY_MWh": 0.0, "expiry_utc": "...", "option_type": "call|put", "premium_TRY_MWh": 0.0,
+                      "note": "not yet available; required to identify the volatility and transition risk premia"}
+  }
+}

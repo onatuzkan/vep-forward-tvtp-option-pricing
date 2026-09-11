@@ -1,0 +1,117 @@
+# =============================================================================
+# Frozen historical TVTP parameters (residual dynamics only)
+# =============================================================================
+# These are the ONLY quantities the forward-centered model inherits from the
+# historical estimation.  The price LEVEL comes entirely from the EPİAŞ VEP
+# forward curve; these parameters shape the residual around it.
+#
+# The regime volatilities and TVTP gammas are from the M9 fit
+# (parameter_estimates.csv, transition_coefficients.csv), regime-label
+# swapped to match the yaml convention (index 0 = normal, index 1 = stress).
+# The TVTP alphas (intercepts) are DERIVED, not estimated: the fit bundle
+# does not export intercepts, so they were back-solved from the reported
+# occupancy/duration diagnostics of the same M9 run.  See
+# docs/tvtp_derivation_methodology.md for the full derivation.
+#
+# Regenerate from a full artefact bundle with:
+#     python run_pde.py freeze-params --input-root inputs --out inputs/historical/m2_frozen_parameters.yaml
+# =============================================================================
+description: >-
+  Frozen Gaussian TVTP parameters for the Turkish day-ahead market (EPİAŞ PTF,
+  TRY/MWh) under the yaml regime-label convention:
+  index 0 = normal (low sigma), index 1 = stress (high sigma).
+  Volatilities and TVTP slopes are from the M9 fit; TVTP intercepts are
+  derived from the M9 duration/occupancy diagnostics because they were not
+  exported in the calibration bundle.
+model: "M9_student_t_tvtp (single-covariate reduction: RD_lag1 only; yaml-swapped)"
+
+# --- price transform ---------------------------------------------------------
+scale_P: 282.48                # TRY/MWh; y = asinh(P/scale_P), P = scale_P*sinh(y)
+
+# --- mean reversion ----------------------------------------------------------
+phi: 0.999614845634
+kappa_per_hour: 0.000385228557
+half_life_hours: 1799.3141        # = ln(2)/kappa  (near unit root)
+
+# --- regime volatilities (per sqrt(hour), in y units) ------------------------
+sigma_y_normal: 0.0035348070      # raw M9 sigma1 (low-vol state, yaml-swapped)
+sigma_y_stress: 0.0924066544      # raw M9 sigma0 (high-vol state, yaml-swapped)
+
+# --- TVTP logistic transition coefficients -----------------------------------
+# p01 = logistic(alpha01 + gamma01 * z_{t-1}),  p10 = logistic(alpha10 + gamma10 * z_{t-1})
+tvtp:
+  alpha01: -1.0156656066         # DERIVED (occupancy/duration-constrained)
+  gamma01: -0.5837780825         # raw M9 gamma10 (RD_lag1), yaml-swapped
+  alpha10: -1.8952294098         # DERIVED (occupancy/duration-constrained)
+  gamma10:  0.0776983936         # raw M9 gamma01 (RD_lag1), yaml-swapped
+  covariate: RD_WS_standardized_lag1h
+  placeholder: false
+
+# --- valuation state ---------------------------------------------------------
+# pi_filtered was set from the shipped M2 filter output at the valuation hour;
+# no M9-specific valuation-time filter is available (pde_timeseries.parquet is
+# not in the current inputs).  Impact of this mixed-source choice: <2% on 72h+
+# option values (chain converges to stationary), 5-30% on <24h option values.
+# Use `--pi-override stationary` at pricing time to switch to the M9 long-run
+# occupancy; see model_limitations.md item (e).
+pi_filtered: [0.931977, 0.068023]    # [normal, stress] filtered probabilities at valuation (M2 filter)
+m9_stationary_pi: [0.325422, 0.674578]   # [normal, stress] M9 long-run occupancy (yaml-swapped)
+spot_price_TRY_MWh: 2917.78
+valuation_utc: "2025-12-31T20:00:00+00:00"   # = 2025-12-31 23:00 Turkish time
+covariate_lag_hours: 1.0
+
+# --- legacy diagnostic reference ---------------------------------------------
+# Long-run stress occupancy documented in the bundle's own markov_adapter
+# docstring (shipped occupancy 0.6746 / 0.3254, high-vol state first);
+# under the yaml swap the high-vol state IS regime 1 = stress, so the value
+# is unchanged.
+stationary_pi_stress: 0.6746
+# Effective long-run theta (y units) that reproduces the four reported legacy
+# model-implied forwards to within 2% under the frozen-occupancy sinh-Gaussian
+# moment formula.  Used ONLY to draw the legacy benchmark curve.
+legacy_theta_effective: -3.074964
+
+provenance:
+  scale_P: >-
+    ASSUMED: value taken from an earlier extract of the preprocessing metadata
+    (training median absolute price).  The source files (pde_export.json,
+    prepared_meta.json) are NOT present in the current inputs/ tree, so 282.48
+    is trusted on faith and cannot be re-derived from the shipped historical
+    series alone.  Documented in model_limitations.md.
+  phi: "estimated: M2 row of parameter_estimates.csv"
+  kappa_per_hour: "transformed: kappa = -ln(phi)/dt, dt = 1 h"
+  sigma_y_normal: >-
+    estimated: M9 parameter_estimates.csv sigma1 (low-vol state);
+    regime-label swapped to match yaml convention (index 0 = normal).
+  sigma_y_stress: >-
+    estimated: M9 parameter_estimates.csv sigma0 (high-vol state);
+    regime-label swapped to match yaml convention (index 1 = stress).
+  pi_filtered: >-
+    estimated: filtered regime probabilities at the valuation timestamp,
+    SOURCED FROM THE SHIPPED M2 FILTER (pde_timeseries.parquet, no longer in
+    inputs).  Not an M9 quantity — see model_limitations.md item (e) and the
+    --pi-override CLI flag for the alternative M9 stationary occupancy.
+  m9_stationary_pi: >-
+    estimated: M9 long-run occupancy from run_summary.json.diagnostics.occupancy,
+    yaml-swapped (index 0 = normal).  Used only when --pi-override stationary
+    is passed to `run_pde.py price`; ignored by the default calibration.
+  spot_price_TRY_MWh: "estimated: last observed hourly PTF of the sample"
+  valuation_utc: "estimated: last timestamp of the historical hourly sample"
+  stationary_pi_stress: "estimated: long-run smoothed stress occupancy of the shipped filter"
+  legacy_theta_effective: "transformed: 1-parameter fit to the four reported legacy forwards"
+  tvtp.alpha01: >-
+    derived: occupancy/duration-constrained root-finding on M9 gamma
+    coefficients (see docs/tvtp_derivation_methodology.md); NOT an MLE
+    estimate, no standard error.
+  tvtp.alpha10: >-
+    derived: occupancy/duration-constrained root-finding on M9 gamma
+    coefficients (see docs/tvtp_derivation_methodology.md); NOT an MLE
+    estimate, no standard error.
+  tvtp.gamma01: >-
+    estimated: M9 transition_coefficients.csv (RD_lag1 covariate only;
+    RD_Ramp_1h_lag1 excluded, see limitations), regime-label swapped to
+    match yaml convention.
+  tvtp.gamma10: >-
+    estimated: M9 transition_coefficients.csv (RD_lag1 covariate only;
+    RD_Ramp_1h_lag1 excluded, see limitations), regime-label swapped to
+    match yaml convention.

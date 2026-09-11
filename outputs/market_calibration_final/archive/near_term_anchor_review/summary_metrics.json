@@ -1,0 +1,116 @@
+{
+  "spot_flat": {
+    "reproduction_max_abs_diff_TRY_MWh": 4.547473508864641e-13,
+    "n_jumps_gt_5": 113,
+    "n_boundary_jumps": 3,
+    "n_intra_month_jumps": 110,
+    "call_values": [
+      {
+        "maturity_h": 24,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2917.779999996554,
+        "expected_spot_at_expiry_TRY_MWh": 2917.779999996554,
+        "residual_std_at_expiry_TRY_MWh": 1846.0991682665087,
+        "call_value_TRY_MWh": 686.3516043171987,
+        "anchor_mode": "spot_flat"
+      },
+      {
+        "maturity_h": 72,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2917.7799999976055,
+        "expected_spot_at_expiry_TRY_MWh": 2917.7799999976055,
+        "residual_std_at_expiry_TRY_MWh": 3226.850629462326,
+        "call_value_TRY_MWh": 1237.8419011320464,
+        "anchor_mode": "spot_flat"
+      },
+      {
+        "maturity_h": 168,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2917.779999998569,
+        "expected_spot_at_expiry_TRY_MWh": 2917.779999998569,
+        "residual_std_at_expiry_TRY_MWh": 4864.960406029007,
+        "call_value_TRY_MWh": 1882.5403724127546,
+        "anchor_mode": "spot_flat"
+      }
+    ],
+    "F_at_first_hour_TRY_MWh": 2917.78,
+    "F_at_month_start_Feb_TRY_MWh": 2909.9930861122307,
+    "spot_consistent_at_t0": true
+  },
+  "spot_to_next_linear": {
+    "reproduction_max_abs_diff_TRY_MWh": 4.547473508864641e-13,
+    "n_jumps_gt_5": 113,
+    "n_boundary_jumps": 3,
+    "n_intra_month_jumps": 110,
+    "call_values": [
+      {
+        "maturity_h": 24,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2917.239114092322,
+        "expected_spot_at_expiry_TRY_MWh": 2917.239114092322,
+        "residual_std_at_expiry_TRY_MWh": 1845.920828173083,
+        "call_value_TRY_MWh": 686.0219329372272,
+        "anchor_mode": "spot_to_next_linear"
+      },
+      {
+        "maturity_h": 72,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2916.1573422794963,
+        "expected_spot_at_expiry_TRY_MWh": 2916.1573422794963,
+        "residual_std_at_expiry_TRY_MWh": 3225.938446149307,
+        "call_value_TRY_MWh": 1236.6901855613203,
+        "anchor_mode": "spot_to_next_linear"
+      },
+      {
+        "maturity_h": 168,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2913.993798654658,
+        "expected_spot_at_expiry_TRY_MWh": 2913.993798654658,
+        "residual_std_at_expiry_TRY_MWh": 4861.743710663,
+        "call_value_TRY_MWh": 1879.4113871954507,
+        "anchor_mode": "spot_to_next_linear"
+      }
+    ],
+    "F_at_first_hour_TRY_MWh": 2917.78,
+    "F_at_month_start_Feb_TRY_MWh": 2902.020974122481,
+    "spot_consistent_at_t0": true
+  },
+  "flat_next_month": {
+    "reproduction_max_abs_diff_TRY_MWh": 9.094947017729282e-13,
+    "n_jumps_gt_5": 113,
+    "n_boundary_jumps": 3,
+    "n_intra_month_jumps": 110,
+    "call_values": [
+      {
+        "maturity_h": 24,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2900.990000000276,
+        "expected_spot_at_expiry_TRY_MWh": 2900.990000000276,
+        "residual_std_at_expiry_TRY_MWh": 1835.574948621207,
+        "call_value_TRY_MWh": 674.17617923839,
+        "anchor_mode": "flat_next_month"
+      },
+      {
+        "maturity_h": 72,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2900.989999999362,
+        "expected_spot_at_expiry_TRY_MWh": 2900.989999999362,
+        "residual_std_at_expiry_TRY_MWh": 3208.4550387108934,
+        "call_value_TRY_MWh": 1222.3861266600127,
+        "anchor_mode": "flat_next_month"
+      },
+      {
+        "maturity_h": 168,
+        "strike_TRY_MWh": 3000.0,
+        "forward_at_expiry_TRY_MWh": 2900.989999998104,
+        "expected_spot_at_expiry_TRY_MWh": 2900.989999998104,
+        "residual_std_at_expiry_TRY_MWh": 4837.226299019824,
+        "call_value_TRY_MWh": 1863.3532003083303,
+        "anchor_mode": "flat_next_month"
+      }
+    ],
+    "F_at_first_hour_TRY_MWh": 2900.99000000224,
+    "F_at_month_start_Feb_TRY_MWh": 2901.9414248569706,
+    "spot_consistent_at_t0": false
+  }
+}

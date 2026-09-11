@@ -1,0 +1,38 @@
+{
+  "description": "Model-implied E[P_T] produced by the LEGACY asinh-OU model (legacy_asinh_ou, closed-form sinh-Gaussian moment formula). Used only as a benchmark curve, never as a pricing input.",
+  "model": "legacy_asinh_ou (P = scale_P * sinh(y), Y regime-mixed OU)",
+  "valuation_utc": "2025-12-31T20:00:00+00:00",
+  "spot_price_TRY_MWh": 2917.78,
+  "unit": "TRY/MWh",
+  "regenerated_after": "TVTP M9 integration (commit 59955ee); sigma_stress = 0.0924067 (was 0.1729706 under the placeholder)",
+  "regenerated_utc": "2026-09-07T08:47:03+00:00",
+  "generator": "analytic legacy_expected_spot() over the current yaml parameters",
+  "parameters_used": {
+    "scale_P": 282.48,
+    "kappa_per_hour": 0.000385228557,
+    "sigma_y_normal": 0.003534807,
+    "sigma_y_stress": 0.0924066544,
+    "stationary_pi_stress": 0.6746,
+    "legacy_theta_effective": -3.074964,
+    "y0_at_spot": 3.0304527730313433
+  },
+  "points": [
+    {
+      "horizon_hours": 72,
+      "expected_spot_TRY_MWh": 3018.468970283728
+    },
+    {
+      "horizon_hours": 168,
+      "expected_spot_TRY_MWh": 3125.834534599277
+    },
+    {
+      "horizon_hours": 336,
+      "expected_spot_TRY_MWh": 3237.5182438201196
+    },
+    {
+      "horizon_hours": 720,
+      "expected_spot_TRY_MWh": 3130.320954121407
+    }
+  ],
+  "provenance": "Analytic reconstruction; the historical 'reported legacy diagnostic run' output that this file originally captured (5075/9946/27642/167837 under placeholder sigmas) is preserved in inputs/legacy_reference/archive/legacy_model_implied_forwards.PLACEHOLDER_ERA.json for historical audit."
+}

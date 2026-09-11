@@ -1,0 +1,52 @@
+_generated_by: run_pde.py calibrate-market
+_price_label: VEP-forward-curve anchored option prices
+_warning: This is NOT 'Fully market-calibrated option prices'. Only the price LEVEL
+  is anchored to the market; volatility and regime-risk premia remain unidentified.
+model:
+  mode: forward_centered
+  residual_mode: additive
+  residual_kappa_per_hour: 0.000385228557
+  residual_regime_means:
+  - 0.0
+  - 0.0
+  residual_x0_mode: zero
+market:
+  valuation_utc: '2025-12-31T20:00:00+00:00'
+  quote_source: EPIAS_VEP_daily_reference_prices
+  curve_file: hourly_forward_curve.csv
+  curve_mode: smooth_constrained
+  january_anchor_mode: spot_flat
+  january_anchor_level_TRY_MWh: null
+  direct_market_constraints:
+  - 2026-02
+  - 2026-03
+  - 2026-04
+  - 2026-05
+  - 2026-06
+  - 2026-07
+  extrapolated_periods:
+  - 2025-12
+  - 2026-01
+historical_parameters:
+  scale_P_TRY_MWh: 282.48
+  phi: 0.999614845634
+  kappa_per_hour: 0.000385228557
+  half_life_hours: 1799.3141161649273
+  sigma_y_normal_per_sqrt_hour: 0.0075052
+  sigma_y_stress_per_sqrt_hour: 0.1729706
+  tvtp_alpha01: -0.876728
+  tvtp_gamma01: -0.680174
+  tvtp_alpha10: -1.347666
+  tvtp_gamma10: 0.203006
+  pi_filtered_normal: 0.931977
+  pi_filtered_stress: 0.068023
+  spot_price_TRY_MWh: 2917.78
+  valuation_utc: '2025-12-31T20:00:00+00:00'
+  placeholder_fields: []
+contract_defaults:
+  r_annual: 0.4
+acceptance:
+  optimizer_success: true
+  calibration_accepted: true
+  maximum_absolute_monthly_error_TRY_MWh: 2.2737367544323206e-12
+  monthly_MAPE_pct: 4.735700483772449e-14

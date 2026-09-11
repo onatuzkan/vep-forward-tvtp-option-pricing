@@ -1,0 +1,132 @@
+# =============================================================================
+# pde_config.yaml — master configuration for the two-regime TVTP PDE pricer
+# =============================================================================
+# Provenance codes used in comments:
+#   [ESTIMATED]   read directly from the uploaded Markov artefact bundle
+#   [TRANSFORMED] deterministically derived from estimated values (formula given)
+#   [ASSUMED]     NOT in the bundle; chosen here and flagged in parameter_audit.md
+#   [CALIBRATED]  only ever produced by forward_calibration (none by default)
+# All uncalibrated prices are labelled:
+#   "model-implied scenario prices (pricing measure NOT calibrated to market forwards)"
+# =============================================================================
+
+inputs:
+  # Root containing the uploaded artefacts (see docs/data_inventory.md).
+  input_root: inputs
+  # Which estimation to use for the P-dynamics. M2 = TRY-run TVTP model whose
+  # parameter_estimates.csv / transition_coefficients.csv sit at top level.
+  # [ESTIMATED source: parameter_estimates.csv, transition_coefficients.csv]
+  model_name: M2
+
+markov:
+  # AR(1)->OU intercept mapping. "A_intercept": theta_i = c_i/(1-phi) with
+  # kappa = -ln(phi)/dt shared. "B_long_run_mean": theta_i = c_i (rejected —
+  # implies |theta|<1e-3, economically absurd given y0=3.03; see methodology.md).
+  # [ASSUMED — decision documented, cross-checked against bundle ou_conversion]
+  ar_mapping: A_intercept
+  # Seasonal function g(t) handling inside theta(t):
+  #   mean  — use analytic mean of the 16 dummy regressors (default; the exact
+  #           dummy construction of the estimation code is unverifiable, A2)
+  #   full  — rebuild the 16-column design matrix with assumed conventions
+  #   zero  — drop g(t) entirely
+  # [ASSUMED default: mean]
+  seasonal_mode: mean
+  # Include rho_i * z_RD(t) inside theta_i(t) (contemporaneous covariate level
+  # channel). rho comes from pde_export.json regime_price_sensitivities and is
+  # an M0-run PROXY (ambiguity A3).
+  include_rd_in_theta: true
+  # ddof used when reconstructing the RD_WS standardiser on the TRY train
+  # window (<= 2022-12-31 20:00 UTC, 61361 rows). [ASSUMED: 1]
+  rd_ddof: 1
+  # Filtered regime probabilities at valuation. null => use last row of
+  # pde_timeseries.parquet with automatic orientation alignment (the shipped
+  # series comes from the USD M9 run with FLIPPED labels — ambiguity A1).
+  # Override with [pi_normal, pi_stress] to bypass, e.g. [0.932, 0.068].
+  pi_override: null
+  # Valuation timestamp. null => last timestamp of pde_timeseries.parquet
+  # (2025-12-31 20:00 UTC, PTF = 2917.78 TRY/MWh).
+  valuation_utc: null
+  price0_override: null
+  # Fraction of hours flagged as holiday in the analytic seasonal mean.
+  # [ASSUMED: 0.043 ~ Turkish official holidays share of calendar hours]
+  holiday_fraction: 0.043
+
+contract:
+  # Example European option priced by `run_pde.py price`.
+  option_type: call
+  strike: 3000.0            # TRY/MWh
+  maturity_hours: 72        # maturity = valuation + this many hours
+  # Continuously-compounded flat annual discount rate. [ASSUMED: 0.40 — TRY
+  # short-rate environment placeholder; audit before any real use]
+  r_annual: 0.40
+
+measure:
+  # P  — physical measure, no adjustments (diagnostics only)
+  # Q1 — drift-adjusted measure, q^Q = q^P              (default)
+  # Q2 — Q1 plus regime-switching premia q^Q = q^P e^eta
+  spec: Q1
+  # Long-run-mean shift delta_i (in y units) applied to theta_i. Near-unit-root
+  # phi makes this a WEAK lever (1/(1-phi) ~ 244000 amplification of intercepts
+  # but delta itself enters 1:1 while the pull kappa ~ 4.11e-6/h is tiny).
+  theta_shift: [0.0, 0.0]
+  # Direct additive drift a_i (per hour, y units): dy += a_i dt. The EFFECTIVE
+  # lever for matching forwards at day-ahead horizons (a ~ -0.0088/h flattens
+  # the +80% 72h base forward drift). [ASSUMED default: 0]
+  drift_shift_per_hour: [0.0, 0.0]
+  # Market price of risk lambda_i: drift -= lambda_i * sigma_i. [ASSUMED: 0]
+  market_price_of_risk: [0.0, 0.0]
+  # Regime-switching premia (Q2 only): q01^Q = q01^P e^{eta01}, etc.
+  eta: [0.0, 0.0]
+
+scenarios:
+  # Deterministic residual-demand paths (stochastic RD deferred — see
+  # methodology.md §9). z is the TRY-train standardised RD_WS score.
+  # mode: climatology (month x hour Istanbul-local means from train window),
+  #       constant (hold last observed z), custom (CSV with columns time_utc,z)
+  covariate_lag_hours: 1     # transition covariate is RD_lag1 [ESTIMATED]
+  list:
+    - {name: base,    mode: climatology, offset: 0.0}
+    - {name: high_rd, mode: climatology, offset: 1.5}
+    - {name: low_rd,  mode: climatology, offset: -1.5}
+
+grid:
+  n_space_nodes: 561
+  # null => max(96, 2 steps per hour of horizon)
+  n_time_steps: null
+  # y-domain: auto = [min(y0,yK), max(y0,yK)] ± max(auto_n_std * sigma_mix * sqrt(tau),
+  # auto_min_halfwidth), clipped to hard caps.
+  y_min: null
+  y_max: null
+  auto_n_std: 4.0
+  auto_min_halfwidth: 1.5
+  y_hard_min: -6.0
+  y_hard_max: 10.0
+  # gamma_zero (default: V'' = 0 at both ends) or dirichlet_ou (closed-form
+  # no-switching OU conditional expectation at the boundary). Tradeoffs in
+  # docs/methodology.md §7.
+  boundary: gamma_zero
+
+solver:
+  theta_scheme: 0.5          # Crank–Nicolson
+  rannacher_steps: 2         # implicit-Euler start-up steps (payoff kink)
+  peclet_upwind_threshold: 1.0
+
+generator:
+  # matrix_log (exact 2x2 embedding, default) or linear_approx (q = p/dt,
+  # flagged first-order option per spec).
+  method: matrix_log
+  s_clip: 0.9999999999
+
+validation:
+  run_on_price: false        # `run_pde.py validate` runs the full battery
+  mc_paths: 40000
+  mc_dt_hours: 0.5
+  mc_seed: 20260805
+
+diagnostics:
+  output_dir: outputs/example_run
+  forward_curve_horizons_hours: [6, 12, 24, 48, 72, 120, 168, 336, 720]
+  sensitivity:
+    drift_shift_per_hour: [-0.01, -0.005, 0.0, 0.005]
+    eta_symmetric: [-0.5, 0.0, 0.5]
+    sigma1_multiplier: [0.9, 1.0, 1.1]

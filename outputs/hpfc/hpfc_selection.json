@@ -1,0 +1,13 @@
+{
+  "half_life_years": 0.5,
+  "n_harmonics": 2,
+  "mean_ratio_rmse": 0.1965396989477636,
+  "best_score": 0.1959701343363445,
+  "equal_weight_ratio_rmse": 0.2088399727452502,
+  "method": "rolling-origin CV",
+  "max_abs_monthly_error_TRY_MWh": 9.094947017729282e-13,
+  "var_reduction_2026_pct": 33.62,
+  "var_reduction_2026_equal_weight_pct": 30.853418287786695,
+  "cutoff_utc": "2025-12-31 21:00:00+00:00",
+  "n_obs": 61368
+}

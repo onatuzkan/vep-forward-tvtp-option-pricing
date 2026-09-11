@@ -1,0 +1,48 @@
+{
+  "raw_m9": {
+    "sigma0_state0_high_vol": 0.0924066543979969,
+    "sigma1_state1_low_vol": 0.00353480696422237,
+    "occupancy_state0": 0.6745780174292473,
+    "occupancy_state1": 0.32542198257074967,
+    "mean_duration_state0_h": 7.559715945771465,
+    "mean_duration_state1_h": 3.7591994835377665,
+    "gamma01_RD_lag1_raw": 0.07769839363017603,
+    "gamma10_RD_lag1_raw": -0.5837780825414551
+  },
+  "yaml_convention": {
+    "sigma_y_normal": 0.00353480696422237,
+    "sigma_y_stress": 0.0924066543979969,
+    "occupancy_normal": 0.32542198257074967,
+    "occupancy_stress": 0.6745780174292473,
+    "gamma01": -0.5837780825414551,
+    "gamma10": 0.07769839363017603,
+    "alpha01_derived": -1.0156656065908618,
+    "alpha10_derived": -1.8952294098446472
+  },
+  "cross_check": {
+    "target_avg_p01": 0.26601408208827065,
+    "achieved_avg_p01": 0.26601408208826993,
+    "target_avg_p10": 0.1322801024765158,
+    "achieved_avg_p10": 0.13228010247655,
+    "implied_pi_stress_ergodic": 0.6678834198368211,
+    "implied_pi_stress_simulated": 0.6441190897165346,
+    "implied_pi_stress_simulated_sd": 0.0026137747986124276,
+    "target_pi_stress": 0.6745780174292473,
+    "abs_pct_error_ergodic": 0.992412651977404,
+    "abs_pct_error_simulated": 4.515256490092683
+  },
+  "sign_comparison_with_old_placeholder": {
+    "old_gamma01": -0.680174,
+    "new_gamma01": -0.5837780825414551,
+    "sign_agrees_gamma01": true,
+    "abs_ratio_gamma01": 0.858277562125949,
+    "old_gamma10": 0.203006,
+    "new_gamma10": 0.07769839363017603,
+    "sign_agrees_gamma10": true,
+    "abs_ratio_gamma10": 0.38273939504337817
+  },
+  "invariant": {
+    "sigma_normal_lt_sigma_stress": true,
+    "params_frozen_invariant_would_pass": true
+  }
+}
