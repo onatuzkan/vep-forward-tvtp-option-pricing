@@ -666,26 +666,31 @@ def _limitations_markdown(result: CalibrationResult,
         "the drift channel leaves the forward-curve identity intact and only "
         "moves higher moments (variance -> option value).",
         "",
-        "### (g) Within-regime phi vs deseasonalized single-regime AR fit — resolved as a variable mismatch; downstream fix pending",
+        "### (g) Within-regime phi vs deseasonalized single-regime AR fit — RESOLVED via v2 kappa refit",
         "",
         "M9's regime-conditional phi (0.999996) implies a within-regime OU "
-        "half-life of ~19.25 years -- three orders of magnitude longer than the "
-        "~8.84-hour half-life computed on the deseasonalized single-regime "
+        "half-life of ~19.25 years -- three orders of magnitude longer than "
+        "the ~8.84-hour half-life computed on the deseasonalized single-regime "
         "series (`metadata/model_parameters_and_ou_mapping.json`, "
         "`discovered_parameter_files`).  Theoretical and numerical analysis in "
-        "`outputs/market_calibration_final/half_life_reconciliation.md` shows "
+        "`outputs/market_calibration_final/half_life_reconciliation.md` showed "
         "the two numbers describe **different variables**: 19.25 y is the AR(1) "
         "persistence of raw `asinh(PTF)` (dominated by TRY-inflation-era trend), "
         "8.84 h is the AR(1) persistence of the deseasonalized residual "
-        "(the shock-around-anchor component).  Neither is wrong.  The "
-        "downstream issue is that the pricing model inherits the raw-y kappa "
-        "(`4.11e-6 /h`) as the OU rate of the residual X = P − F, which produces "
-        "a residual variance that grows almost linearly in time (7-13× the "
-        "empirical near-saturation observed in the 2026 backtest).  Not a code "
-        "bug in `residual_moments()` — the moment ODE is mathematically correct "
-        "given the inherited kappa.  Fix candidate: refit kappa on (P − F) "
-        "residuals directly; recorded as future-work item 5 in "
-        "`docs/PROJECT_STATUS_AND_FUTURE_WORK.md`.",
+        "(the shock-around-anchor component the forward-centered model actually "
+        "prices).  Neither is wrong.  The **DOWNSTREAM ISSUE HAS BEEN FIXED**: "
+        "the yaml `phi` and `kappa_per_hour` were reconciled to the "
+        "deseasonalized single-regime values (phi=0.9246, kappa=0.0784/h, "
+        "half-life 8.84h) on 2026-09-13 -- see the yaml provenance block and "
+        "`inputs/historical/archive/m2_frozen_parameters.PRE_V2_KAPPA_REFIT.yaml`.  "
+        "The 2026-backtest `model_over_realized_ratio` collapses from 7-13x "
+        "(pre-refit) to 0.35-0.97 (post-refit) across all months -- see the "
+        "regenerated `outputs/market_calibration_final/realized_2026_backtest.monthly.csv`.  "
+        "The v1 stack (`m2_frozen_parameters.yaml` + `ForwardCenteredModel`) "
+        "now carries a single-OU kappa consistent with the deseasonalized "
+        "residual persistence; the v2 two-factor stack "
+        "(`pde_option_model/residual_v2.py`, `outputs/residual_v2/*`) remains "
+        "a companion for future full integration.",
         "",
         "### (h) `scale_P` was fit on a 9-year window straddling severe TRY "
         "depreciation — nominal-regime mismatch risk",

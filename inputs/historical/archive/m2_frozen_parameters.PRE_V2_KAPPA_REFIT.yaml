@@ -29,42 +29,15 @@ model: "M9_student_t_tvtp (single-covariate reduction: RD_lag1 only; yaml-swappe
 scale_P: 282.48                # TRY/MWh; y = asinh(P/scale_P), P = scale_P*sinh(y)
 
 # --- mean reversion ----------------------------------------------------------
-# kappa refit — v2 integration (2026-09-13).
-#
-# BEFORE: phi=0.999995891 (M9 within-regime AR(1) on raw asinh(PTF)),
-#         kappa=4.11e-6/h, half-life ~19 years.  This described the AR
-#         persistence of the raw transformed price (which absorbed the
-#         TRY-inflation-era trend and the intraday swing) and was
-#         incorrect as the OU rate of the (P-F) residual: it produced
-#         a residual variance that grew almost linearly in time, causing
-#         the 7-13x variance overshoot documented in the 2026 backtest.
-#         See `half_life_reconciliation.md` for the diagnosis.
-#
-# NOW: phi=0.9246 (deseasonalized single-regime AR(1) on the residual
-#      that remains AFTER removing seasonal / harmonic / holiday
-#      structure -- i.e. the shock-around-anchor component that the
-#      forward-centered residual actually models).  Sourced from
-#      `metadata/deseasonalized_stationarity_summary.csv` in the M9
-#      handoff bundle (also reported as `AR_phi=0.9246` in the
-#      metadata JSON parsed_parameter_files block).  kappa=0.0784/h,
-#      half-life 8.84 h.
-#
-# Sigmas below (sigma_y_normal/stress) are UNCHANGED — the M9 CSV row
-# values in y-space, which measure the same shock magnitude the new
-# kappa mean-reverts.
-#
-# Consistency note: this is NOT a full v2 integration.  v2
-# (outputs/residual_v2/) fits a TWO-factor residual (fast MS-AR(1)
-# with 1.77 h half-life + slow daily AR with 22 h half-life) and
-# reports sigmas in a normalised X = (P - M*S)/L space that this
-# yaml's single-OU / y-space schema cannot represent.  The
-# ForwardCenteredModel is single-OU; this yaml therefore carries the
-# BEST-DEFENSIBLE-SINGLE-KAPPA that matches the deseasonalized
-# residual persistence.  Full two-factor integration is Faz 5 work
-# (see model_limitations.md item (g) and PROJECT_STATUS_AND_FUTURE_WORK.md).
-phi: 0.9246
-kappa_per_hour: 0.078394
-half_life_hours: 8.8418           # = ln(2)/kappa
+# phi/kappa reconciled to the M9 CSV row on the shipped calibration bundle
+# (`parameter_estimates.csv`).  The prior yaml carried phi=0.99961485 from
+# the metadata JSON `physical_measure_parameters` fallback block, which
+# described a different model (M2_tvtp_TVTP-1); this was a silent
+# inconsistency introduced by commit 59955ee (sigmas swapped to M9 while
+# phi was left at the fallback).  See docs/tvtp_derivation_methodology.md.
+phi: 0.999995891734
+kappa_per_hour: 4.108274e-06
+half_life_hours: 168719.8         # = ln(2)/kappa  (essentially a random walk on this scale)
 
 # --- regime volatilities (per sqrt(hour), in y units) ------------------------
 sigma_y_normal: 0.0035348070      # raw M9 sigma1 (low-vol state, yaml-swapped)
@@ -112,22 +85,15 @@ provenance:
     is trusted on faith and cannot be re-derived from the shipped historical
     series alone.  Documented in model_limitations.md.
   phi: >-
-    estimated: v2 recency-weighted refit on (P-F) residuals, per
-    outputs/residual_v2/residual_v2_report.md and
-    outputs/market_calibration_final/half_life_reconciliation.md.
-    Uses the deseasonalized-single-regime AR(1) coefficient 0.9246 from
-    `metadata/deseasonalized_stationarity_summary.csv` in the M9
-    handoff bundle -- the AR persistence of the shock-around-anchor
-    component that the forward-centered residual actually models.
-    Replaces the prior yaml value 0.999995891734 (M9 within-regime AR
-    on raw asinh(PTF)), which was mis-inherited as the (P-F) residual
-    kappa; see model_limitations.md item (g).
+    estimated: M9 row of parameter_estimates.csv (0.999995891734).
+    Reconciled from the prior handoff value 0.99961484 (which came from
+    an unrelated metadata block) during the phi-fix commit; see
+    docs/tvtp_derivation_methodology.md.
   kappa_per_hour: >-
-    transformed: kappa = -ln(phi)/dt, dt = 1 h.  With phi = 0.9246
-    this gives kappa = 0.0784/h (half-life 8.84 h), a proper OU mean-
-    reversion rate for the (P-F) residual.  The forward-curve identity
-    E^Q[P_t] = F(t) is preserved regardless of kappa, so no VEP re-
-    calibration is required by this change.
+    transformed: kappa = -ln(phi)/dt, dt = 1 h.  With phi 0.999995891734
+    this gives kappa 4.11e-6/h (half-life ~19 years), i.e. the residual
+    process is essentially a random walk on the transformed variable
+    y = asinh(P/scale_P) over any pricing-relevant horizon.
   sigma_y_normal: >-
     estimated: M9 parameter_estimates.csv sigma1 (low-vol state);
     regime-label swapped to match yaml convention (index 0 = normal).

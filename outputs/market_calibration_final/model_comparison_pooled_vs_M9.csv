@@ -1,13 +1,13 @@
 maturity_h,model,F_T_TRY_MWh,residual_sd_T_TRY_MWh,V_regime0_TRY_MWh,V_regime1_TRY_MWh,call_TRY_MWh
 24,"pooled_M0_kappa (pooled sigma, M0 kappa)",2917.2391,1919.0053,724.0903,724.1022,724.0911
-24,"pooled_M9_kappa (pooled sigma, M9 kappa)",2917.2391,1937.8183,731.5799,731.5921,731.5807
-24,"M9_prod (2-regime TVTP, production)",2917.2391,1038.1586,366.324,393.4486,368.1691
+24,"pooled_M9_kappa (pooled sigma, M9 kappa)",2917.2391,987.3023,353.487,353.4878,353.4871
+24,"M9_prod (2-regime TVTP, production)",2917.2391,524.08,163.8015,165.6321,163.9261
 72,"pooled_M0_kappa (pooled sigma, M0 kappa)",2916.1573,3259.3072,1254.6465,1254.6529,1254.6469
-72,"pooled_M9_kappa (pooled sigma, M9 kappa)",2916.1573,3355.4713,1292.8719,1292.8788,1292.8724
-72,"M9_prod (2-regime TVTP, production)",2916.1573,1838.2959,686.0264,700.9413,687.041
+72,"pooled_M9_kappa (pooled sigma, M9 kappa)",2916.1573,998.5985,356.6911,356.6911,356.6911
+72,"M9_prod (2-regime TVTP, production)",2916.1573,532.257,166.7476,166.7486,166.7477
 168,"pooled_M0_kappa (pooled sigma, M0 kappa)",2913.9938,4790.8876,1854.3027,1854.3064,1854.3029
-168,"pooled_M9_kappa (pooled sigma, M9 kappa)",2913.9938,5122.6816,1985.6461,1985.6506,1985.6464
-168,"M9_prod (2-regime TVTP, production)",2913.9938,2823.7732,1073.2485,1082.8792,1073.9036
+168,"pooled_M9_kappa (pooled sigma, M9 kappa)",2913.9938,997.8708,353.8444,353.8444,353.8444
+168,"M9_prod (2-regime TVTP, production)",2913.9938,531.8703,164.9494,164.9494,164.9494
 336,"pooled_M0_kappa (pooled sigma, M0 kappa)",2910.2076,6349.8263,2450.6962,2450.6983,2450.6964
-336,"pooled_M9_kappa (pooled sigma, M9 kappa)",2910.2076,7237.4115,2799.3851,2799.3883,2799.3853
-336,"M9_prod (2-regime TVTP, production)",2910.2076,3998.6075,1525.3246,1532.0577,1525.7826
+336,"pooled_M9_kappa (pooled sigma, M9 kappa)",2910.2076,996.5864,348.9053,348.9053,348.9053
+336,"M9_prod (2-regime TVTP, production)",2910.2076,531.1857,161.8446,161.8446,161.8446

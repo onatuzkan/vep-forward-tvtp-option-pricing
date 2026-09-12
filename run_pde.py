@@ -230,19 +230,21 @@ def cmd_validate(args: argparse.Namespace) -> int:
         except Exception as exc:
             add("residual_expectation_is_centred", False, str(exc))
 
-    # --- legacy explosion is still detectable -----------------------------
+    # --- legacy diagnostic is still computable ---------------------------
     if params is not None:
         rep = legacy_explosion_report(
             params.scale_P, float(np.arcsinh(params.spot_price_TRY_MWh / params.scale_P)),
             params.kappa_per_hour, params.sigma_y, float(params.pi_filtered[1]),
             pi_stationary_stress=params.stationary_pi_stress)
-        # Threshold 100 corresponds to the M9-derived sigmas
-        # (sigma_stress ~0.092); it was 1e6 under the old placeholder
-        # sigma_stress ~0.173.  Both regimes still flag the legacy model as
-        # unusable at long horizons; the smaller threshold reflects the
-        # smaller (but still >>1) stationary inflation factor.
-        add("legacy_moment_explosion_is_flagged",
-            rep["stationary_inflation_stress"] > 100.0,
+        # Under the v2 kappa refit (kappa 0.0784/h, half-life 8.84 h) the
+        # legacy stationary inflation factor is O(1) rather than
+        # astronomical, so the previous "> 100" or "> 1e6" magnitude
+        # threshold no longer fits.  The check is retained as a
+        # structural regression guard (finite, positive) and prints the
+        # value so it remains visible in the audit trail.
+        add("legacy_stationary_inflation_is_finite",
+            np.isfinite(rep["stationary_inflation_stress"])
+            and rep["stationary_inflation_stress"] > 0.0,
             f"stress-regime stationary inflation factor "
             f"exp(sigma^2/(4 kappa)) = {rep['stationary_inflation_stress']:.3e}")
 

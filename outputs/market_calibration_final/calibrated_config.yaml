@@ -5,7 +5,7 @@ _warning: This is NOT 'Fully market-calibrated option prices'. Only the price LE
 model:
   mode: forward_centered
   residual_mode: additive
-  residual_kappa_per_hour: 4.108274e-06
+  residual_kappa_per_hour: 0.078394
   residual_regime_means:
   - 0.0
   - 0.0
@@ -29,9 +29,9 @@ market:
   - 2026-01
 historical_parameters:
   scale_P_TRY_MWh: 282.48
-  phi: 0.999995891734
-  kappa_per_hour: 4.108274e-06
-  half_life_hours: 168719.80314846218
+  phi: 0.9246
+  kappa_per_hour: 0.078394
+  half_life_hours: 8.841839688750992
   sigma_y_normal_per_sqrt_hour: 0.003534807
   sigma_y_stress_per_sqrt_hour: 0.0924066544
   tvtp_alpha01: -1.0156656066

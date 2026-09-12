@@ -26,14 +26,14 @@ Label of every price produced here: **VEP-forward-curve anchored option prices**
 
 2. **Option prices depend on inherited volatility.** The forward calibration is exactly invariant to σ (the centering ODE has no σ term), so a wrong σ cannot break the monthly fit — but it moves every option value one-for-one. Option prices are therefore *level-anchored, volatility-assumed*.
 
-3. **Residual dispersion inherits a near-unit-root κ.** With κ = 4.108e-06/h (half-life 168720 h) the residual standard deviation keeps growing over the horizon:
+3. **Residual dispersion inherits a near-unit-root κ.** With κ = 7.839e-02/h (half-life 9 h) the residual standard deviation keeps growing over the horizon:
 
 | horizon | F(t) (TRY/MWh) | residual sd (TRY/MWh) | sd / F |
 |---|---|---|---|
-| 72 h | 2916.2 | 1858.7 | 0.64 |
-| 168 h | 2914.0 | 2858.0 | 0.98 |
-| 336 h | 2910.2 | 4048.6 | 1.39 |
-| 720 h | 2901.5 | 5921.5 | 2.04 |
+| 72 h | 2916.2 | 560.1 | 0.19 |
+| 168 h | 2914.0 | 559.7 | 0.19 |
+| 336 h | 2910.2 | 559.0 | 0.19 |
+| 720 h | 2901.5 | 557.3 | 0.19 |
 
    In the **additive** residual mode this admits negative simulated prices at long horizons — economically wrong for PTF, which is floored at zero. The additive mode is appropriate at day-ahead to few-week horizons; use `residual_mode: multiplicative` for month-scale work, where prices stay positive by construction. Either way the monthly forward fit is unaffected.
 

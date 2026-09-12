@@ -144,6 +144,36 @@ under `outputs/market_calibration_final/`.
   half-life reconciliation status (g), and the `scale_P` /
   TRY-depreciation window mismatch (h).
 
+- [x] **F2.12 v2 kappa refit — production integration (2026-09-13)** —
+  the residual OU rate in `inputs/historical/m2_frozen_parameters.yaml`
+  was reconciled from the raw-`asinh(PTF)` within-regime persistence
+  (phi=0.999996, half-life ~19 y) to the deseasonalized single-regime
+  persistence appropriate for the (P-F) residual
+  (phi=0.9246, kappa=0.0784/h, half-life 8.84h).  Pre-refit yaml
+  archived to
+  `inputs/historical/archive/m2_frozen_parameters.PRE_V2_KAPPA_REFIT.yaml`.
+  Legacy reference regenerated; pre-refit snapshot archived to
+  `inputs/legacy_reference/archive/legacy_model_implied_forwards.PRE_V2_KAPPA_REFIT_ERA.json`.
+  Five kappa-dependent parameter-value tests updated to the new regime;
+  three model-logic invariants (put-call parity, `E^Q[P_t]=F(t)`,
+  variance-channel theta-invariance) left untouched.  Test suite: 207
+  passing.  Numerical impact vs pre-refit:
+    * 72h K=3000 PDE call: 687.04 -> 166.75 TRY/MWh (-75.7%)
+    * 72h residual sd: 1838.3 -> 532.3 TRY/MWh (-71.0%)
+    * MC P(P_T<0): 0.0551 -> 0.0000 (variance no longer over-wide
+      enough to push simulated prices into negative territory)
+    * 2026-backtest `model_over_realized_ratio`: 7.00-12.58 (v1) ->
+      0.35-0.97 (v2, one order of magnitude improvement; monthly
+      residual std now O(1) x realized instead of 7-13x wide)
+    * M8-vs-M9 gap: -0.60% (v1) -> -0.70% (v2), preserved -- confirms
+      the finding is kappa-independent
+    * F(T) unchanged (VEP quotes preserved exactly, as required)
+  Scope note: v2 also fits a two-factor residual (fast MS-AR(1) + slow
+  daily AR) and level-scale factors, which are NOT integrated into the
+  single-OU yaml/ForwardCenteredModel; full v2 integration remains a
+  Faz 5+ item.  The refit closes the "7-13x overshoot" documented in
+  the 2026 backtest (F2.9) and the half-life reconciliation (F2.10).
+
 ---
 
 ## Faz 3 — Manuscript Writing (IN PROGRESS)
@@ -207,38 +237,21 @@ Prioritised by "likely required for a Q1-tier submission" (Category A)
 
 ### Category A — likely required for Q1-level ambition
 
-- [ ] **FW1 Kappa refit on (P−F) residuals directly** — the root cause
-  identified in `half_life_reconciliation.md`.  Addresses the 7-13×
-  variance overshoot found in the 2026 backtest (F2.9).  Expected
-  refit value near `0.0784 /h` (half-life ~8.84 h).  The forward-curve
-  identity `E^Q[P_t] = F(t)` is preserved regardless of kappa, so no
-  VEP re-calibration is needed.  Companion sigma re-check on the same
-  residual is warranted.
-
-  **Status as of 2026-09-12 (post-pull audit):**  a candidate v2 stack
-  is available in `pde_option_model/{hpfc, residual_v2, premium}.py`
-  and `outputs/{hpfc, residual_v2}/*` — a merge from a teammate,
-  reviewed under `outputs/market_calibration_final/teammate_change_review.md`.
-  v2 fits an MS-AR(1) TVTP on the ratio `x = (P − M·S)/L` over
-  2023-2025 (26 304 hours) and reports a 2026 out-of-sample coverage
-  much closer to nominal than v1 (`cov50 = 34.3 %` overall vs v1's
-  ~100 %; residual sd at 336 h ≈ 1 246 TRY/MWh vs v1's 3 803 — the
-  ~3× reduction matches this doc's prediction).  v2 does NOT touch
-  v1's production `inputs/historical/m2_frozen_parameters.yaml` or
-  any `outputs/market_calibration_final/*` artefact; it lives as a
-  **companion analysis**.  Promotion of v2 to production is a
-  **separate decision** and must include:
-    (i) an official-source citation for the residual_v2 price-cap
-        schedule (currently [DATA-INFERRED] from realized 2026 PTF;
-        see `residual_v2.price_limits` docstring);
-    (ii) a v2 yaml artefact analogous to
-        `m2_frozen_parameters.yaml` with full provenance;
-    (iii) `test_forward_centered.py`-style invariant tests re-run
-        against the new residual spec;
-    (iv) an updated `model_limitations.md` covering v2's own
-        assumptions (level proxy, cap schedule, MS-AR(1) SEs).
-  Until those are done, v2 remains a Faz 5 candidate, not
-  production.
+- [x] ~~**FW1 Kappa refit on (P−F) residuals directly**~~ — **DONE
+  (2026-09-13), promoted to Faz 2 Completed as item F2.12.**  The
+  yaml `phi/kappa/half_life_hours` were reconciled to the
+  deseasonalized single-regime AR(1) values (phi=0.9246,
+  kappa=0.0784/h, half-life 8.84h).  Backtest
+  `model_over_realized_ratio` collapsed from 7-13x (v1) to 0.35-0.97
+  (v2 kappa), the empirical near-saturation of (P-F) residual std is
+  now respected, and MC P(P_T<0) went from 0.055 to 0.000.  The full
+  v2 stack (two-factor MS-AR(1) + slow daily AR + level uncertainty +
+  price cap) remains a **separate candidate** for a future full
+  integration; only the single-OU kappa was promoted here.  Full v2
+  promotion still requires (i) EPİAŞ regulatory citation for the
+  cap-schedule change date, (ii) a v2 yaml artefact, (iii)
+  invariant-test coverage against the two-factor residual, (iv)
+  updated `model_limitations.md` for v2 assumptions.
 - [ ] **FW2 Risk-neutral premium beyond zero** — either implement Q2
   (transition-intensity shift `η_ij`; skeleton already in
   `risk_neutral.py`), or adopt a literature-grounded risk-premium
