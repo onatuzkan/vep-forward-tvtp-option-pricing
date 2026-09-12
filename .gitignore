@@ -14,3 +14,12 @@ scratch/
 scripts/dev_checks/*.local.*
 
 .env
+
+# ---- credential hygiene (added after eptr2-tgt leak, 2026-09-12) ----
+.eptr2-tgt
+*.tgt
+*token*
+*credential*
+*secret*
+*.pem
+*.key

@@ -214,6 +214,31 @@ Prioritised by "likely required for a Q1-tier submission" (Category A)
   identity `E^Q[P_t] = F(t)` is preserved regardless of kappa, so no
   VEP re-calibration is needed.  Companion sigma re-check on the same
   residual is warranted.
+
+  **Status as of 2026-09-12 (post-pull audit):**  a candidate v2 stack
+  is available in `pde_option_model/{hpfc, residual_v2, premium}.py`
+  and `outputs/{hpfc, residual_v2}/*` — a merge from a teammate,
+  reviewed under `outputs/market_calibration_final/teammate_change_review.md`.
+  v2 fits an MS-AR(1) TVTP on the ratio `x = (P − M·S)/L` over
+  2023-2025 (26 304 hours) and reports a 2026 out-of-sample coverage
+  much closer to nominal than v1 (`cov50 = 34.3 %` overall vs v1's
+  ~100 %; residual sd at 336 h ≈ 1 246 TRY/MWh vs v1's 3 803 — the
+  ~3× reduction matches this doc's prediction).  v2 does NOT touch
+  v1's production `inputs/historical/m2_frozen_parameters.yaml` or
+  any `outputs/market_calibration_final/*` artefact; it lives as a
+  **companion analysis**.  Promotion of v2 to production is a
+  **separate decision** and must include:
+    (i) an official-source citation for the residual_v2 price-cap
+        schedule (currently [DATA-INFERRED] from realized 2026 PTF;
+        see `residual_v2.price_limits` docstring);
+    (ii) a v2 yaml artefact analogous to
+        `m2_frozen_parameters.yaml` with full provenance;
+    (iii) `test_forward_centered.py`-style invariant tests re-run
+        against the new residual spec;
+    (iv) an updated `model_limitations.md` covering v2's own
+        assumptions (level proxy, cap schedule, MS-AR(1) SEs).
+  Until those are done, v2 remains a Faz 5 candidate, not
+  production.
 - [ ] **FW2 Risk-neutral premium beyond zero** — either implement Q2
   (transition-intensity shift `η_ij`; skeleton already in
   `risk_neutral.py`), or adopt a literature-grounded risk-premium

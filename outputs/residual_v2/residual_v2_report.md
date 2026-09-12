@@ -3,6 +3,12 @@
 * estimation window 2023-2025, 26304 hours, converged=True
 * scale L at valuation = 2618 TRY/MWh
 * level factor = naive monthly-change proxy [ASSUMED]
+* price cap schedule (3 400 → 4 500 TRY/MWh on 2026-04-04): **PROVENANCE**
+  currently [DATA-INFERRED] from realized 2026 PTF; official EPİAŞ
+  regulatory source has NOT been located at review time.  See
+  `pde_option_model/residual_v2.price_limits` docstring; must be closed
+  to [ESTIMATED-FROM-OFFICIAL-DOCUMENT] before promotion to production
+  (Faz 5 FW1).
 
 ## 2026 coverage (v2 vs v1)
 

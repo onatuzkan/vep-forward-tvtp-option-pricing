@@ -242,8 +242,26 @@ def level_uncertainty(ptf: pd.Series, since_year: int = 2022, max_tau: int = 7) 
 
 
 def price_limits(times_utc: pd.DatetimeIndex, schedule: Optional[pd.DataFrame] = None) -> np.ndarray:
-    """Regulatory cap per hour.  Default schedule [DATA-INFERRED from realised PTF]:
-    3400 TRY/MWh up to 2026-04-04 00:00 TRT, 4500 afterwards; floor 0."""
+    """Regulatory cap per hour.
+
+    Default schedule: 3 400 TRY/MWh up to 2026-04-04 00:00 TRT, 4 500 afterwards; floor 0.
+
+    PROVENANCE WARNING [added during post-pull audit, 2026-09-12]: this
+    default schedule was originally inferred from an inspection of the
+    realised 2026 PTF series (the ceiling at which realised prices got
+    clipped visibly changes on 2026-04-04).  The EPİAŞ cap and its
+    changeover date are public regulatory quantities, not statistical
+    parameters, and can be sourced from an official EPİAŞ notice /
+    tariff schedule (EPDK / EPİAŞ tarife duyurusu).  **The regulatory
+    source has NOT been located at review time**, so the cap and its
+    change date remain [DATA-INFERRED] rather than [ESTIMATED-FROM-
+    OFFICIAL-DOCUMENT].  This should be closed before residual_v2 is
+    promoted to production (Faz 5 item FW1): find the EPİAŞ ceiling
+    notice for Q1-Q2 2026, replace the hard-coded schedule with a
+    citation, and verify the 2026-04-04 date against the official
+    effective date.  Users needing a different regulatory schedule
+    can pass ``schedule`` explicitly.
+    """
     if schedule is None:
         schedule = pd.DataFrame(dict(valid_from_local=["2025-01-01", "2026-04-04"],
                                      cap_TRY_MWh=[3400.0, 4500.0]))
