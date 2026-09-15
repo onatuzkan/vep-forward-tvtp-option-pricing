@@ -141,6 +141,20 @@ def _get(cfg: Dict[str, Any], dotted: str, default: Any = None) -> Any:
 
 
 # ---------------------------------------------------------------------------
+def available_strip_dates() -> List[str]:
+    """Valuation dates that actually have a quote file under ``VEP_DIR``.
+
+    Used only to warn when a run covers fewer dates than the archive holds, so
+    that a deliberately restricted run (``--dates 2025-12-31``) can never be
+    mistaken for a complete one when its summary is read later.
+    """
+    if not VEP_DIR.is_dir():
+        return []
+    return sorted(d.name for d in VEP_DIR.iterdir()
+                  if d.is_dir() and (d / "vep_monthly_quotes.csv").is_file())
+
+
+# ---------------------------------------------------------------------------
 def load_realized_hourly() -> pd.Series:
     parts = [load_epias_ptf_csv(f) for f in sorted(PTF_DIR.glob("ptf_*.csv"))]
     if PTF_2026.exists():
@@ -624,7 +638,8 @@ def write_summary(path: Path, results: List[DateResult], df: pd.DataFrame,
                   anch: Dict[str, Any], hz: pd.DataFrame,
                   verify: Optional[Dict[str, Any]], cfg: Dict[str, Any],
                   max_horizon: int, mono: Optional[Dict[str, Any]] = None,
-                  anchor_check: Optional[Dict[str, Any]] = None) -> None:
+                  anchor_check: Optional[Dict[str, Any]] = None,
+                  available: Optional[List[str]] = None) -> None:
     ok = [r for r in results if r.status == "ok"]
     bad = [r for r in results if r.status != "ok"]
     L: List[str] = []
@@ -647,6 +662,11 @@ def write_summary(path: Path, results: List[DateResult], df: pd.DataFrame,
     A("")
     A(f"* valuation dates attempted: {len(results)}")
     A(f"* valuation dates with a usable VEP strip: {len(ok)}")
+    unused: List[str] = []
+    if available is not None:
+        A(f"* valuation dates with a quote file on disk: {len(available)}")
+        unused = [d for d in available
+                  if d not in {r.valuation_date for r in results}]
     A(f"* delivery horizon per date: 1..{max_horizon} months ahead")
     A(f"* curve mode: `{_get(cfg, 'market.curve_mode')}`, "
       f"anchor rule: `{_get(cfg, 'market.january_anchor_mode')}`, "
@@ -655,6 +675,13 @@ def write_summary(path: Path, results: List[DateResult], df: pd.DataFrame,
     A(f"* usable (valuation date x delivery month) observations: "
       f"{int(df['bias_TRY_MWh'].notna().sum())}")
     A("")
+    if unused:
+        A(f"> **This run is restricted.** {len(unused)} valuation date(s) carry "
+          f"a quote file under `inputs/market/historical_vep/` but were not "
+          f"requested on the command line: {', '.join(unused)}. Every number "
+          f"below is computed on the {len(results)} requested date(s) only and "
+          f"must not be read as the full-sample result.")
+        A("")
 
     A("## 0. Is the downloaded series the series the manuscript uses?")
     A("")
@@ -1067,6 +1094,13 @@ def main(argv=None) -> int:
     print(f"realised PTF archive: {len(ptf)} hours "
           f"({ptf.index[0]} .. {ptf.index[-1]})")
 
+    available = available_strip_dates()
+    unused = [d for d in available if d not in set(a.dates)]
+    if unused:
+        print(f"WARNING: restricted run -- {len(unused)} valuation date(s) have "
+              f"a quote file on disk but were not requested: "
+              f"{', '.join(unused)}", file=sys.stderr)
+
     a.outdir.mkdir(parents=True, exist_ok=True)
     results = [build_one_date(d, ptf, cfg, a.max_horizon, a.outdir) for d in a.dates]
     for r in results:
@@ -1107,7 +1141,10 @@ def main(argv=None) -> int:
 
     verify = verify_2025(cfg) if a.verify_2025 else None
     with open(a.outdir / "multi_date_analysis.json", "w", encoding="utf-8") as fh:
-        json.dump({"distribution": dist, "systematic": sysx, "anchor": anch,
+        json.dump({"dates_requested": list(a.dates),
+                   "dates_available_on_disk": available,
+                   "dates_available_not_requested": unused,
+                   "distribution": dist, "systematic": sysx, "anchor": anch,
                    "horizon_monotonicity": mono,
                    "vep_series_anchor_check": anchor_check,
                    "verification": verify,
@@ -1116,7 +1153,7 @@ def main(argv=None) -> int:
 
     write_summary(a.outdir / "multi_date_summary.md", results, df,
                   dist, sysx, anch, hz, verify, cfg, a.max_horizon,
-                  mono, anchor_check)
+                  mono, anchor_check, available)
 
     print(f"\nwrote {a.outdir / 'multi_date_backtest.csv'} ({len(df)} rows)")
     print(f"wrote {a.outdir / 'multi_date_summary.md'}")

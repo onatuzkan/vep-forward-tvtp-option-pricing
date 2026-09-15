@@ -29,3 +29,7 @@ scripts/dev_checks/*.local.*
 # The raw EPİAŞ GGF JSONs (2.3 MB total) stay tracked: the anchor check in
 # build_vep_quote_sets.py depends on them.
 outputs/multi_date/*/hourly_forward_curve.csv
+
+# ---- scratch folder for ad-hoc report copies; the canonical artefacts live
+# under outputs/.  A copy here goes stale as soon as the script is re-run.
+Claude outputs/

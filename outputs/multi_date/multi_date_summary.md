@@ -6,6 +6,7 @@ The TVTP, kappa and sigma parameters of the model were estimated on data running
 
 * valuation dates attempted: 7
 * valuation dates with a usable VEP strip: 7
+* valuation dates with a quote file on disk: 7
 * delivery horizon per date: 1..7 months ahead
 * curve mode: `smooth_constrained`, anchor rule: `spot_to_next_linear`, smoothness 1.0, level 0.0001
 * usable (valuation date x delivery month) observations: 49
