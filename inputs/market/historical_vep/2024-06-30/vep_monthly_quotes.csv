@@ -1,0 +1,7 @@
+contract_name,delivery_year,delivery_month,price_TRY_MWh,quote_type,source,valuation_date,weight,spot_price_TRY_MWh,ggf_quotation_date,ggf_staleness_days
+EBM0824,2024,8,2927.85,monthly_baseload,EPIAS_VEP_daily_reference_price,2024-06-30,1.0,2424.99,2024-06-28,2
+EBM0924,2024,9,2610.26,monthly_baseload,EPIAS_VEP_daily_reference_price,2024-06-30,1.0,,2024-06-28,2
+EBM1024,2024,10,2489.07,monthly_baseload,EPIAS_VEP_daily_reference_price,2024-06-30,1.0,,2024-06-28,2
+EBM1124,2024,11,2744.02,monthly_baseload,EPIAS_VEP_daily_reference_price,2024-06-30,1.0,,2024-06-28,2
+EBM1224,2024,12,2754.77,monthly_baseload,EPIAS_VEP_daily_reference_price,2024-06-30,1.0,,2024-06-28,2
+EBM0125,2025,1,2331.48,monthly_baseload,EPIAS_VEP_daily_reference_price,2024-06-30,1.0,,2024-06-28,2

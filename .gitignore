@@ -23,3 +23,9 @@ scripts/dev_checks/*.local.*
 *secret*
 *.pem
 *.key
+
+# ---- multi-date forward backtest: per-date hourly curves are regenerable
+# (640 KB each) and are rebuilt by scripts/backtest/multi_date_forward_backtest.py.
+# The raw EPİAŞ GGF JSONs (2.3 MB total) stay tracked: the anchor check in
+# build_vep_quote_sets.py depends on them.
+outputs/multi_date/*/hourly_forward_curve.csv

@@ -1,0 +1,41 @@
+{
+ "valuation_date": "2024-06-30",
+ "valuation_utc": "2024-06-30T20:00:00+00:00",
+ "ggf_quotation_date": "2024-06-28",
+ "ggf_staleness_days": 2,
+ "n_contracts_in_quote_file": 6,
+ "spot_price_TRY_MWh": 2424.99,
+ "curve_mode": "smooth_constrained",
+ "anchor_mode": "spot_to_next_linear",
+ "smoothness_weight": 1.0,
+ "level_weight": 0.0001,
+ "quoted_months": [
+  "2024-08",
+  "2024-09",
+  "2024-10",
+  "2024-11",
+  "2024-12",
+  "2025-01"
+ ],
+ "near_term_anchored_months": [
+  "2024-07"
+ ],
+ "nearest_delivery_month": "2024-07",
+ "nearest_month_quoted": false,
+ "dropped_months_after_interior_gap": [],
+ "max_abs_monthly_constraint_error_TRY_MWh": 4.547473508864641e-12,
+ "curve_diagnostics": {
+  "n_hours": 5161.0,
+  "min_TRY_MWh": 2315.1420509988675,
+  "max_TRY_MWh": 2940.0946472911246,
+  "mean_TRY_MWh": 2647.379991749629,
+  "first_value_TRY_MWh": 2424.99,
+  "spot_used_TRY_MWh": 2424.99,
+  "max_abs_monthly_error_TRY_MWh": 4.547473508864641e-12
+ },
+ "market_data_warnings": [
+  "valuation falls inside delivery month(s) ['2024-06']; only the hours from valuation onward are priced and no monthly baseload average is formed for them",
+  "delivery months inside the pricing horizon with NO observed quote: ['2024-07'] -> near-term anchored, not directly constrained by an observed VEP quote"
+ ],
+ "option_pricing_performed": false
+}
