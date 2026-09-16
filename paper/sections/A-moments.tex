@@ -1,0 +1,38 @@
+\section{Derivation of the moment system}
+\label{app:moments}
+
+Let $S$ be the two-state chain with generator $Q(t)$ from \eqref{eq:generator}
+and let $X$ solve \eqref{eq:q1}. Write $f_i(x,t)$ for the joint density of
+$(X_t,S_t=i)$. The forward equation for the pair is
+\begin{equation}
+  \partial_t f_i
+  = -\partial_x\!\left[\left(\kappa(m_i-x)+a_i\right)f_i\right]
+    + \tfrac12\left(\sigma^X_i\right)^2\partial_{xx} f_i
+    + q_{ji}f_j - q_{ij}f_i,
+  \qquad j\neq i .
+\end{equation}
+Multiplying by $1$, $x$ and $x^2$ and integrating over $x\in\mathbb{R}$, with
+the boundary terms vanishing because $f_i$ and $x f_i$ decay at infinity, gives
+the system \eqref{eq:momentsys} in the variables
+$p_i=\int f_i\,\dif x$, $u_i=\int x f_i\,\dif x$ and $w_i=\int x^2 f_i\,\dif x$.
+The three blocks are recursively coupled: $p$ is autonomous, $u$ depends on
+$p$, and $w$ depends on $u$ and $p$. The system is therefore linear and
+non-autonomous, with time dependence entering through $q_{ij}(t)$ along the
+covariate path and through $\sigma^X_i(t)$ via \eqref{eq:sigmamap}.
+
+\paragraph{Order of the drift perturbation.} Write $u_i = u_i^{(0)} + a\,u_i^{(1)} + O(a^2)$
+for a perturbation of size $a$. The $u$ block gains the forcing $a_ip_i$, so
+$u^{(1)}$ is $O(1)$ and $u$ is first order in $a$. The $w$ block gains
+$2a_iu_i$, a product of two quantities each first order in $a$ after
+subtracting the baseline, so the variance response is $O(a^2)$. This is the
+analytic counterpart of the log-log slope of $2.0000$ reported in
+Section~\ref{sec:q1}.
+
+We record one caveat against over-reading the result. The suppression concerns
+the variance channel and hence the leading effect on option value. For a
+non-at-the-money contract under a centred conditional-Gaussian perturbation, the
+first derivative of the call value with respect to a regime-dependent drift need
+not vanish identically, since the perturbation also reweights the regime mixture
+entering the terminal payoff. The numerical experiments in
+Section~\ref{sec:q1} bound the total effect at plausible magnitudes; they do not
+establish a general second-order proposition, and we do not claim one.

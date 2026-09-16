@@ -1,0 +1,76 @@
+\section{Parameter provenance}
+\label{sec:provenance}
+
+A valuation model is only as interpretable as the audit trail behind its
+inputs. We therefore classify every parameter into one of four categories and
+report the classification alongside the value itself.
+
+\begin{description}
+\item[Calibrated] determined by observed market prices through the constrained
+  optimisation of Section~\ref{sec:curve}.
+\item[Inherited] taken from a historical estimation exercise under $\PP$ and
+  used for valuation without a measure adjustment.
+\item[Derived] reconstructed from summary statistics of that exercise because
+  the primary estimate was unavailable, with no standard error attached.
+\item[Assumed] chosen by the analyst on economic or pragmatic grounds.
+\end{description}
+
+Table~\ref{tab:provenance} applies the scheme. Only the forward curve is
+calibrated. Everything governing the distribution around it is inherited,
+derived or assumed, which is the concrete form the incompleteness of this
+market takes.
+
+\begin{table}[htbp]
+\centering
+\caption{Production parameters and provenance. Only $F(\cdot)$ is identified by
+market prices.}
+\label{tab:provenance}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Parameter & Value & Status & Note \\
+\midrule
+$F(\cdot)$ & curve & Calibrated & Exact on six monthly averages \\
+Jan.\ anchor & \texttt{spot\_to\_next} & Assumed & No quote exists \\
+$\kappa$ (h$^{-1}$) & $0.078394$ & Inherited & Half-life $8.84$\,h \\
+$\sigma^{y}_{0}$ & $0.0035348$ & Inherited & Calm regime \\
+$\sigma^{y}_{1}$ & $0.0924067$ & Inherited & Stress regime \\
+$s_P$ (\TRY) & $282.48$ & Assumed & Source file unavailable \\
+$\alpha_{01}$ & $-1.015666$ & Derived & Duration reconstruction \\
+$\alpha_{10}$ & $-1.895229$ & Derived & Duration reconstruction \\
+$\gamma_{01}$ & $-0.583778$ & Inherited & Ramp term omitted \\
+$\gamma_{10}$ & $+0.077698$ & Inherited & Ramp term omitted \\
+$\pi_{1,0}$ & $0.068023$ & Inherited & Filtered at valuation \\
+$a_0,a_1$ & $0,\ 0$ & Assumed & Zero drift premium \\
+$r$ (annual) & $0.40$ & Assumed & Flat, not calibrated \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three entries require comment because they carry more interpretive weight than
+their appearance in a table suggests.
+
+The intercepts $\alpha_{01},\alpha_{10}$ were not available from the original
+estimation output, which reported slope coefficients and average marginal
+effects but not intercepts. We reconstructed them by solving, over the full
+covariate sample, the two scalar equations that match the implied average
+departure rates to the reported mean regime durations of $3.76$ and $7.56$
+hours. The reconstruction reproduces the reported stationary stress share to
+within $1\%$ under an ergodic approximation and $4.5\%$ under simulation along
+the realised covariate path. It is nevertheless a moment-matching
+reconstruction and not a likelihood estimate, so no standard error attaches to
+it and no inference should be drawn from its magnitude.
+
+The slopes $\gamma_{01},\gamma_{10}$ come from a specification that also
+contained a residual-demand ramp covariate, which the production implementation
+does not carry. If the original fit was joint, our slopes are subject to omitted
+variable bias of unknown sign. We were unable to determine from the available
+artefacts whether the two covariates were estimated jointly or separately, and
+we report the ambiguity rather than resolving it by assumption.
+
+The initial regime distribution $\pi$ comes from a filter run under an earlier
+model specification than the one supplying the volatilities, so the production
+configuration mixes sources at the initialisation step. We quantify the
+consequence directly in Section~\ref{sec:sensitivity} by re-pricing under the
+alternative of initialising at the stationary distribution.

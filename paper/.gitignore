@@ -1,0 +1,10 @@
+# LaTeX build artefacts — regenerable by any pdflatex run; do not commit.
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.toc

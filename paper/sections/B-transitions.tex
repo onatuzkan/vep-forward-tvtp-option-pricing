@@ -1,0 +1,47 @@
+\section{Transition reconstruction and label reconciliation}
+\label{app:transitions}
+
+\paragraph{Label orientation.} The estimation output orders regimes by the raw
+fitted index, in which state $0$ carries the higher diffusion coefficient and
+occupies roughly $67\%$ of the sample with a mean duration of $7.56$ hours,
+while state $1$ carries the lower coefficient and a mean duration of $3.76$
+hours. Our convention is the opposite, with index $0$ denoting the calm regime.
+Adopting it requires swapping the volatilities and, because the logistic
+coefficients are indexed by the same labels, swapping the transition
+coefficients crosswise: the production $\gamma_{01}$, governing calm-to-stress
+transitions, is the raw $\gamma_{10}$, and conversely. Failing to apply the
+swap to both objects would produce a model in which volatilities and transition
+dynamics refer to different states, which is a silent error rather than one that
+any single diagnostic would reveal. We enforce the ordering with an invariant
+check requiring $\sigma^y_0 < \sigma^y_1$ at load time.
+
+The orientation is worth a remark on its own terms. A high-volatility state that
+is both dominant and longer-lived inverts the usual reading in which stress is
+rare and brief. Whether this reflects genuine market structure at hourly
+frequency, or the labelling of a transform-space variance decomposition that
+does not correspond to economic stress, we cannot determine from the available
+artefacts, and we use the terms calm and stress throughout as labels for
+variance states rather than as economic claims.
+
+\paragraph{Intercept reconstruction.} Slope coefficients and average marginal
+effects are supplied by the estimation output, but intercepts are not. The mean
+departure rate from state $i$ over the covariate distribution must match the
+reported mean duration $d_i$, which gives
+\begin{equation}
+  \E_z\!\left[\Lambda\!\left(\alpha_{01}+\gamma_{01}z\right)\right]
+     = \frac{1}{d_{\text{calm}}},
+  \qquad
+  \E_z\!\left[\Lambda\!\left(\alpha_{10}+\gamma_{10}z\right)\right]
+     = \frac{1}{d_{\text{stress}}},
+\end{equation}
+for $\alpha_{01}$ and $\alpha_{10}$ separately, taking the expectation over the
+full standardised covariate sample and using a monotone bracketing root finder.
+The target rates are $0.2660$ and $0.1323$ per hour. The resulting pair
+reproduces the reported stationary stress share of $0.6746$ to within $1.0\%$
+under an ergodic approximation and $4.5\%$ under simulation along the realised
+covariate path.
+
+This is moment matching, not estimation. The reconstructed intercepts have no
+sampling distribution, no standard errors and no likelihood interpretation, and
+any inference conditioned on their precise values would be unfounded. They are
+reported as Derived in Table~\ref{tab:provenance} for that reason.

@@ -1,0 +1,32 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+A valuation framework has been developed for expiry-hour electricity options in a
+market that supplies a sparse monthly forward strip and no option prices. Its
+organising principle is a separation between what such a market identifies and
+what it does not. An equality-constrained hourly curve carries the identified
+information, a regime-switching residual with residual-demand-driven transition
+probabilities carries the assumed distributional structure, and a centring term
+ensures the two meet without the second contaminating the first:
+$\E^{\Q}[P_t]=F(t)$ holds for every admissible parameter vector, as an algebraic
+identity rather than a calibration target.
+
+Applying the framework to Turkish data yields three findings. The dominant source
+of uncertainty in the reported option value is the forward level over the
+unquoted nearest delivery month, which overwhelms every parameter of the residual
+specification by an order of magnitude. The mean-reversion rate is the dominant
+residual-layer input, and transferring it from an autoregression on the
+untransformed price level rather than on deviations around the curve inflated
+option values by a factor of four until diagnosed. And the forward strip itself is a poor predictor of what follows: across seven
+valuation dates the mean error is $-18\%$ of the forward level, negative at five
+dates and positive at two, with the much-discussed 2026 outcome lying inside the
+interquartile range rather than outside it.
+
+The last of these deserves emphasis. Forward-anchored valuation inherits the
+predictive accuracy of the forward market entirely, and on this evidence that
+accuracy is low and unstable in sign for reasons no pricing model can correct.
+Combined with the finding that the nearest delivery month is never quoted, the
+implication for practice is that a single option value in this market conveys
+less than the value reported together with the range implied by the inputs no
+price identifies. What that discipline looks like in practice is what this paper
+has tried to demonstrate, including where it revealed our own errors.

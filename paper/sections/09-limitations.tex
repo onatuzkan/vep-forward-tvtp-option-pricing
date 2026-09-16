@@ -1,0 +1,56 @@
+\section{Limitations and future work}
+\label{sec:limitations}
+
+\paragraph{Identification.} Volatility and regime risk premia are not identified
+by a monthly baseload strip, and no attempt is made here to estimate them. All
+reported values are zero-premium values in the sense of Section~\ref{sec:q1}.
+A drift-type premium is additionally quadratically suppressed within this
+specification, so even option data might identify it only weakly; an
+intensity-type premium is the more promising target and is not implemented.
+
+\paragraph{Parameter provenance.} Three items in Table~\ref{tab:provenance}
+carry unresolved questions. The transition intercepts are moment-matching
+reconstructions without standard errors. The transition slopes come from a
+specification containing a ramp covariate that the production implementation
+omits, with omitted-variable consequences of unknown sign. The transform scale
+$s_P=282.48$ could not be verified because the preprocessing metadata defining it
+was unavailable; it is a median absolute price over a training window spanning
+years of substantial lira depreciation, so the price regime it represents may
+differ materially from that at the valuation date. Each would be resolved by
+access to the original estimation artefacts.
+
+\paragraph{Specification scope.} The production residual is a single-factor
+mean-reverting process, unbounded below, whereas realised prices face
+administrative floors and ceilings. A companion specification developed alongside
+this work adds a slow second factor and explicit price limits. It is not
+integrated here because clipping the state distribution breaks the centring
+identity of Proposition~\ref{prop:centering}: restoring $\E^{\Q}[P_t]=F(t)$ under
+a clipped law requires redesigning the centring term rather than adding a bound
+to the existing one. The trade-off is worth stating explicitly, because the
+obvious alternative is worse. Multiplicative or log-type specifications respect
+the lower bound automatically, but under Jensen's inequality their first moment
+depends on the residual variance, so forward consistency can no longer be
+imposed algebraically. Figure~\ref{fig:legacy} quantifies what that costs on
+this data, and the forward inconsistency it shows is larger by orders of
+magnitude, measured in \TRY, than the boundary violations the additive form
+permits, whose simulated probability at the calibrated dispersion is zero to
+four decimal places. That is the most substantive extension available and is
+treated as the natural next study rather than a patch to this one. The dispersion
+ratios in Table~\ref{tab:realised} indicate what a second factor would need to
+supply. The price limit schedule used by the companion specification was inferred
+from realised price behaviour rather than read from a primary regulatory
+document, and is marked accordingly; it plays no role in the production results.
+
+\paragraph{Evaluation.} The option-level evaluation still rests on a single
+valuation date, because the residual parameters cannot be replayed at earlier
+dates without look-ahead bias. Only the forward curve is evaluated across the
+seven dates of Section~\ref{sec:multidate}, and the two exercises therefore
+answer different questions. Seven dates six months apart also leave the delivery
+windows partially overlapping and the long horizons confounded with calendar
+month, so the horizon profile in particular should be read as descriptive.
+Four of the seven strips were published one to four days before their valuation
+date because the date fell on a non-business day; a strict same-day rule would
+reduce the sample to three. Extending the panel as further quotations and
+outturns accumulate, and re-estimating the residual process at each date so that
+option prices could also be evaluated out of sample, are the natural
+continuations.

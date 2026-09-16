@@ -1,0 +1,101 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What a monthly strip identifies}
+
+The results support a narrow reading of what calibration to a baseload strip
+accomplishes. It fixes six linear functionals of a curve with several thousand
+degrees of freedom, and through Proposition~\ref{prop:centering} it fixes the
+first moment of the price distribution at every horizon. It does not fix the
+intraday shape of the curve, the level over unquoted months, the volatility of
+deviations around the curve, or any risk premium. The sensitivity ordering in
+Table~\ref{tab:sensitivity} makes the consequence concrete: the largest single
+driver of the reported option value is an input that no observed price
+constrains.
+
+A reporting convention follows. Rather than a point value, valuation in markets
+of this type is better expressed as a value conditional on an explicitly stated
+anchor, accompanied by the range induced by plausible alternatives. The $\pm20\%$
+anchor band used here produces a call range of $17.80$ to $528.96$ \TRY{} around
+a central $166.75$ \TRY, and that interval carries more information than its
+midpoint. Section~\ref{sec:multidate} supplies the band with a warrant it
+previously lacked: across seven valuation dates the realised anchor error has a
+standard deviation of $11.7\%$, close to the $11.5\%$ a uniform $\pm20\%$ prior
+implies, though displaced by $-3.5\%$ from zero and not containing the tail.
+
+\subsection{What the strip predicts, and what that costs}
+
+The multi-date evidence bears on a question wider than valuation mechanics.
+Whether forward prices are unbiased predictors of subsequent spot outcomes is an
+old subject in electricity markets, where limited storage and inelastic demand
+make the hedging-pressure equilibrium of \citet{BessembinderLemmon2002} a natural
+frame and where realised premia have been measured for mature markets by
+\citet{LongstaffWang2004} and \citet{Algieri2021}. On Turkish monthly baseload
+contracts over 2023--2026, the answer is that the strip is neither unbiased nor
+reliably biased in one direction. Its pooled error averages $-18\%$ of the
+forward level, so a buyer of the strip paid on average well above what delivery
+subsequently cost; but two of seven dates reversed the sign, and the date-level
+mean is not distinguishable from zero at conventional levels once the dependence
+between overlapping windows is respected.
+
+For anyone using such a curve, the practical consequence is about capital rather
+than about point forecasts. A dispersion of $775$ \TRY{} around a mean of
+$-603$ \TRY{} on a price level near $2{,}500$ \TRY{} means the position risk of a
+forward-anchored book is dominated by the level of the curve it is anchored to,
+not by the shape of the distribution placed around that level. Provisioning
+against the residual volatility of Section~\ref{sec:results}, terminal dispersion
+of roughly $530$ \TRY{} at the horizons studied, while treating the anchor level
+as known would understate the exposure by a wide margin. The ordering in
+Table~\ref{tab:sensitivity} says the same thing from the pricing side, and the
+multi-date distribution is what puts a number on it.
+
+We stop short of decomposing the error into a risk premium and a forecast error.
+Separating the two requires either an instrument for expectations or a structural
+model of the supply stack, and seven valuation dates would not identify it. That
+the strip was systematically above realised outcomes in the years when hydrology
+was favourable, and below in the years when it was not, is consistent with both a
+premium and a persistent forecasting difficulty, and this sample cannot
+distinguish them.
+
+\subsection{Separation of concerns as a design property}
+
+The centring identity does more than tidy the algebra. It creates a firewall
+between the market-identified and the assumed parts of the model, and the value
+of that firewall emerged in a way that had not been anticipated when it was
+adopted. When the inherited mean-reversion rate was found to be wrong by four
+orders of magnitude, the correction changed option values by a factor of four
+while leaving the forward reproduction, the monthly fit errors and the realised
+level bias unchanged. In a specification where residual dynamics fed back into
+the implied forward, everything would have required recalibration and the
+diagnosis would have been considerably harder, since the symptom would have
+surfaced in the calibration layer rather than only in the dispersion.
+
+The same property holds for the measure change. Because the drift perturbation
+enters both the moment system and the pricing equation through a shared field,
+$\E^{\Q}[P_t] = F(t)$ survives any $(a_0,a_1)$, verified numerically at
+magnitudes far outside any economically plausible range. Risk premium
+assumptions can therefore be explored without disturbing the calibration, which
+is what makes them reportable as sensitivities rather than as a separate model.
+
+\subsection{Persistence, transformation and nominal prices}
+
+The mean-reversion episode carries a methodological lesson that generalises
+beyond this dataset. Reported persistence statistics from a regime-switching
+estimation describe several distinct objects: within-regime autoregressive
+persistence, the marginal persistence of the observed series, and the persistence
+of deviations around a reference curve. These coincide only under restrictive
+conditions. Where the estimation sample also spans substantial currency
+depreciation, the raw series carries a monetary trend that inflates measured
+persistence further, and a coefficient transferred from that context into a
+residual-dynamics role will overstate memory by whatever the trend contributes.
+Diagnosis here required reconstructing the marginal autocorrelation of the
+switching process analytically and verifying it by simulation, since neither
+reported statistic alone identified the problem.
+
+This is likely a common failure mode wherever parameters are handed between
+modelling stages, and particularly so in emerging markets where nominal series
+are non-stationary for reasons unrelated to the physics of the power system. The
+defence that eventually worked is worth stating as a rule: every transferred
+parameter should name the process it was estimated on, and any mismatch between
+that process and its intended use should be treated as an error until shown
+otherwise.

@@ -176,47 +176,61 @@ under `outputs/market_calibration_final/`.
 
 ---
 
-## Faz 3 — Manuscript Writing (IN PROGRESS)
+## Faz 3 — Manuscript Writing (COMPLETED)
 
-Goal: assemble a coherent draft manuscript from the Faz 2 analyses.
-Every item below points to existing artefacts under `outputs/` or
-`docs/`; the writing effort is mostly assembly + academic formatting.
+Preprint draft assembled from the Faz 2 analyses under `paper/`
+(elsarticle, pdfLaTeX, 10 body sections + 3 appendices, ~9 750 words,
+11 figures, 6 tables, 42 bibliography entries).  Compiled PDF committed
+as `paper/Uzkan_Sacli_2026_forward_anchored_option_valuation_v1.pdf`.
+The naming convention (`Uzkan_Sacli_2026_..._v<N>.pdf`) is documented
+in `paper/README.md`; bump `<N>` on every material revision.
 
-- [ ] **W1 Literature review and positioning** — Deng (2000),
-  Huisman & de Jong, Janczura & Weron, Benth et al.,
-  Turkish / EPİAŞ-specific literature if any.  Identify the two or
-  three sentences of positioning: what does this paper add over
-  existing regime-switching electricity-option work?
-- [ ] **W2 Manuscript outline** — section-by-section mapping of
-  existing analyses to paper sections (Introduction, Model,
-  Calibration, Results, Discussion, Limitations, Conclusion,
-  Appendices).  One-page skeleton before drafting begins.
-- [ ] **W3 Methodology section** — forward calibration (VEP
-  interpolation + near-term anchor rule) + TVTP + forward-centering
-  identity (`E^Q[P_t] = F(t)`) + Q1 risk-neutral wiring.  Source
-  material: `docs/tvtp_derivation_methodology.md`,
-  `docs/risk_neutral_methodology.md`, module docstrings.
-- [ ] **W4 Results section** — benchmarks (F2.1-F2.4), sensitivities
-  (F2.5-F2.7), backtest (F2.9), strike / maturity grid (F2.8) — figures
-  need an academic-formatting pass (consistent axes, colourblind-safe
-  palette, publication DPI).
-- [ ] **W5 Limitations and Future Work section** — start from
-  `outputs/market_calibration_final/model_limitations.md` items
-  (a)-(h) and this document's Faz 5 items; edit down to the 3-5
-  strongest.
-- [ ] **W6 Introduction / Abstract / Conclusion, full draft assembly**
-  — last piece written; anchors the narrative and sets the
-  contribution claims.
-- [ ] **W7 Team internal review** — full read-through by the team
-  member (Onat) with a formal checklist before external outreach.
+- [x] **W1 Literature review and positioning** — 42 references cited
+  in `paper/refs.bib`, drawing on Deng (2000), Huisman & de Jong,
+  Janczura & Weron, Benth et al. and the Turkish / EPİAŞ-specific
+  literature where relevant.  Positioning claim distilled into the
+  abstract and Section 1.
+- [x] **W2 Manuscript outline** — 10 body sections (introduction,
+  market data, forward curve, residual dynamics, valuation, provenance,
+  results, discussion, limitations, conclusion) plus appendices A-C
+  (moment ODE, transition intensities, numerics).  Section files under
+  `paper/sections/`.
+- [x] **W3 Methodology section** — `sections/03-forward-curve.tex` +
+  `sections/04-residual-dynamics.tex` + `sections/05-valuation.tex` +
+  appendices A (moment ODE) and B (transition intensities), sourced
+  from `docs/tvtp_derivation_methodology.md`, `docs/risk_neutral_methodology.md`
+  and the module docstrings.
+- [x] **W4 Results section** — `sections/07-results.tex` (~30 pages)
+  covering benchmarks (F2.1-F2.4), sensitivities (F2.5-F2.8), realised
+  2026 backtest (F2.9-F2.10), strike / maturity grid (F2.8), and the
+  multi-date forward-error diagnostic.  All 10 data figures produced
+  by `paper/make_figures.py` from tracked `outputs/` artefacts; Fig 4
+  (PDE vs Monte Carlo) rebuilt by `paper/make_pde_mc.py`.  Format:
+  publication DPI, colourblind-safe palette, ~9.5 pt labels, single-
+  column elsarticle width.
+- [x] **W5 Limitations and Future Work section** — `sections/09-limitations.tex`
+  distilled from `outputs/market_calibration_final/model_limitations.md`
+  items (a)-(h) and this document's Faz 5 items.
+- [x] **W6 Introduction / Abstract / Conclusion, full draft assembly**
+  — `sections/01-introduction.tex`, `sections/10-conclusion.tex`, and
+  the abstract in `main.tex`.  Whole document compiles cleanly:
+  0 errors, 0 undefined references, 0 overfull boxes.
+- [x] **W7 Team internal review** — full read-through completed on the
+  compiled v1 PDF prior to committing it.  Any post-review revisions
+  land as `_v2`, `_v3`, ... under the same naming convention.
 
 ---
 
-## Faz 4 — Advisor Outreach
+## Faz 4 — Advisor Outreach (NEXT)
+
+Preprint upload + targeted outreach.  D1 is the immediate next
+concrete step; D2-D4 depend on the outcome of D1 and any response
+timeline agreed with the target researcher.
 
 - [ ] **D1 Publish preprint** — arXiv (q-fin.PR) or SSRN, with the
   reproducibility bundle (repo commit hash, `outputs/` frozen snapshot,
-  `docs/*.md`).
+  `docs/*.md`).  Source PDF ready at
+  `paper/Uzkan_Sacli_2026_forward_anchored_option_valuation_v1.pdf`.
 - [ ] **D2 Targeted academic outreach with draft attached** — short
   list of researchers whose recent work overlaps (electricity option
   pricing, Markov-switching, Turkish market).

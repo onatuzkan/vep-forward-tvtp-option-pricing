@@ -1,0 +1,44 @@
+\section{Numerical implementation and verification}
+\label{app:numerics}
+
+\paragraph{Moment integration.} The system \eqref{eq:momentsys} is advanced with
+classical fourth-order Runge--Kutta and internal sub-stepping capped at $0.25$
+hours, with coefficient paths interpolated linearly within each step. The cap is
+necessary rather than conservative: on hourly steps without sub-stepping the
+second-moment trajectory exhibited visible instability at the calibrated
+switching intensities, which propagated into terminal dispersion.
+
+\paragraph{Spatial discretisation.} The coupled system \eqref{eq:pde} is solved
+on a uniform grid of $1{,}201$ nodes in the residual coordinate, with the domain
+set wide enough that the terminal density is numerically negligible at the
+boundaries. The regime coupling term is treated within the same implicit step as
+the diffusion, so the two value functions advance together.
+
+\paragraph{Verification.} Three checks are run as automated regressions rather
+than as one-off diagnostics, so that any future change to the code that breaks
+them fails visibly.
+\begin{enumerate}
+\item \emph{Put--call parity}: $\max\lvert C-P-e^{-rT}(F(T)-K)\rvert
+      = 1.0\times10^{-6}$ \TRY{} across the $66$-point strike--maturity grid.
+\item \emph{Centring identity}: $\max_t\lvert\E^{\Q}[P_t]-F(t)\rvert<10^{-8}$
+      \TRY{} under drift perturbations including asymmetric and mixed-sign
+      pairs, with a companion assertion that the uncentred residual mean is
+      meaningfully non-zero so that the test cannot pass vacuously.
+\item \emph{Independent resimulation}: $20{,}000$ Monte Carlo paths at a
+      $0.05$-hour step with an exact conditional Ornstein--Uhlenbeck update on
+      the sampled regime path, giving $169.18$ \TRY{} against $166.75$ \TRY{}
+      from finite differences at the reference contract.
+\end{enumerate}
+
+We are explicit about what these checks do and do not establish. Parity and the
+centring identity test internal consistency of the implementation. The Monte
+Carlo comparison tests that two structurally different numerical routes to the
+same expectation agree. None of them provides evidence that the parameters
+describe the market, and the realised evaluation of Section~\ref{sec:realised}
+is the only exercise in this paper that bears on that question.
+
+\paragraph{Reproducibility.} All tables and figures in this paper are generated
+from a versioned snapshot of the code and inputs. The full automated test suite
+comprises $207$ tests covering the invariants above, the curve construction, the
+parameter loader, provenance detection and the regression baselines reported
+here.
