@@ -1,0 +1,124 @@
+Copyright (c) 2026 Onat Uzkan and Koray Ömercan Saçlı
+
+This repository contains code, a manuscript, documentation, and data.
+Different licences apply to different components; the sections below are
+self-contained.  For rapid reference:
+
+  * Code                                     -> MIT
+  * Manuscript (paper/)                      -> CC BY-NC-ND 4.0 (matches SSRN)
+  * Documentation and derived data           -> CC BY 4.0
+  * Raw EPİAŞ data                           -> EPİAŞ Şeffaflık ToU governs
+
+================================================================================
+1. CODE — MIT LICENCE
+================================================================================
+
+Applies to: all .py source files under pde_option_model/, scripts/, tests/,
+paper/make_figures.py, paper/make_pde_mc.py, run_pde.py, scenario_sweep.py.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the Software), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+2. MANUSCRIPT — CREATIVE COMMONS ATTRIBUTION-NONCOMMERCIAL-NODERIVATIVES 4.0
+   INTERNATIONAL (CC BY-NC-ND 4.0)
+================================================================================
+
+Applies to: everything under paper/ -- i.e. the LaTeX source
+(paper/main.tex, paper/refs.bib, paper/sections/*.tex,
+paper/figures/*.pdf and paper/figures/pipeline_src.tex), the
+regeneration scripts documentation (paper/README.md), and the compiled
+PDF (paper/Uzkan_Sacli_2026_forward_anchored_option_valuation_v<N>.pdf).
+
+This is the SAME licence under which the manuscript was released on SSRN.
+The repository version and the SSRN version share text and figures verbatim;
+either may be cited interchangeably.
+
+You are free to:
+  * Share -- copy and redistribute the material in any medium or format,
+             provided the copy is unchanged and is attributed as required
+             below.
+
+Under the following terms:
+  * Attribution -- you must give appropriate credit (cite the accompanying
+    preprint: Uzkan, O. and Saçlı, K.Ö., Anchoring Options to an
+    Incomplete Forward Curve: Identification and Out-of-Sample Evidence
+    from Turkish Electricity, 2026, SSRN), provide a link to the licence,
+    and indicate if the work was accessed from the repository or from
+    SSRN.
+  * NonCommercial -- you may not use the material for commercial purposes.
+  * NoDerivatives -- if you remix, transform, or build upon the material,
+    you may not distribute the modified material.
+
+The regeneration scripts paper/make_figures.py and paper/make_pde_mc.py
+themselves are code and are covered by the MIT licence in section 1
+above, NOT by CC BY-NC-ND -- the NoDerivatives restriction applies to the
+manuscript text and figures as a scholarly artefact, not to the tooling
+that rebuilds them.
+
+Full licence text: https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+================================================================================
+3. DOCUMENTATION AND DERIVED DATA -- CREATIVE COMMONS ATTRIBUTION 4.0
+   INTERNATIONAL (CC BY 4.0)
+================================================================================
+
+Applies to: everything under docs/, every .md file under outputs/, every
+derived CSV / JSON / YAML / PNG under outputs/, and
+inputs/historical/m2_frozen_parameters.yaml.
+
+You are free to:
+  * Share -- copy and redistribute the material in any medium or format
+  * Adapt -- remix, transform, and build upon the material for any purpose,
+            even commercially.
+
+Under the following terms:
+  * Attribution -- you must give appropriate credit (cite the accompanying
+    preprint listed under section 2), provide a link to the licence, and
+    indicate if changes were made.  You may do so in any reasonable manner,
+    but not in any way that suggests the licensor endorses you or your use.
+
+Full licence text: https://creativecommons.org/licenses/by/4.0/legalcode
+
+================================================================================
+4. RAW EPİAŞ DATA -- TERMS OF THE ORIGINAL SOURCE
+================================================================================
+
+The files under inputs/market/realized_ptf_2026.csv,
+inputs/market/historical_vep/*, inputs/historical/ptf_raw/*.csv, and
+inputs/historical/rd_standardized.csv (and its _lag1 companion) are
+DERIVED FROM data published by EPİAŞ (Enerji Piyasaları İşletme A.Ş.) on
+its Şeffaflık Platformu (https://seffaflik.epias.com.tr/).  The relevant
+Turkish market data is made publicly available under an EPDK Board
+Decision.  These files are included in this repository for
+reproducibility of the accompanying manuscript; their use, redistribution
+and attribution are subject to the current EPİAŞ Şeffaflık Platformu
+Terms of Use, which take precedence over the CC BY 4.0 licence stated
+above.
+
+EPİAŞ is not responsible for the accuracy, completeness or interpretation
+of the data as re-published here.  Users who wish to redistribute or
+reuse these EPİAŞ-sourced files, or any derivative thereof, should
+consult the Terms of Use at https://seffaflik.epias.com.tr/ directly.
+The authors of this repository make no warranty about the redistribution
+status of the raw data and cannot grant permissions that only EPİAŞ can
+grant.
+
+Data preparation scripts (scripts/data/download_epias.py) and the derived
+statistics that appear in the manuscript are, however, covered by the MIT
+and CC BY 4.0 licences above, respectively.

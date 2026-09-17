@@ -2,9 +2,17 @@
 
 Reuses the repository's own CLI plumbing so the numbers are the model's,
 not a reimplementation.
+
+Run from anywhere; the script cd's into the repository root (two levels up
+from this file) so all the relative paths inside `run_pde` resolve
+correctly.
 """
-import sys, json
-sys.path.insert(0, "/home/claude/repo_current")
+import sys, json, os
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+FIGURES_DIR = REPO_ROOT / "paper" / "figures"
+sys.path.insert(0, str(REPO_ROOT))
 import numpy as np
 import pandas as pd
 import run_pde as R
@@ -28,8 +36,7 @@ class A:  # stand-in for argparse namespace
     risk_premium_a1 = 0.0
 
 
-import os
-os.chdir("/home/claude/repo_current")
+os.chdir(REPO_ROOT)
 args = A()
 cfg = R._load_config(args.config)
 quotes, params, _, _ = R._load_market_inputs(args, cfg)
@@ -54,5 +61,7 @@ for K in [2000, 2400, 2800, 3000, 3200, 3600, 4000]:
                      mc=float(mc["value"]), mc_se=float(mc["std_error"])))
     print(rows[-1], flush=True)
 
-json.dump(rows, open("/home/claude/paper/figures/pde_mc.json", "w"), indent=1)
+FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+with open(FIGURES_DIR / "pde_mc.json", "w") as fh:
+    json.dump(rows, fh, indent=1)
 print("saved")

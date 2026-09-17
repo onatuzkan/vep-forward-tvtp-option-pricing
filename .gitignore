@@ -33,3 +33,9 @@ outputs/multi_date/*/hourly_forward_curve.csv
 # ---- scratch folder for ad-hoc report copies; the canonical artefacts live
 # under outputs/.  A copy here goes stale as soon as the script is re-run.
 Claude outputs/
+
+# ---- Internal / AI-tooling artefacts that are kept locally but not public
+# (untracked after the 2026 pre-public audit).
+CLAUDE.md
+docs/ChatGPT_Proje_Promptu.md
+docs/Denetim_Raporu_VEP_TVTP_ve_Bayesci_Gelistirme.md

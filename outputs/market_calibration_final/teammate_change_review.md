@@ -194,7 +194,8 @@ in `docs/PROJECT_STATUS_AND_FUTURE_WORK.md`.
    working tree, quarantined at
    `/tmp/onat_secure_review/eptr2-tgt.QUARANTINE.txt`.  Content:
    `tgt` (EPİAŞ session token, expired 2026-09-11 16:05 UTC),
-   `account_id d4955a62c6a0081b`.  Removed from all git history via
+   `account_id d495...5f8b` (masked; full value quarantined outside the
+   repo).  Removed from all git history via
    `git-filter-repo --path .eptr2-tgt --invert-paths --force`
    (24 commits rewritten; 0 references remaining verified by
    `git rev-list --all --objects | grep eptr2-tgt`).  Repo backup

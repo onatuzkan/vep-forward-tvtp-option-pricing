@@ -109,6 +109,55 @@ forward quotes alone.  See the "4_not_identified_without_option_prices"
 block in `outputs/market_calibration_final/parameter_identification.json`
 and the pricing-label warning in every emitted YAML/JSON.
 
+## Data
+
+The market data used in this repository is taken from the **EPİAŞ
+Şeffaflık Platformu** (Energy Market Transparency Platform,
+https://seffaflik.epias.com.tr/), which publishes Turkish electricity
+market data under an EPDK (Enerji Piyasası Düzenleme Kurumu) Board
+Decision.  The relevant files under `inputs/market/` and
+`inputs/historical/` were re-published here for the sole purpose of
+reproducing the accompanying manuscript's calibration, backtest, and
+sensitivity results.  Their original terms of use continue to apply;
+see the "Raw EPİAŞ data" section of [`LICENSE`](LICENSE) and
+https://seffaflik.epias.com.tr/ for the current Terms of Use.
+
+EPİAŞ is the original publisher of this data and is not responsible
+for the accuracy, completeness, or interpretation of the data as
+re-published or transformed here.  Any errors introduced by the
+preparation scripts (`scripts/data/download_epias.py` and the
+downstream feature builders) are the authors' responsibility, not
+EPİAŞ's.
+
+Users who wish to redistribute or reuse the raw EPİAŞ-sourced files,
+or any derivative thereof, should consult
+https://seffaflik.epias.com.tr/ directly.
+
+## License
+
+Four-part licensing; see [`LICENSE`](LICENSE) for the full text:
+
+* **Code** — MIT.  Everything under `pde_option_model/`, `scripts/`,
+  `tests/`, `paper/make_figures.py`, `paper/make_pde_mc.py`,
+  `run_pde.py`, `scenario_sweep.py`.
+* **Manuscript (`paper/`)** — CC BY-NC-ND 4.0, matching the SSRN
+  release.  Applies to the LaTeX source (`main.tex`, `refs.bib`,
+  `sections/*.tex`, `figures/*.pdf`, `figures/pipeline_src.tex`), the
+  compiled PDF, and `paper/README.md`.  The regeneration scripts
+  `paper/make_figures.py` and `paper/make_pde_mc.py` themselves fall
+  under the MIT code licence, not CC BY-NC-ND — the NoDerivatives
+  restriction is on the manuscript as a scholarly artefact, not on the
+  tooling that rebuilds it.  Repository and SSRN versions of the paper
+  are identical.
+* **Documentation and derived data** — CC BY 4.0.  Everything under
+  `docs/`, every `.md` under `outputs/`, every derived CSV / JSON /
+  YAML / PNG under `outputs/`, and
+  `inputs/historical/m2_frozen_parameters.yaml`.  When citing please
+  reference the accompanying preprint (see the Manuscript section
+  below).
+* **Raw EPİAŞ data** — under the EPİAŞ Şeffaflık Platformu Terms of
+  Use.  See the "Data" section below.
+
 ## Manuscript
 
 The preprint accompanying this repository:

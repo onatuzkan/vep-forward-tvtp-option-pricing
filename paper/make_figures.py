@@ -1,7 +1,10 @@
 """Regenerate all manuscript figures at publication quality.
 
 Sized for a single-column elsarticle preprint: 5.5 in wide, 9-10 pt labels,
-included at \textwidth so almost no downscaling occurs.
+included at \\textwidth so almost no downscaling occurs.
+
+Run from anywhere; the script locates the repository root as the parent
+directory of paper/ and writes figures to paper/figures/.
 """
 import matplotlib
 matplotlib.use("Agg")
@@ -10,9 +13,10 @@ import matplotlib.dates as mdates
 import pandas as pd
 import numpy as np
 import os
+from pathlib import Path
 
-REPO = "/home/claude/repo_current"
-OUT = "/home/claude/paper/figures"
+REPO = str(Path(__file__).resolve().parents[1])
+OUT = str(Path(__file__).resolve().parent / "figures")
 os.makedirs(OUT, exist_ok=True)
 
 plt.rcParams.update({
@@ -253,7 +257,8 @@ print("done")
 
 # ---------------------------------------------------------------- Fig: TVTP
 import yaml
-par = yaml.safe_load(open(f"{REPO}/inputs/historical/m2_frozen_parameters.yaml"))
+par = yaml.safe_load(open(f"{REPO}/inputs/historical/m2_frozen_parameters.yaml",
+                          encoding="utf-8"))
 tv = par["tvtp"]
 a01, g01 = float(tv["alpha01"]), float(tv["gamma01"])
 a10, g10 = float(tv["alpha10"]), float(tv["gamma10"])
@@ -282,7 +287,7 @@ save(fig, "tvtp_mechanism")
 
 # ---------------------------------------------------------------- Fig: PDE/MC
 import json
-pm = pd.DataFrame(json.load(open(f"{OUT}/pde_mc.json")))
+pm = pd.DataFrame(json.load(open(f"{OUT}/pde_mc.json", encoding="utf-8")))
 fig, (axa, axb) = plt.subplots(2, 1, figsize=(W, 4.0), sharex=True,
                                gridspec_kw=dict(height_ratios=[2.1, 1],
                                                 hspace=0.13))
