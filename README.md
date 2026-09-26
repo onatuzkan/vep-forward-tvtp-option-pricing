@@ -124,6 +124,29 @@ Methodology, evidence levels and results:
   regenerated `outputs/market_calibration_final/model_limitations.md`
   (items (a)-(e)).
 
+## Benchmarks (FW3)
+
+Three closed-form benchmarks -- Black-76, Bachelier, and Lucia & Schwartz
+(2002) one-factor arithmetic-OU -- are priced on the same 66-point (K, T)
+grid, the same F(T) and the same discount factor as the accepted PDE
+model.  Sigmas come from real repo data only: historical PTF 2019-2025
+(no look-ahead past 2025-12-31 20:00 UTC), and the accepted yaml
+regime-volatilities pooled by the M9 stationary occupancy for the
+single-factor collapse.  The model-implied Black-76 / Bachelier
+volatility surface (annualised ATM IV falls from 3.29 at 24h to 0.61 at
+720h) shows why a single lognormal vol cannot summarise the model
+prices, and a realized 2026 discounted-payoff backtest ranks
+Model ≈ Lucia-Schwartz ≪ Bachelier ≪ Black-76 on MAE.  Reproduce with
+
+```bash
+python scripts/fw3/compare_benchmarks.py
+python -m pytest tests/test_fw3_benchmarks.py -q
+```
+
+Methodology: [`docs/fw3_benchmark_methodology.md`](docs/fw3_benchmark_methodology.md).
+Numeric outputs (CSV + Markdown, including a paper-ready `paper_table.md`):
+`outputs/fw3_benchmarks/`.
+
 ## What is *not* identified without option premia
 
 Volatility risk premium, regime-transition premia η₀₁ / η₁₀, and any

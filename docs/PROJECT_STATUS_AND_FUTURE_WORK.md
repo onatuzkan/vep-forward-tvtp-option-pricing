@@ -272,10 +272,26 @@ Prioritised by "likely required for a Q1-tier submission" (Category A)
   range for the drift channel to replace the current
   `(a_0, a_1) = (0, 0)` default.  Currently the model is "physical-
   measure priced" which is not defensible for options in general.
-- [ ] **FW3 At least one benchmark model comparison** — a simple
-  GBM / Black-76 baseline OR a known electricity-option approach from
-  the literature (e.g. Deng or Huisman-de Jong), priced on the same
-  contracts as F2.8's grid.  Referee-proof against "why not just X?".
+- [x] **FW3 At least one benchmark model comparison (2026-09-26)** —
+  three closed-form benchmarks (Black-76, Bachelier, Lucia & Schwartz
+  2002 single-factor OU) priced on the same F2.8 contracts, same F(T)
+  and same discount factor as the accepted PDE.  Historical vol from
+  real EPIAS PTF 2019-2025 (no look-ahead past 2025-12-31 20:00 UTC),
+  daily-return primary + hourly reference; Lucia-Schwartz sigma and
+  kappa taken from `m2_frozen_parameters.yaml` (M9 sigmas pooled by
+  stationary occupancy, v2 kappa), not re-fitted.  Model-implied
+  Black-76 / Bachelier IV surface + ATM term structure show why a
+  single-lognormal-vol summary is insufficient (annualised ATM
+  Black-76 IV drops from 3.29 at 24h to 0.61 at 720h; mild negative
+  smile at every maturity).  Realized 2026 discounted-payoff backtest
+  (66 contracts, one draw each): Model MAE 151, B3 156, B1 369, B2
+  272 TRY/MWh — Lucia-Schwartz is within one std_error of the model,
+  Black-76 and Bachelier are ~2x worse.  Full 603 FW3 tests + 296
+  accepted tests all pass; frozen artefacts hash-guarded.  See
+  `docs/fw3_benchmark_methodology.md` (methodology + EK1 discussion of
+  the relationship to the existing F2.5 pooled-vs-M9 comparison) and
+  `outputs/fw3_benchmarks/` (all numeric outputs + paper-ready
+  table).
 
 ### Category B — strengthens the Q1 case, not strictly required
 
