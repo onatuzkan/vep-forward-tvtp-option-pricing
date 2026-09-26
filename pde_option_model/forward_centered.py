@@ -740,6 +740,29 @@ def _solver_covariates(model: ForwardCenteredModel, t: np.ndarray, z_lagged_fn,
     return (None if z_lagged_fn is None else np.asarray(z_lagged_fn(t), dtype=float)), None
 
 
+def _apply_eta_to_generator(q01: np.ndarray, q10: np.ndarray,
+                            eta_ij: Optional[Sequence[float]]
+                            ) -> Tuple[np.ndarray, np.ndarray]:
+    """Multiplicative Q2 shift ``q_ij^Q = q_ij^P * exp(eta_ij)``.
+
+    The multiplicative form preserves generator validity for every real
+    eta (non-negative off-diagonal, zero row sums by construction); the
+    caller is only required to keep the resulting discrete probability
+    ``s^Q = p01^Q + p10^Q < 1`` at every step of the pricing grid, which
+    is checked when the generator is inverted for the Monte Carlo cross-
+    check via ``generator_to_probs`` (``on_nonembeddable="raise"``).
+    ``eta_ij is None`` -> identity, so passing ``None`` reproduces the
+    physical-generator pipeline bit-for-bit.
+    """
+    if eta_ij is None:
+        return np.asarray(q01, float), np.asarray(q10, float)
+    eta = np.asarray(eta_ij, dtype=float)
+    if eta.shape != (2,):
+        raise ForwardCenteredError("eta_ij must have shape (2,)")
+    return (np.asarray(q01, float) * float(np.exp(eta[0])),
+            np.asarray(q10, float) * float(np.exp(eta[1])))
+
+
 def price_forward_centered(
     model: ForwardCenteredModel,
     contract: EuropeanOption,
@@ -748,6 +771,7 @@ def price_forward_centered(
     z_lagged_fn=None,
     grid: Optional[SpaceGrid] = None,
     covariate_path: Optional[Any] = None,
+    eta_ij: Optional[Sequence[float]] = None,
 ) -> ForwardCenteredPricingResult:
     """Price a European option on the EXPIRY-HOUR spot under the centered model.
 
@@ -758,6 +782,13 @@ def price_forward_centered(
     ``covariate_path`` supplies (z, r) for the two-covariate mode and may also
     feed a single-covariate model (only z is used).  The same q01/q10 arrays
     drive the moment ODE (centering) and the PDE.
+
+    ``eta_ij`` (Q2 transition premium; FW2) is an optional pair
+    ``(eta_01, eta_10)`` scaling the physical generator intensities as
+    ``q_ij^Q = q_ij^P * exp(eta_ij)``.  Applied SYMMETRICALLY to the
+    moment ODE and the PDE, so ``E^Q[P_t] = F(t)`` is preserved by
+    construction.  ``eta_ij=None`` (default) reproduces the shipped
+    physical-generator run bit-for-bit.
     """
     gs = grid_settings or ResidualGridSettings()
     tgrid = TimeGrid(contract.valuation_utc, contract.maturity_utc,
@@ -767,8 +798,9 @@ def price_forward_centered(
 
     f_path = model.forward_at(t)
     sig_path = model.spec.sigma_price(f_path)               # (2, n)
-    q01, q10 = (model.generator_path(t, z_lag) if r_lag is None
-                else model.generator_path(t, z_lag, r_lag))
+    q01_p, q10_p = (model.generator_path(t, z_lag) if r_lag is None
+                    else model.generator_path(t, z_lag, r_lag))
+    q01, q10 = _apply_eta_to_generator(q01_p, q10_p, eta_ij)
     mom = residual_moments(model.spec, t, q01, q10, model.pi_filtered,
                            x0=model.x0, sigma_price_path=sig_path)
     cen = (mom.mean if model.spec.mode == "additive"
@@ -841,6 +873,7 @@ def simulate_forward_centered(
     seed: int = 20260808,
     z_lagged_fn=None,
     covariate_path: Optional[Any] = None,
+    eta_ij: Optional[Sequence[float]] = None,
 ) -> Dict[str, float]:
     """Time-discretized Monte Carlo cross-check of the residual PDE.
 
@@ -863,8 +896,9 @@ The joint CTMC-OU simulation is time-discretized and converges as dt decreases. 
 
     f_path = model.forward_at(t)
     sig_path = model.spec.sigma_price(f_path)
-    q01, q10 = (model.generator_path(t, z_lag) if r_lag is None
-                else model.generator_path(t, z_lag, r_lag))
+    q01_p, q10_p = (model.generator_path(t, z_lag) if r_lag is None
+                    else model.generator_path(t, z_lag, r_lag))
+    q01, q10 = _apply_eta_to_generator(q01_p, q10_p, eta_ij)
     mom = residual_moments(model.spec, t, q01, q10, model.pi_filtered,
                            x0=model.x0, sigma_price_path=sig_path)
     cen = mom.mean if model.spec.mode == "additive" else mom.mean + 0.5 * mom.variance

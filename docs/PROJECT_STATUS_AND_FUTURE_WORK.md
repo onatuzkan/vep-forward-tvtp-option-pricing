@@ -266,12 +266,31 @@ Prioritised by "likely required for a Q1-tier submission" (Category A)
   cap-schedule change date, (ii) a v2 yaml artefact, (iii)
   invariant-test coverage against the two-factor residual, (iv)
   updated `model_limitations.md` for v2 assumptions.
-- [ ] **FW2 Risk-neutral premium beyond zero** — either implement Q2
-  (transition-intensity shift `η_ij`; skeleton already in
-  `risk_neutral.py`), or adopt a literature-grounded risk-premium
-  range for the drift channel to replace the current
-  `(a_0, a_1) = (0, 0)` default.  Currently the model is "physical-
-  measure priced" which is not defensible for options in general.
+- [x] **FW2 Risk-neutral premium beyond zero (2026-09-27)** —
+  Q2 transition-intensity shift `q_ij^Q = q_ij^P * exp(eta_ij)` wired
+  end-to-end into the forward-centered pipeline via
+  `price_forward_centered(..., eta_ij=...)`; centering identity
+  `E^Q[P_t] = F(t)` preserved by construction for every real
+  `(eta_01, eta_10)` (multiplicative form guarantees generator
+  validity, and moment ODE + PDE share the same q^Q).  Ex-post
+  forward-premium panel built from the 7 tracked VEP snapshots +
+  hourly realised PTF, look-ahead-guarded to 2025-12-31 20:00 UTC.
+  Identifiability derivation `docs/fw2_risk_premium_identification.md`:
+  Prop. 1 -- first moment is risk-neutral by centering; Prop. 2 --
+  Q1 drift channel is O(a^2), Q2 transition channel is O(eta) in
+  the terminal variance, so Q2 is a priori materially more powerful.
+  Joint (a_stress, eta_ij) sensitivity sweep (480 rows) confirms
+  this numerically: at empirical upper bounds the ATM 72 h call
+  moves by +3.9 % under Q1 alone (a=50) vs +/-27 % under Q2 alone
+  (|eta|=0.5), or up to -35 % at the joint corner (a=50,
+  eta=(-0.75, +0.75)).  Production `(a, eta) = (0, 0)` retained
+  (option data would be needed to identify a central premium);
+  frozen yaml untouched; the sweep envelope is the manuscript's
+  reported risk-premium uncertainty band.  899 accepted tests +
+  30 new FW2 tests all pass; four frozen artefact trees
+  hash-guarded byte-stable throughout.  See
+  `docs/fw2_risk_premium_identification.md` and
+  `outputs/fw2_risk_premium/`.
 - [x] **FW3 At least one benchmark model comparison (2026-09-26)** —
   three closed-form benchmarks (Black-76, Bachelier, Lucia & Schwartz
   2002 single-factor OU) priced on the same F2.8 contracts, same F(T)
