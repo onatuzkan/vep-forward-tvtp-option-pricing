@@ -1,0 +1,15 @@
+{
+  "n_rows": 721,
+  "n_s_ge_1": 0,
+  "share_s_ge_1": 0.0,
+  "n_s_ge_0.95": 0,
+  "near_threshold": 0.95,
+  "max_s": 0.5236828864764631,
+  "min_s": 0.2921037034785675,
+  "argmax_label": "2026-01-01T02:00:00+00:00",
+  "quantile_0.9999_s": 0.5236828864764631,
+  "first_violation_label": null,
+  "last_violation_label": null,
+  "embeddable": true,
+  "scope": "hour labels used by path 'diagnostics_720h'"
+}

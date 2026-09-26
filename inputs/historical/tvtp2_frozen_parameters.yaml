@@ -1,0 +1,234 @@
+# =============================================================================
+# EXPERIMENTAL two-covariate TVTP parameters (RD_lag1 + RD_Ramp_1h_lag1)  [FW4]
+# =============================================================================
+# Label: M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium
+#
+# * Transition SLOPES are transferred from the M9 TVTP-2 fit (regime-label
+#   swapped: raw state 0 = high vol -> production index 1 = stress).
+# * The RAMP COVARIATE is RECONSTRUCTED: its original definition, lag and
+#   standardization were not found in any accessible source.  Here
+#       r_t = (dz_t - m_r)/s_r,  dz_t = z_t - z_(t-1h) on the complete UTC grid,
+#   with (m_r, s_r) fitted on the training window recorded below.
+# * INTERCEPTS are DERIVED by moment matching to the M9 mean durations; they
+#   are not estimates and carry no standard error.
+# * Transition premium is ZERO by assumption (q^Q = q^P); not calibrated.
+#
+# This file does NOT reproduce M9 and does NOT replace any accepted result.
+# kappa, sigma, pi, spot and valuation time come from the base file named in
+# `base_parameters` (inputs/historical/m2_frozen_parameters.yaml, unchanged).
+#
+# Regenerate:  python scripts/tvtp_derivation/derive_tvtp2_parameters.py --write
+# Audit:       outputs/tvtp2_experimental/derivation/tvtp2_derivation_audit.md
+# =============================================================================
+schema: tvtp2_frozen_parameters/v1
+tvtp_mode: rd_ramp_2d_experimental
+parameter_set_name: tvtp2_m9_transfer
+status: experimental_reconstructed
+label: M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium
+verified_reproduction_of_m9: false
+generated_by: scripts/tvtp_derivation/derive_tvtp2_parameters.py
+hash_convention: sha256 of the file content with CRLF normalized to LF
+base_parameters:
+  file: inputs/historical/m2_frozen_parameters.yaml
+  sha256: b80fa69d1130e4d7ab05d9830b53deb2d59920381b8c57708ac4e22cc9b35ab2
+  valuation_utc: '2025-12-31T20:00:00+00:00'
+  inherited_unchanged:
+  - scale_P
+  - phi
+  - kappa_per_hour
+  - sigma_y_normal
+  - sigma_y_stress
+  - pi_filtered
+  - m9_stationary_pi
+  - spot_price_TRY_MWh
+  - valuation_utc
+  not_used_in_this_mode:
+  - tvtp.alpha01
+  - tvtp.alpha10
+tvtp2:
+  alpha01: -1.0490993394164196
+  gamma01: -0.5837780825
+  h01: -0.06939531482057137
+  alpha10: -1.955839031679882
+  gamma10: 0.0776983936
+  h10: 0.4055443473030015
+  covariates:
+  - RD_lag1
+  - RD_Ramp_1h_lag1
+covariates:
+  lag_hours: 1
+  history_file: inputs/historical/rd_standardized.csv
+  history_sha256: bea51c98c84ea4a6fe62111ae8993410aee8a430434d9601b0c292cbb58c6e04
+  z:
+    name: RD_lag1
+    units: standardized (dimensionless)
+    definition: z_t = (RD_t - m_z)/s_z, RD = Demand - Wind - Solar (MWh)
+    scaler_window: TRY window <= 2022-12-31T20:00:00+00:00 (61 361 rows)
+    status: inherited; scaler reconstructed (markov_adapter), ddof = 1 assumed
+  ramp:
+    name: RD_Ramp_1h_lag1
+    units: standardized (dimensionless)
+    definition: r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC
+      grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses
+      x_(t-1) = (z_(t-1h), r_(t-1h))
+    status: 'ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction,
+      lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history,
+      the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction
+      and M9 is NOT claimed to be reproduced'
+    scaler:
+      mean: 3.417142268311894e-05
+      std: 0.271450116132395
+      ddof: 1
+      n: 78903
+      window_name: W9
+      window_end_utc: '2024-12-31T20:00:00+00:00'
+      window_start_utc: null
+      first_increment_utc: '2016-01-01T02:00:00+00:00'
+      last_increment_utc: '2024-12-31T20:00:00+00:00'
+      definition: r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly
+        UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t
+        uses x_(t-1) = (z_(t-1h), r_(t-1h))
+      status: 'ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction,
+        lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history,
+        the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction
+        and M9 is NOT claimed to be reproduced'
+derivation:
+  method: scipy.optimize.brentq on [-20, 20], xtol = rtol = 1e-12, two independent single-root equations
+    (moment matching)
+  sample_window: W9
+  sample:
+    window_start_utc: '2016-01-01T01:00:00+00:00'
+    window_end_utc: '2024-12-31T20:00:00+00:00'
+    n_grid_labels: 78908
+    n_valid_transitions: 78902
+    first_valid_transition_utc: '2016-01-01T03:00:00+00:00'
+    last_valid_transition_utc: '2024-12-31T20:00:00+00:00'
+    n_dropped_sample_start: 2
+    dropped_sample_start_labels:
+    - '2016-01-01T01:00:00+00:00'
+    - '2016-01-01T02:00:00+00:00'
+    rule_sample_start: 'the first 2 hour(s) of the sample have no z_(t-1h) / z_(t-2h) pair, so r_(t-1)
+      is undefined: dropped, never filled'
+    n_dropped_missing_observation: 4
+    dropped_missing_observation_labels:
+    - '2016-03-27T01:00:00+00:00'
+    - '2016-03-27T02:00:00+00:00'
+    - '2016-03-27T03:00:00+00:00'
+    - '2016-03-27T04:00:00+00:00'
+    rule_missing_observation: a transition is dropped when z_(t-1h) or z_(t-2h) is missing on the complete
+      hourly grid; no interpolation, no zero ramp
+    n_valid_with_missing_own_label: 1
+    valid_with_missing_own_label:
+    - '2016-03-27T00:00:00+00:00'
+  targets:
+    mean_p01: 0.26601408208827065
+    mean_p10: 0.1322801024765158
+    duration_normal_h: 3.7591994835377665
+    duration_stress_h: 7.559715945771465
+  roots:
+    p01:
+      transition: p01_normal_to_stress
+      alpha: -1.0490993394164196
+      gamma: -0.5837780825
+      h: -0.06939531482057137
+      target_mean_p: 0.26601408208827065
+      achieved_mean_p: 0.2660140820882693
+      residual: -1.3322676295501878e-15
+      n: 78902
+      bracket:
+      - -20.0
+      - 20.0
+      xtol: 1.0e-12
+      rtol: 1.0e-12
+      iterations: 13
+      function_calls: 14
+      converged: true
+    p10:
+      transition: p10_stress_to_normal
+      alpha: -1.955839031679882
+      gamma: 0.0776983936
+      h: 0.4055443473030015
+      target_mean_p: 0.1322801024765158
+      achieved_mean_p: 0.1322801024765158
+      residual: 0.0
+      n: 78902
+      bracket:
+      - -20.0
+      - 20.0
+      xtol: 1.0e-12
+      rtol: 1.0e-12
+      iterations: 13
+      function_calls: 14
+      converged: true
+  audit: outputs/tvtp2_experimental/derivation/tvtp2_derivation_audit.json
+m9_source:
+  bundle_dir: inputs/historical/archive/calibration_bundle
+  sha256:
+    transition_coefficients.csv: 930481e0a6009004e537d6ead505e2406bf2c0b34a60e68378238efc13b79536
+    parameter_estimates.csv: c2a3ca16b268b4b74b9370d665f338b15ee7e8148f94ab723947773cfd17ebdd
+    metadata: 0022a2d73a632eead12706a77ebfba3be2366ac6c9efd1c3c1291f8818819afb
+  spec: M9_student_t_tvtp_TVTP-2
+  n_train: 78905
+  n_total: 87665
+  w9_window_end_utc_inferred: '2024-12-31T20:00:00+00:00'
+  joint_estimation_evidence: true
+  label_mapping:
+  - production: sigma_y_normal (0)
+    raw_m9: sigma1
+    value: 0.0035348069642223727
+  - production: sigma_y_stress (1)
+    raw_m9: sigma0
+    value: 0.0924066543979969
+  - production: gamma01 (normal->stress, RD_lag1)
+    raw_m9: gamma10 RD_lag1
+    value: -0.5837780825414551
+    value_used: -0.5837780825
+  - production: gamma10 (stress->normal, RD_lag1)
+    raw_m9: gamma01 RD_lag1
+    value: 0.07769839363017603
+    value_used: 0.0776983936
+  - production: h01 (normal->stress, ramp)
+    raw_m9: gamma10 RD_Ramp_1h_lag1
+    value: -0.06939531482057137
+    value_used: -0.06939531482057137
+  - production: h10 (stress->normal, ramp)
+    raw_m9: gamma01 RD_Ramp_1h_lag1
+    value: 0.4055443473030015
+    value_used: 0.4055443473030015
+  - production: d_n mean normal duration (h)
+    raw_m9: mean_duration_state1
+    value: 3.7591994835377665
+  - production: d_s mean stress duration (h)
+    raw_m9: mean_duration_state0
+    value: 7.559715945771465
+  - production: pi_stress occupancy
+    raw_m9: occupancy[0]
+    value: 0.6745780174292473
+transition_premium:
+  eta01: 0.0
+  eta10: 0.0
+  status: 'ASSUMED: zero transition premium, q^Q = q^P (eta01 = eta10 = 0); NOT calibrated -- forward
+    quotes cannot identify it'
+provenance:
+  tvtp2.alpha01: 'derived: brentq root of mean_D logistic(a + gamma01 z_(t-1) + h01 r_(t-1)) = 1/d_n on
+    D = W9 (paired x_(t-1)); moment matching, NOT an MLE estimate, no standard error'
+  tvtp2.alpha10: 'derived: brentq root of mean_D logistic(a + gamma10 z_(t-1) + h10 r_(t-1)) = 1/d_s on
+    D = W9; moment matching, NOT an MLE estimate'
+  tvtp2.gamma01: 'estimated (transferred): M9 raw gamma10 of RD_lag1, regime-label swapped; value exactly
+    as in the production yaml (10 dp)'
+  tvtp2.gamma10: 'estimated (transferred): M9 raw gamma01 of RD_lag1, regime-label swapped; value exactly
+    as in the production yaml (10 dp)'
+  tvtp2.h01: 'estimated (transferred): M9 raw gamma10 of RD_Ramp_1h_lag1 (full precision), regime-label
+    swapped; applied to a RECONSTRUCTED ramp covariate'
+  tvtp2.h10: 'estimated (transferred): M9 raw gamma01 of RD_Ramp_1h_lag1 (full precision), regime-label
+    swapped; applied to a RECONSTRUCTED ramp covariate'
+  covariates.ramp.scaler: 'reconstructed: train-only mean/std (ddof = 1) of hourly dz on W9 (labels <=
+    2024-12-31T20:00:00+00:00)'
+  covariates.ramp.definition: 'assumed: ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1
+    (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository,
+    its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid
+    is a reconstruction and M9 is NOT claimed to be reproduced'
+  covariates.z: 'inherited: rd_standardized.csv, TRY-window standardization reconstructed in markov_adapter
+    (ddof = 1 assumed)'
+  transition_premium: 'ASSUMED: zero transition premium, q^Q = q^P (eta01 = eta10 = 0); NOT calibrated
+    -- forward quotes cannot identify it'

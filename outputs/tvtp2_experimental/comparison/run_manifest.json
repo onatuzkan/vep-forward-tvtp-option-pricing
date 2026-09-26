@@ -1,0 +1,643 @@
+{
+  "label": "M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium",
+  "status": "experimental_reconstructed",
+  "held_fixed": {
+    "forward_curve_sha256": "860f8decba68defed812e783d2e5028445145c6373715f6f0af0d9f1cfe0cde7",
+    "curve_mode": "smooth_constrained",
+    "kappa_per_hour": 0.078394,
+    "sigma_y": [
+      0.003534807,
+      0.0924066544
+    ],
+    "scale_P": 282.48,
+    "regime_means": [
+      0.0,
+      0.0
+    ],
+    "drift_shift_a": [
+      0.0,
+      0.0
+    ],
+    "x0": 0.0,
+    "pi0": [
+      0.931977,
+      0.068023
+    ],
+    "r_annual": 0.4,
+    "valuation_utc": "2025-12-31T20:00:00+00:00",
+    "space_grid_per_maturity": {
+      "24": {
+        "x_min": -4520.545417558372,
+        "x_max": 4686.067189371408,
+        "n_nodes": 1201
+      },
+      "72": {
+        "x_min": -4568.552579594436,
+        "x_max": 4736.237895033397,
+        "n_nodes": 1201
+      },
+      "168": {
+        "x_min": -4563.731592998991,
+        "x_max": 4735.743995688066,
+        "n_nodes": 1201
+      },
+      "336": {
+        "x_min": -4555.247628921624,
+        "x_max": 4734.83243429374,
+        "n_nodes": 1201
+      }
+    },
+    "time_steps_per_maturity": {
+      "24": 96,
+      "72": 144,
+      "168": 336,
+      "336": 672
+    },
+    "ode_max_substep_hours": 0.25,
+    "mc": {
+      "n_paths": 40000,
+      "dt_hours": 0.05,
+      "seed": 20260808,
+      "common_random_numbers_across_runs": true
+    },
+    "transition_premium": "ASSUMED zero (q^Q = q^P)"
+  },
+  "files": {
+    "hash_convention": "sha256 of the content, CRLF normalized to LF",
+    "tvtp2_yaml": "inputs/historical/tvtp2_frozen_parameters.yaml",
+    "tvtp2_yaml_sha256": "64f7df73fc28558692d4347907323088ac1b24f4d53f988a9b354c644cd39717",
+    "base_yaml": "inputs/historical/m2_frozen_parameters.yaml",
+    "base_yaml_sha256": "b80fa69d1130e4d7ab05d9830b53deb2d59920381b8c57708ac4e22cc9b35ab2",
+    "history": "inputs/historical/rd_standardized.csv",
+    "history_sha256": "bea51c98c84ea4a6fe62111ae8993410aee8a430434d9601b0c292cbb58c6e04"
+  },
+  "path_variants": {
+    "base": {
+      "description": "climatology (TRY window), offset 0, lag 1 h, ramp scaler W9",
+      "mode": "climatology",
+      "offset": 0.0,
+      "initial_hours": "scenario",
+      "lag_hours": 1.0
+    },
+    "rampWT": {
+      "description": "as base, ramp standardized on W_T",
+      "mode": "climatology",
+      "offset": 0.0,
+      "initial_hours": "scenario",
+      "lag_hours": 1.0
+    },
+    "zW9": {
+      "description": "z re-standardized on W9 (mean 0.092361, sd 1.052863); climatology of the rescaled z",
+      "mode": "climatology",
+      "offset": 0.0,
+      "initial_hours": "scenario",
+      "lag_hours": 1.0
+    },
+    "lag0": {
+      "description": "alignment l(tau) = floor(t_v + tau - 0 h)",
+      "mode": "climatology",
+      "offset": 0.0,
+      "initial_hours": "scenario",
+      "lag_hours": 0.0
+    },
+    "lag2": {
+      "description": "alignment l(tau) = floor(t_v + tau - 2 h)",
+      "mode": "climatology",
+      "offset": 0.0,
+      "initial_hours": "scenario",
+      "lag_hours": 2.0
+    },
+    "constant0": {
+      "description": "constant z = 0 (ramp = -m_r/s_r)",
+      "mode": "constant",
+      "offset": 0.0,
+      "initial_hours": "scenario",
+      "lag_hours": 1.0
+    },
+    "offm2": {
+      "description": "climatology - 2 sd",
+      "mode": "climatology",
+      "offset": -2.0,
+      "initial_hours": "scenario",
+      "lag_hours": 1.0
+    },
+    "offp2": {
+      "description": "climatology + 2 sd",
+      "mode": "climatology",
+      "offset": 2.0,
+      "initial_hours": "scenario",
+      "lag_hours": 1.0
+    },
+    "observed": {
+      "description": "climatology, observed z at t_v - 2 h .. t_v",
+      "mode": "climatology",
+      "offset": 0.0,
+      "initial_hours": "observed",
+      "lag_hours": 1.0
+    }
+  },
+  "runs": [
+    {
+      "name": "R0",
+      "family": "ladder",
+      "tvtp": "1D",
+      "path": "base",
+      "description": "1D, production intercepts (repo yaml)",
+      "coefficients": {
+        "alpha01": -1.0156656066,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8952294098,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "R1",
+      "family": "ladder",
+      "tvtp": "1D",
+      "path": "base",
+      "description": "1D, intercepts re-derived on D = W9",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "R2",
+      "family": "ladder",
+      "tvtp": "2D",
+      "path": "base",
+      "description": "2D code, R1 intercepts, h = 0 (identity)",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "R3",
+      "family": "ladder",
+      "tvtp": "2D",
+      "path": "base",
+      "description": "2D primary: W9 intercepts with M9 h",
+      "coefficients": {
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "R4",
+      "family": "ladder",
+      "tvtp": "2D",
+      "path": "base",
+      "description": "2D, R1 intercepts, M9 h (diagnostic)",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_rampWT_2D",
+      "family": "ramp_scaler_W_T",
+      "tvtp": "2D",
+      "path": "rampWT",
+      "description": "2D, ramp scaler W_T, intercepts re-derived",
+      "coefficients": {
+        "alpha01": -1.0491878792209057,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.958235317206508,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.51620435796096e-05,
+        "std": 0.2663933514013426,
+        "ddof": 1,
+        "n": 61359,
+        "window_name": "W_T",
+        "window_end_utc": "2022-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2022-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_alphaFull_1D",
+      "family": "alpha_sample_full",
+      "tvtp": "1D",
+      "path": "base",
+      "description": "1D, intercepts on the full sample",
+      "coefficients": {
+        "alpha01": -1.0156351110506734,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8952328450501525,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_alphaFull_2D",
+      "family": "alpha_sample_full",
+      "tvtp": "2D",
+      "path": "base",
+      "description": "2D, intercepts on the full sample",
+      "coefficients": {
+        "alpha01": -1.0192472674177047,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.9619024765949837,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_zW9_1D",
+      "family": "z_scale_W9",
+      "tvtp": "1D",
+      "path": "zW9",
+      "description": "1D, z rescaled on W9, intercepts re-derived",
+      "coefficients": {
+        "alpha01": -1.0915341338555542,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8831734794874941,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_zW9_2D",
+      "family": "z_scale_W9",
+      "tvtp": "2D",
+      "path": "zW9",
+      "description": "2D, z rescaled on W9, intercepts re-derived",
+      "coefficients": {
+        "alpha01": -1.0949722451470763,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.948265892108403,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.245570843663297e-05,
+        "std": 0.2578208670438371,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9(z rescaled)",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_lag0_1D",
+      "family": "alignment_lag0",
+      "tvtp": "1D",
+      "path": "lag0",
+      "description": "R1 coefficients",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_lag0_2D",
+      "family": "alignment_lag0",
+      "tvtp": "2D",
+      "path": "lag0",
+      "description": "R3 coefficients",
+      "coefficients": {
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_lag2_1D",
+      "family": "alignment_lag2",
+      "tvtp": "1D",
+      "path": "lag2",
+      "description": "R1 coefficients",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_lag2_2D",
+      "family": "alignment_lag2",
+      "tvtp": "2D",
+      "path": "lag2",
+      "description": "R3 coefficients",
+      "coefficients": {
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_constant0_1D",
+      "family": "scenario_constant0",
+      "tvtp": "1D",
+      "path": "constant0",
+      "description": "R1 coefficients",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_constant0_2D",
+      "family": "scenario_constant0",
+      "tvtp": "2D",
+      "path": "constant0",
+      "description": "R3 coefficients",
+      "coefficients": {
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_offm2_1D",
+      "family": "scenario_offm2",
+      "tvtp": "1D",
+      "path": "offm2",
+      "description": "R1 coefficients",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_offm2_2D",
+      "family": "scenario_offm2",
+      "tvtp": "2D",
+      "path": "offm2",
+      "description": "R3 coefficients",
+      "coefficients": {
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_offp2_1D",
+      "family": "scenario_offp2",
+      "tvtp": "1D",
+      "path": "offp2",
+      "description": "R1 coefficients",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_offp2_2D",
+      "family": "scenario_offp2",
+      "tvtp": "2D",
+      "path": "offp2",
+      "description": "R3 coefficients",
+      "coefficients": {
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    {
+      "name": "S_observed_1D",
+      "family": "scenario_observed",
+      "tvtp": "1D",
+      "path": "observed",
+      "description": "R1 coefficients",
+      "coefficients": {
+        "alpha01": -1.045554311033635,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.8905912193011531,
+        "gamma10": 0.0776983936,
+        "h01": 0.0,
+        "h10": 0.0
+      },
+      "ramp_scaler": null
+    },
+    {
+      "name": "S_observed_2D",
+      "family": "scenario_observed",
+      "tvtp": "2D",
+      "path": "observed",
+      "description": "R3 coefficients",
+      "coefficients": {
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h01": -0.06939531482057137,
+        "h10": 0.4055443473030015
+      },
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    }
+  ],
+  "software": {
+    "python": "3.11.15",
+    "numpy": "1.26.4",
+    "pandas": "2.3.3"
+  },
+  "elapsed_seconds": 853.5169744491577
+}

@@ -85,6 +85,29 @@ python run_pde.py price --model forward_centered \
     --strike 3000 --maturity-hours 72 --pi-override stationary
 ```
 
+### Optional: EXPERIMENTAL two-covariate TVTP (FW4, `rd_ramp_2d_experimental`)
+
+The default transition law is the single-covariate `rd_lag1_1d`. A second,
+explicitly selected mode adds the residual-demand ramp covariate
+`RD_Ramp_1h_lag1` of the M9 TVTP-2 fit. Its definition could not be found in
+any available source, so the ramp is a **reconstruction** (hourly difference of
+z on the complete UTC grid, train-only standardization) and every output is
+labelled *"M9-transferred slopes + reconstructed ramp + derived intercepts,
+zero transition premium"*. It does not reproduce M9 and does not change any
+accepted result; its parameters live in their own file
+(`inputs/historical/tvtp2_frozen_parameters.yaml`) and its outputs under
+`outputs/tvtp2_experimental/`.
+
+```
+python run_pde.py --config config/forward_centered_tvtp2_experimental.yaml validate
+python run_pde.py --config config/forward_centered_tvtp2_experimental.yaml price --strike 3000 --maturity-hours 72
+python scripts/tvtp2/compare_tvtp_1d_2d.py          # controlled 1D vs 2D comparison
+```
+
+Methodology, evidence levels and results:
+[`docs/tvtp2_methodology.md`](docs/tvtp2_methodology.md) and
+`outputs/tvtp2_experimental/PROVENANCE_REPORT.md`.
+
 ## Calibration history
 
 * The forward curve is calibrated exactly to the six-month VEP quote

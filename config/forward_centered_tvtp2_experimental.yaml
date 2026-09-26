@@ -1,0 +1,27 @@
+# =============================================================================
+# forward_centered_tvtp2_experimental.yaml — EXPERIMENTAL two-covariate TVTP
+# =============================================================================
+# Selects the two-covariate transition law (RD_lag1 + RD_Ramp_1h_lag1, FW4).
+# Everything else (market curve, residual, contract, grid, acceptance) is
+# inherited unchanged from the production configuration via `extends`, so the
+# ONLY model difference versus the default run is the transition law.
+#
+#   python run_pde.py --config config/forward_centered_tvtp2_experimental.yaml price
+#
+# Status: EXPERIMENTAL / RECONSTRUCTED.  The ramp covariate definition is a
+# reconstruction (original not found); slopes are transferred from M9 and
+# intercepts are derived.  Label on every output:
+#   "M9-transferred slopes + reconstructed ramp + derived intercepts,
+#    zero transition premium"
+# Outputs default to outputs/tvtp2_experimental/; the accepted single-covariate
+# output directories are refused.
+# =============================================================================
+extends: config/forward_centered_config.yaml
+
+tvtp:
+  # rd_lag1_1d (production default) | rd_ramp_2d_experimental
+  mode: rd_ramp_2d_experimental
+  # separate frozen parameter file; m2_frozen_parameters.yaml is untouched
+  parameters_file: inputs/historical/tvtp2_frozen_parameters.yaml   # [DERIVED/TRANSFERRED]
+  # labels <= t_v: "scenario" (production rule, default) or "observed" history
+  initial_hours: scenario                                            # [ASSUMED]

@@ -279,12 +279,17 @@ Prioritised by "likely required for a Q1-tier submission" (Category A)
 
 ### Category B — strengthens the Q1 case, not strictly required
 
-- [ ] **FW4 Reconstruct `RD_Ramp_1h_lag1` as a genuine 2-covariate
-  TVTP** — currently the ramp covariate is dropped (documented in
-  `model_limitations.md` item (b)).  Adding it closes the omitted-
-  variable disclosure and may materially change the TVTP-specific
-  contribution documented in
-  `model_comparison_pooled_vs_M9.md`.
+- [~] **FW4 Reconstruct `RD_Ramp_1h_lag1` as a genuine 2-covariate
+  TVTP** — the production default still drops the ramp covariate
+  (documented in `model_limitations.md` item (b)).  An EXPERIMENTAL,
+  separately selected mode `rd_ramp_2d_experimental` now exists
+  (2026-09-24): M9-transferred slopes, a RECONSTRUCTED ramp (the original
+  definition was not found), intercepts re-derived on the M9 training
+  window, zero transition premium.  Total ramp effect on the 72 h K = 3000
+  call −1.0 % (same order as the ±1 h alignment uncertainty).  Closing the
+  item needs the original estimation output (ramp definition, scaler,
+  shipped p series) to turn "reconstructed" into "verified".  See
+  `docs/tvtp2_methodology.md` and `outputs/tvtp2_experimental/`.
 - [ ] **FW5 Re-estimate `scale_P` on a real / inflation-deflated
   price series** — `model_limitations.md` item (h).
   Methodologically interesting given TRY's high-inflation context;

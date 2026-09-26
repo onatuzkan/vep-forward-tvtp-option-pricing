@@ -77,19 +77,34 @@ a monthly baseload average.  Only the payoff mapping changes::
     put : max( K - (F(T) + x - mu_X(T)) , 0 )
 
 Units: x, F, K, V are all TRY/MWh; kappa_X per hour; sigma^X per sqrt(hour).
+
+TVTP modes
+----------
+``tvtp`` is either :class:`~pde_option_model.generator.TVTPCoefficients`
+(``rd_lag1_1d``, production default) or
+:class:`~pde_option_model.generator.TVTP2Coefficients`
+(``rd_ramp_2d_experimental``: z_{t-1} and the reconstructed ramp r_{t-1}).
+The state space stays (x, S): deterministic covariate paths only change the
+scalar functions q01(tau), q10(tau), so the two coupled 1-D PDEs and the six
+moment ODEs are unchanged.  In the two-covariate mode the (z, r) pair must come
+from ONE path (a :class:`~pde_option_model.scenarios.TVTPCovariatePath` or two
+explicit arrays); the ramp is never defaulted to zero, and a non-embeddable
+hour (p01 + p10 >= 1) rejects the pricing call.  Prices are CONDITIONAL on the
+supplied covariate path.
 """
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, Literal, Optional, Sequence, Tuple
+from typing import Any, Dict, Literal, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from .contracts import EuropeanOption
 from .forward_curve import ForwardCurve
-from .generator import TVTPCoefficients, generator_to_probs, probs_to_generator
+from .generator import (TVTP2Coefficients, TVTPCoefficients, TVTP_MODE_1D,
+                        TVTP_MODE_2D, generator_to_probs, probs_to_generator)
 from .grid import SpaceGrid, TimeGrid
 from .params_frozen import FrozenM2Parameters
 from .solver import SolverSettings, SolveResult, solve_coupled_pde
@@ -100,6 +115,8 @@ ResidualMode = Literal["additive", "multiplicative"]
 X0Mode = Literal["zero", "spot_minus_curve"]
 
 MAX_PLAUSIBLE_PRICE_TRY_MWh: float = 1.0e5
+
+_trapz = getattr(np, "trapezoid", None) or np.trapz     # numpy 1.x / 2.x
 
 
 class ForwardCenteredError(ValueError):
@@ -272,6 +289,11 @@ def residual_moments(
                        + s2[1] * p[1] + q01t * w[0] - q10t * w[1]])
         return np.concatenate([dp, du, dw])
 
+    # accuracy guard for large switching intensities (s near 1 gives
+    # lambda = -ln(1 - s) large): keep h_sub * lambda_max <= 1.  With the
+    # historical/production paths (lambda <= ~1.9 / h) this never exceeds the
+    # 0.25 h cap, so the single-covariate results are unchanged bit for bit.
+    lam = q01 + q10
     state = np.concatenate([pi0, x0 * pi0, (x0 ** 2) * pi0])
     out = np.empty((6, n))
     out[:, 0] = state
@@ -282,6 +304,8 @@ def residual_moments(
 
         max_internal_dt = 0.25
         n_sub = max(1, int(np.ceil(h / max_internal_dt)))
+        lam_max = max(float(lam[j]), float(lam[j + 1]))
+        n_sub = max(n_sub, int(np.ceil(h * lam_max / 1.0)))
         hs = h / n_sub
         tt = t[j]
 
@@ -310,17 +334,26 @@ def residual_moments(
 # ---------------------------------------------------------------------------
 @dataclass
 class ForwardCenteredModel:
-    """Bundle of forward curve + residual spec + TVTP chain, ready to price."""
+    """Bundle of forward curve + residual spec + TVTP chain, ready to price.
+
+    ``covariate_path`` (two-covariate mode) is the default (z, r) path used by
+    moment queries that do not pass covariates explicitly (e.g. the monthly
+    expected-spot check of the market calibration).  ``expected_ramp_scaler``
+    is the frozen ramp standardization; a path standardized differently is
+    refused (unit guard).
+    """
 
     curve: ForwardCurve
     spec: ResidualSpec
-    tvtp: TVTPCoefficients
+    tvtp: Union[TVTPCoefficients, TVTP2Coefficients]
     pi_filtered: np.ndarray
     valuation_utc: pd.Timestamp
     spot_price_TRY_MWh: float
     covariate_lag_hours: float = 1.0
     dt_hours: float = 1.0
     allow_spot_mismatch: bool = False
+    covariate_path: Optional[Any] = None
+    expected_ramp_scaler: Optional[Any] = None
 
     def __post_init__(self) -> None:
         self.pi_filtered = np.asarray(self.pi_filtered, dtype=float)
@@ -328,6 +361,11 @@ class ForwardCenteredModel:
             raise ForwardCenteredError("pi_filtered must be a 2-vector probability")
         if self.valuation_utc.tzinfo is None:
             raise ForwardCenteredError("valuation_utc must be tz-aware")
+        if not isinstance(self.tvtp, (TVTPCoefficients, TVTP2Coefficients)):
+            raise ForwardCenteredError(
+                f"tvtp must be TVTPCoefficients or TVTP2Coefficients, got {type(self.tvtp)!r}")
+        if self.covariate_path is not None:
+            self._check_path(self.covariate_path)
         f0 = float(self.curve.values.iloc[0])
         self.spot_consistent = abs(f0 - self.spot_price_TRY_MWh) <= 1e-6
         if not self.spot_consistent:
@@ -360,19 +398,110 @@ class ForwardCenteredModel:
         """(2, n) residual volatilities along the solver grid."""
         return self.spec.sigma_price(self.forward_at(times_hours))
 
+    # -- TVTP mode and covariates -------------------------------------------
+    @property
+    def tvtp_mode(self) -> str:
+        return TVTP_MODE_2D if isinstance(self.tvtp, TVTP2Coefficients) else TVTP_MODE_1D
+
+    @property
+    def is_two_covariate(self) -> bool:
+        return isinstance(self.tvtp, TVTP2Coefficients)
+
+    def _check_path(self, path: Any) -> None:
+        """A covariate path must belong to this valuation and, in the 2D mode,
+        carry the frozen ramp standardization (unit guard)."""
+        if pd.Timestamp(path.valuation_utc) != self.valuation_utc:
+            raise ForwardCenteredError(
+                f"covariate path '{path.name}' is built for valuation {path.valuation_utc}, "
+                f"the model values at {self.valuation_utc}")
+        if self.is_two_covariate:
+            if not getattr(path, "has_ramp", False):
+                raise ForwardCenteredError(
+                    f"covariate path '{path.name}' has no ramp; the two-covariate model "
+                    "needs z and the ramp from the same path")
+            if (self.expected_ramp_scaler is not None
+                    and not self.expected_ramp_scaler.matches(path.ramp_scaler)):
+                raise ForwardCenteredError(
+                    "ramp standardization mismatch: the path uses "
+                    f"(m_r={path.ramp_scaler.mean:.6g}, s_r={path.ramp_scaler.std:.6g}) but "
+                    f"the parameters expect (m_r={self.expected_ramp_scaler.mean:.6g}, "
+                    f"s_r={self.expected_ramp_scaler.std:.6g})")
+
+    def resolve_covariates(self, times_hours: np.ndarray,
+                           z_lagged: Optional[np.ndarray] = None,
+                           ramp_lagged: Optional[np.ndarray] = None,
+                           covariate_path: Optional[Any] = None
+                           ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """(z, r) on ``times_hours`` for this model's TVTP mode.
+
+        Single-covariate: explicit z, else z of ``covariate_path``, else the
+        historical z = 0 fallback; a ramp is refused.  Two-covariate: an
+        explicit (z, r) pair, else ``covariate_path``, else the model's own
+        path; anything incomplete raises -- nothing defaults to zero.
+        """
+        t = np.asarray(times_hours, dtype=float)
+        if covariate_path is not None:
+            if z_lagged is not None or ramp_lagged is not None:
+                raise ForwardCenteredError(
+                    "pass either explicit covariate arrays or a covariate_path, not both")
+            self._check_path(covariate_path)
+            z, r = covariate_path.covariates(t)
+            return z, (r if self.is_two_covariate else None)
+        if not self.is_two_covariate:
+            if ramp_lagged is not None:
+                raise ForwardCenteredError(
+                    "ramp_lagged was supplied to a single-covariate (rd_lag1_1d) model")
+            z = np.zeros(t.size) if z_lagged is None else np.asarray(z_lagged, dtype=float)
+            if z.shape != t.shape:
+                raise ForwardCenteredError("z_lagged must match the time grid")
+            return z, None
+        if z_lagged is None and ramp_lagged is None:
+            if self.covariate_path is None:
+                raise ForwardCenteredError(
+                    "the two-covariate TVTP (rd_ramp_2d_experimental) needs an explicit "
+                    "(z, ramp) covariate path; refusing to default z or the ramp to zero")
+            self._check_path(self.covariate_path)
+            return self.covariate_path.covariates(t)
+        if z_lagged is None or ramp_lagged is None:
+            raise ForwardCenteredError(
+                "the two-covariate TVTP needs BOTH z_lagged and ramp_lagged from one path; "
+                "a missing ramp is never replaced by zero")
+        z = np.asarray(z_lagged, dtype=float)
+        r = np.asarray(ramp_lagged, dtype=float)
+        if z.shape != t.shape or r.shape != t.shape:
+            raise ForwardCenteredError("z_lagged and ramp_lagged must match the time grid")
+        return z, r
+
     def generator_path(self, times_hours: np.ndarray,
-                       z_lagged: Optional[np.ndarray] = None
+                       z_lagged: Optional[np.ndarray] = None,
+                       ramp_lagged: Optional[np.ndarray] = None,
+                       covariate_path: Optional[Any] = None
                        ) -> Tuple[np.ndarray, np.ndarray]:
         """TVTP generator intensities q01(t), q10(t) per hour."""
         t = np.asarray(times_hours, dtype=float)
-        z = np.zeros(t.size) if z_lagged is None else np.asarray(z_lagged, dtype=float)
-        if z.shape != t.shape:
-            raise ForwardCenteredError("z_lagged must match the time grid")
-        p01, p10 = self.tvtp.probabilities(z)
-        gen = probs_to_generator(p01, p10, dt_hours=self.dt_hours)
-        if gen.n_clipped:
-            logger.warning("TVTP embeddability clipping applied on %d nodes",
-                           gen.n_clipped)
+        if not self.is_two_covariate and ramp_lagged is None and covariate_path is None:
+            # historical single-covariate code path, unchanged
+            z = np.zeros(t.size) if z_lagged is None else np.asarray(z_lagged, dtype=float)
+            if z.shape != t.shape:
+                raise ForwardCenteredError("z_lagged must match the time grid")
+            p01, p10 = self.tvtp.probabilities(z)
+            gen = probs_to_generator(p01, p10, dt_hours=self.dt_hours)
+            if gen.n_clipped:
+                logger.warning("TVTP embeddability clipping applied on %d nodes",
+                               gen.n_clipped)
+            return gen.q01, gen.q10
+        z, r = self.resolve_covariates(t, z_lagged, ramp_lagged, covariate_path)
+        if self.is_two_covariate:
+            p01, p10 = self.tvtp.probabilities(z, r)
+            # s >= 1 is REJECTED (EmbeddabilityError), never clipped
+            gen = probs_to_generator(p01, p10, dt_hours=self.dt_hours,
+                                     on_nonembeddable="raise")
+        else:
+            p01, p10 = self.tvtp.probabilities(z)
+            gen = probs_to_generator(p01, p10, dt_hours=self.dt_hours)
+            if gen.n_clipped:
+                logger.warning("TVTP embeddability clipping applied on %d nodes",
+                               gen.n_clipped)
         return gen.q01, gen.q10
 
     # -- moments ----------------------------------------------------------
@@ -386,34 +515,39 @@ class ForwardCenteredModel:
         return np.linspace(0.0, h, max(n, 2) + 1)
 
     def moments(self, times_hours: np.ndarray,
-                z_lagged: Optional[np.ndarray] = None) -> ResidualMoments:
+                z_lagged: Optional[np.ndarray] = None,
+                ramp_lagged: Optional[np.ndarray] = None,
+                covariate_path: Optional[Any] = None) -> ResidualMoments:
         """Residual moments on the supplied grid (which must start at t = 0)."""
         t = np.asarray(times_hours, dtype=float)
         if t.size < 2 or abs(float(t[0])) > 1e-12:
             raise ForwardCenteredError(
                 "moments() needs a grid of at least two nodes starting at t=0; "
                 "use moments_at() for arbitrary query times")
-        q01, q10 = self.generator_path(t, z_lagged)
+        q01, q10 = self.generator_path(t, z_lagged, ramp_lagged, covariate_path)
         return residual_moments(self.spec, t, q01, q10, self.pi_filtered,
                                 x0=self.x0, sigma_price_path=self.sigma_path(t))
 
     def moments_at(self, query_hours: np.ndarray,
-                   max_step_hours: float = 1.0) -> Tuple[np.ndarray, np.ndarray,
-                                                         np.ndarray, np.ndarray]:
+                   max_step_hours: float = 1.0,
+                   covariate_path: Optional[Any] = None
+                   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """(mean, variance, p_stress, forward) at arbitrary horizons >= 0."""
         q = np.atleast_1d(np.asarray(query_hours, dtype=float))
         if np.any(q < 0):
             raise ForwardCenteredError("query horizons must be non-negative")
         grid = self.integration_grid(max(float(q.max()), max_step_hours),
                                      max_step_hours)
-        mom = self.moments(grid)
+        mom = self.moments(grid, covariate_path=covariate_path)
         return (np.interp(q, grid, mom.mean), np.interp(q, grid, mom.variance),
                 np.interp(q, grid, mom.p[1]), self.forward_at(q))
 
     def centering(self, times_hours: np.ndarray,
-                  z_lagged: Optional[np.ndarray] = None) -> np.ndarray:
+                  z_lagged: Optional[np.ndarray] = None,
+                  ramp_lagged: Optional[np.ndarray] = None,
+                  covariate_path: Optional[Any] = None) -> np.ndarray:
         """mu_X(t): the deterministic correction that zeroes E^Q[residual]."""
-        mom = self.moments(times_hours, z_lagged)
+        mom = self.moments(times_hours, z_lagged, ramp_lagged, covariate_path)
         if self.spec.mode == "additive":
             return mom.mean
         # log-normal-mixture correction: c(t) = ln E[e^{X_t}] ~ mu + v/2
@@ -434,22 +568,49 @@ class ForwardCenteredModel:
         return forward_level * np.exp(arg)
 
     def expected_spot(self, query_hours: np.ndarray,
-                      max_step_hours: float = 1.0) -> np.ndarray:
+                      max_step_hours: float = 1.0,
+                      covariate_path: Optional[Any] = None) -> np.ndarray:
         """E^Q[P_t] at arbitrary horizons -- equals F(t) by construction.
 
-        Computed as F(t) + (E[X_t] - mu_X(t)) rather than asserted, so the
-        centering identity is verified numerically rather than assumed.
+        Computed as F(t) + (E[X_t] - mu_X(t)) from ONE moment solve, which is
+        an algebraic identity rather than an independent check; the
+        non-circular checks are the Monte Carlo mean (``simulate_*``) and the
+        PDE put-call parity with m != 0 (see tests/test_tvtp2_pricing.py).
         """
         q = np.atleast_1d(np.asarray(query_hours, dtype=float))
-        mean, var, _, f = self.moments_at(q, max_step_hours)
+        mean, var, _, f = self.moments_at(q, max_step_hours, covariate_path)
         if self.spec.mode == "additive":
             return f + mean - mean                       # exact zero residual mean
         return f * np.exp((mean + 0.5 * var) - (mean + 0.5 * var))
 
-    def residual_summary(self, times_hours: np.ndarray,
-                         z_lagged: Optional[np.ndarray] = None) -> pd.DataFrame:
+    def transition_statistics(self, times_hours: np.ndarray,
+                              q01: np.ndarray, q10: np.ndarray,
+                              p_regime: np.ndarray) -> Dict[str, float]:
+        """Transition summaries over [0, T] on a solver grid (time averages)."""
         t = np.asarray(times_hours, dtype=float)
-        mom = self.moments(t, z_lagged)
+        T = float(t[-1] - t[0])
+        p01h, p10h = generator_to_probs(q01, q10, dt_hours=self.dt_hours)
+        s = p01h + p10h
+
+        def tavg(y: np.ndarray) -> float:
+            return float(_trapz(y, t) / T) if T > 0 else float(y[0])
+
+        return {
+            "mean_q01_per_hour": tavg(q01), "mean_q10_per_hour": tavg(q10),
+            "mean_p01_one_hour": tavg(p01h), "mean_p10_one_hour": tavg(p10h),
+            "min_s": float(s.min()), "max_s": float(s.max()),
+            "n_nodes_s_ge_0.95": float(np.sum(s >= 0.95)),
+            "expected_transitions": float(_trapz(p_regime[0] * q01 + p_regime[1] * q10, t)),
+            "mean_p_stress": tavg(p_regime[1]),
+            "p_stress_at_expiry": float(p_regime[1][-1]),
+        }
+
+    def residual_summary(self, times_hours: np.ndarray,
+                         z_lagged: Optional[np.ndarray] = None,
+                         ramp_lagged: Optional[np.ndarray] = None,
+                         covariate_path: Optional[Any] = None) -> pd.DataFrame:
+        t = np.asarray(times_hours, dtype=float)
+        mom = self.moments(t, z_lagged, ramp_lagged, covariate_path)
         f = self.forward_at(t)
         cen = mom.mean if self.spec.mode == "additive" else mom.mean + 0.5 * mom.variance
         if self.spec.mode == "additive":
@@ -522,8 +683,14 @@ class ForwardCenteredPricingResult:
 
 def build_residual_grid(model: ForwardCenteredModel, contract: EuropeanOption,
                         gs: ResidualGridSettings,
-                        z_lagged: Optional[np.ndarray] = None) -> SpaceGrid:
-    """Size the residual grid from the ANALYTIC residual dispersion."""
+                        z_lagged: Optional[np.ndarray] = None,
+                        ramp_lagged: Optional[np.ndarray] = None) -> SpaceGrid:
+    """Size the residual grid from the ANALYTIC residual dispersion.
+
+    ``z_lagged`` / ``ramp_lagged`` are covariate values on a UNIFORM grid over
+    [0, tau] (the PDE grid); both are mapped to the hourly integration grid
+    with the same rule, so the two-covariate grid sizing sees the same path.
+    """
     if gs.x_min is not None and gs.x_max is not None:
         return SpaceGrid(gs.x_min, gs.x_max, gs.n_space_nodes)
     tau = contract.tau_hours
@@ -533,7 +700,12 @@ def build_residual_grid(model: ForwardCenteredModel, contract: EuropeanOption,
         z_src = np.asarray(z_lagged, dtype=float)
         t_src = np.linspace(0.0, tau, z_src.size)
         z_int = np.interp(t, t_src, z_src)
-    mom = model.moments(t, z_int)
+    r_int = None
+    if ramp_lagged is not None:
+        r_src = np.asarray(ramp_lagged, dtype=float)
+        r_int = np.interp(t, np.linspace(0.0, tau, r_src.size), r_src)
+    mom = (model.moments(t, z_int) if r_int is None
+           else model.moments(t, z_int, r_int))
     sd = float(mom.std[-1])
     half = float(np.clip(gs.n_std * max(sd, 1e-9),
                          gs.min_halfwidth_TRY_MWh, gs.max_halfwidth_TRY_MWh))
@@ -552,6 +724,22 @@ def build_residual_grid(model: ForwardCenteredModel, contract: EuropeanOption,
     return SpaceGrid(lo, hi, gs.n_space_nodes)
 
 
+def _solver_covariates(model: ForwardCenteredModel, t: np.ndarray, z_lagged_fn,
+                       covariate_path) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+    """Covariates on a solver grid for price / simulate (one source only)."""
+    if covariate_path is not None:
+        if z_lagged_fn is not None:
+            raise ForwardCenteredError("pass either z_lagged_fn or covariate_path, not both")
+        return model.resolve_covariates(t, covariate_path=covariate_path)
+    if model.is_two_covariate:
+        if z_lagged_fn is not None:
+            raise ForwardCenteredError(
+                "the two-covariate TVTP needs covariate_path=; z_lagged_fn alone would "
+                "drop the ramp")
+        return model.resolve_covariates(t)            # model.covariate_path or error
+    return (None if z_lagged_fn is None else np.asarray(z_lagged_fn(t), dtype=float)), None
+
+
 def price_forward_centered(
     model: ForwardCenteredModel,
     contract: EuropeanOption,
@@ -559,29 +747,36 @@ def price_forward_centered(
     solver_settings: Optional[SolverSettings] = None,
     z_lagged_fn=None,
     grid: Optional[SpaceGrid] = None,
+    covariate_path: Optional[Any] = None,
 ) -> ForwardCenteredPricingResult:
     """Price a European option on the EXPIRY-HOUR spot under the centered model.
 
     The contract is an option on P_T at the single expiry hour T, not on a
     monthly baseload average.  Only the terminal map changes relative to the
     legacy model; the coupled two-regime PDE machinery is reused unchanged.
+
+    ``covariate_path`` supplies (z, r) for the two-covariate mode and may also
+    feed a single-covariate model (only z is used).  The same q01/q10 arrays
+    drive the moment ODE (centering) and the PDE.
     """
     gs = grid_settings or ResidualGridSettings()
     tgrid = TimeGrid(contract.valuation_utc, contract.maturity_utc,
                      gs.n_steps(contract.tau_hours))
     t = tgrid.times_hours
-    z_lag = None if z_lagged_fn is None else np.asarray(z_lagged_fn(t), dtype=float)
+    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path)
 
     f_path = model.forward_at(t)
     sig_path = model.spec.sigma_price(f_path)               # (2, n)
-    q01, q10 = model.generator_path(t, z_lag)
+    q01, q10 = (model.generator_path(t, z_lag) if r_lag is None
+                else model.generator_path(t, z_lag, r_lag))
     mom = residual_moments(model.spec, t, q01, q10, model.pi_filtered,
                            x0=model.x0, sigma_price_path=sig_path)
     cen = (mom.mean if model.spec.mode == "additive"
            else mom.mean + 0.5 * mom.variance)
 
     if grid is None:
-        grid = build_residual_grid(model, contract, gs, z_lag)
+        grid = (build_residual_grid(model, contract, gs, z_lag) if r_lag is None
+                else build_residual_grid(model, contract, gs, z_lag, r_lag))
     if not grid.contains(model.x0):
         raise ForwardCenteredError(
             f"x0={model.x0:.3f} too close to the residual grid boundary "
@@ -620,16 +815,20 @@ def price_forward_centered(
     if not np.isfinite(value):
         raise ForwardCenteredError("option value is not finite")
 
+    diag: Dict[str, float] = {
+        "grid_x_min": grid.y_min, "grid_x_max": grid.y_max,
+        "n_space_nodes": float(grid.y.size), "n_time_steps": float(tgrid.n_steps),
+        "p_stress_at_expiry": float(mom.p[1][-1]),
+    }
+    for k, v in model.transition_statistics(t, q01, q10, mom.p).items():
+        diag.setdefault(k, v)
+    diag["n_covariates"] = float(model.tvtp.n_covariates)
     return ForwardCenteredPricingResult(
         contract=contract, value=value, V_regime=v_reg, pi=model.pi_filtered.copy(),
         forward_at_expiry=f_T, centering_at_expiry=cen_T,
         expected_spot_at_expiry=float(f_path[-1]),
         residual_std_at_expiry=float(mom.std[-1]), x0=model.x0, solve=res,
-        diagnostics={
-            "grid_x_min": grid.y_min, "grid_x_max": grid.y_max,
-            "n_space_nodes": float(grid.y.size), "n_time_steps": float(tgrid.n_steps),
-            "p_stress_at_expiry": float(mom.p[1][-1]),
-        },
+        diagnostics=diag,
     )
 
 
@@ -641,6 +840,7 @@ def simulate_forward_centered(
     dt_hours: float = 0.25,
     seed: int = 20260808,
     z_lagged_fn=None,
+    covariate_path: Optional[Any] = None,
 ) -> Dict[str, float]:
     """Time-discretized Monte Carlo cross-check of the residual PDE.
 
@@ -648,17 +848,23 @@ def simulate_forward_centered(
 and the residual advances with the exact conditional OU transition.
 The joint CTMC-OU simulation is time-discretized and converges as dt decreases. Reports the random
     seed and the standard error, as required for any Monte Carlo output.
+
+    Besides the option value the result carries INDEPENDENT first-moment and
+    regime checks against the moment ODE on the same q path:
+    ``mean_residual_T`` (+ SE) vs ``analytic_mean_residual_T`` and
+    ``p_stress_T_mc`` (+ SE) vs ``analytic_p_stress_T``.
     """
     rng = np.random.default_rng(seed)
     tau = contract.tau_hours
     n_steps = max(int(np.ceil(tau / dt_hours)), 4)
     dt = tau / n_steps
     t = np.linspace(0.0, tau, n_steps + 1)
-    z_lag = None if z_lagged_fn is None else np.asarray(z_lagged_fn(t), dtype=float)
+    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path)
 
     f_path = model.forward_at(t)
     sig_path = model.spec.sigma_price(f_path)
-    q01, q10 = model.generator_path(t, z_lag)
+    q01, q10 = (model.generator_path(t, z_lag) if r_lag is None
+                else model.generator_path(t, z_lag, r_lag))
     mom = residual_moments(model.spec, t, q01, q10, model.pi_filtered,
                            x0=model.x0, sigma_price_path=sig_path)
     cen = mom.mean if model.spec.mode == "additive" else mom.mean + 0.5 * mom.variance
@@ -685,6 +891,7 @@ The joint CTMC-OU simulation is time-discretized and converges as dt decreases. 
     prices = model.price_from_state(x, float(f_path[-1]), float(cen[-1]))
     pay = contract.payoff_from_price(prices)
     disc = np.exp(-contract.r_per_hour * tau)
+    p_mc = float(reg.mean())
     return {
         "value": float(disc * pay.mean()),
         "std_error": float(disc * pay.std(ddof=1) / np.sqrt(n_paths)),
@@ -693,4 +900,77 @@ The joint CTMC-OU simulation is time-discretized and converges as dt decreases. 
         "analytic_expected_spot_T": float(f_path[-1]),
         "prob_negative_price": float((prices < 0).mean()),
         "n_paths": float(n_paths), "dt_hours": float(dt), "seed": float(seed),
+        # independent checks against the moment ODE on the same q path
+        "mean_residual_T": float(x.mean()),
+        "mean_residual_T_se": float(x.std(ddof=1) / np.sqrt(n_paths)),
+        "analytic_mean_residual_T": float(mom.mean[-1]),
+        "residual_std_T_mc": float(x.std(ddof=1)),
+        "analytic_residual_std_T": float(mom.std[-1]),
+        "p_stress_T_mc": p_mc,
+        "p_stress_T_se": float(np.sqrt(max(p_mc * (1.0 - p_mc), 1e-300) / n_paths)),
+        "analytic_p_stress_T": float(mom.p[1][-1]),
+        "n_covariates": float(model.tvtp.n_covariates),
     }
+
+
+def simulate_residual_at_hours(
+    model: ForwardCenteredModel,
+    record_hours: np.ndarray,
+    n_paths: int = 4_000,
+    dt_hours: float = 0.25,
+    seed: int = 20260924,
+    z_lagged_fn=None,
+    covariate_path: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """Monte Carlo residual X at several horizons (same scheme as the pricer).
+
+    Used for NON-circular checks of the centering identity: with m != 0 or
+    a != 0 the sample mean of P_h = F(h) + X_h - mu_X(h) over paths (and over
+    a delivery month) must reproduce F(h) (the VEP quote) within Monte Carlo
+    error, while mu_X comes from the moment ODE on the same q path.
+    ``record_hours`` must be nodes of the uniform MC grid.
+    """
+    hrs = np.asarray(record_hours, dtype=float)
+    if hrs.ndim != 1 or hrs.size == 0 or np.any(hrs <= 0) or np.any(np.diff(hrs) <= 0):
+        raise ForwardCenteredError("record_hours must be positive and increasing")
+    H = float(hrs[-1])
+    n_steps = int(round(H / dt_hours))
+    if abs(n_steps * dt_hours - H) > 1e-9:
+        raise ForwardCenteredError("the last record hour must be a multiple of dt_hours")
+    t = np.linspace(0.0, H, n_steps + 1)
+    idx = np.rint(hrs / dt_hours).astype(int)
+    if np.max(np.abs(t[idx] - hrs)) > 1e-9:
+        raise ForwardCenteredError("record_hours must be nodes of the Monte Carlo grid")
+    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path)
+    f_path = model.forward_at(t)
+    sig_path = model.spec.sigma_price(f_path)
+    q01, q10 = (model.generator_path(t, z_lag) if r_lag is None
+                else model.generator_path(t, z_lag, r_lag))
+    mom = residual_moments(model.spec, t, q01, q10, model.pi_filtered,
+                           x0=model.x0, sigma_price_path=sig_path)
+    k = model.spec.kappa_per_hour
+    m_eff = model.spec.regime_means + model.spec.drift_shift_per_hour / k
+    dt = H / n_steps
+    e1 = np.exp(-k * dt)
+    rng = np.random.default_rng(seed)
+    x = np.full(n_paths, model.x0, dtype=float)
+    reg = (rng.random(n_paths) < model.pi_filtered[1]).astype(np.int8)
+    rec = np.empty((n_paths, hrs.size))
+    reg_rec = np.empty((n_paths, hrs.size), dtype=np.int8)
+    want = {int(j): c for c, j in enumerate(idx)}
+    for j in range(n_steps):
+        p01j, p10j = generator_to_probs(np.array([q01[j]]), np.array([q10[j]]), dt_hours=dt)
+        u = rng.random(n_paths)
+        reg = np.where((reg == 0) & (u < p01j[0]), 1,
+                       np.where((reg == 1) & (u < p10j[0]), 0, reg)).astype(np.int8)
+        sig_mid = 0.5 * (sig_path[:, j] + sig_path[:, j + 1])
+        sd = sig_mid * np.sqrt((1.0 - np.exp(-2 * k * dt)) / (2 * k))
+        x = m_eff[reg] + (x - m_eff[reg]) * e1 + sd[reg] * rng.standard_normal(n_paths)
+        c = want.get(j + 1)
+        if c is not None:
+            rec[:, c] = x
+            reg_rec[:, c] = reg
+    return {"hours": hrs, "x": rec, "regime": reg_rec, "mu_x": mom.mean[idx],
+            "var_x": mom.variance[idx], "forward": f_path[idx],
+            "p_stress": mom.p[1][idx], "n_paths": int(n_paths), "dt_hours": float(dt),
+            "seed": int(seed)}

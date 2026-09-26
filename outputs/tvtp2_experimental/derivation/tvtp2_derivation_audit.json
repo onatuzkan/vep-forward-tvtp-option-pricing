@@ -1,0 +1,692 @@
+{
+  "title": "2D TVTP derivation audit (RD_lag1 + RD_Ramp_1h_lag1)",
+  "status": "experimental_reconstructed",
+  "label": "M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium",
+  "verified_reproduction_of_m9": false,
+  "hash_convention": "sha256 of the file content with CRLF normalized to LF",
+  "inputs": {
+    "history_file": "inputs/historical/rd_standardized.csv",
+    "history_sha256": "bea51c98c84ea4a6fe62111ae8993410aee8a430434d9601b0c292cbb58c6e04",
+    "base_params_file": "inputs/historical/m2_frozen_parameters.yaml",
+    "base_params_sha256": "b80fa69d1130e4d7ab05d9830b53deb2d59920381b8c57708ac4e22cc9b35ab2",
+    "bundle": {
+      "transition_coefficients.csv": "930481e0a6009004e537d6ead505e2406bf2c0b34a60e68378238efc13b79536",
+      "parameter_estimates.csv": "c2a3ca16b268b4b74b9370d665f338b15ee7e8148f94ab723947773cfd17ebdd",
+      "metadata": "0022a2d73a632eead12706a77ebfba3be2366ac6c9efd1c3c1291f8818819afb"
+    },
+    "lag1_file": "inputs/historical/rd_lag1_standardized.csv"
+  },
+  "source_search_for_ramp_definition": [
+    {
+      "source": "repository working tree (code, docs, configs, outputs)",
+      "result": "slope values and the covariate NAME only; no construction code"
+    },
+    {
+      "source": "git history of the repository (all 27 commits, deleted files, team_share_2026_09_01.zip)",
+      "result": "no ramp construction, no covariate_scaling.json, no prepared_meta.json"
+    },
+    {
+      "source": "SSRN manuscript (ssrn-7472067, 43 pages)",
+      "result": "states the ramp term is omitted in production and that joint vs separate estimation could not be determined; no definition"
+    },
+    {
+      "source": "calibration bundle (transition_coefficients.csv, parameter_estimates.csv, metadata json)",
+      "result": "slopes and AMEs of both covariates; no definition, no scaler"
+    },
+    {
+      "source": "markov_adapter.py docstring",
+      "result": "claims a logit(p) regression on 'lagged standardized RD and RD-ramp' recovers M9 to 4-5 digits; the code and pde_timeseries.parquet are absent, so the claim is not reproducible here"
+    },
+    {
+      "source": "original estimation output directory (MarkovProject/res-markov/outputs/markov_usd_final)",
+      "result": "not accessible from this repository"
+    }
+  ],
+  "label_mapping": [
+    {
+      "production": "sigma_y_normal (0)",
+      "raw_m9": "sigma1",
+      "value": 0.0035348069642223727
+    },
+    {
+      "production": "sigma_y_stress (1)",
+      "raw_m9": "sigma0",
+      "value": 0.0924066543979969
+    },
+    {
+      "production": "gamma01 (normal->stress, RD_lag1)",
+      "raw_m9": "gamma10 RD_lag1",
+      "value": -0.5837780825414551,
+      "value_used": -0.5837780825
+    },
+    {
+      "production": "gamma10 (stress->normal, RD_lag1)",
+      "raw_m9": "gamma01 RD_lag1",
+      "value": 0.07769839363017603,
+      "value_used": 0.0776983936
+    },
+    {
+      "production": "h01 (normal->stress, ramp)",
+      "raw_m9": "gamma10 RD_Ramp_1h_lag1",
+      "value": -0.06939531482057137,
+      "value_used": -0.06939531482057137
+    },
+    {
+      "production": "h10 (stress->normal, ramp)",
+      "raw_m9": "gamma01 RD_Ramp_1h_lag1",
+      "value": 0.4055443473030015,
+      "value_used": 0.4055443473030015
+    },
+    {
+      "production": "d_n mean normal duration (h)",
+      "raw_m9": "mean_duration_state1",
+      "value": 3.7591994835377665
+    },
+    {
+      "production": "d_s mean stress duration (h)",
+      "raw_m9": "mean_duration_state0",
+      "value": 7.559715945771465
+    },
+    {
+      "production": "pi_stress occupancy",
+      "raw_m9": "occupancy[0]",
+      "value": 0.6745780174292473
+    }
+  ],
+  "label_swap_checks": {
+    "sigma_normal_lt_sigma_stress": true,
+    "ame_and_slope_share_sign_in_every_equation": true,
+    "ame_over_slope_p01": [
+      0.1962807476831397,
+      0.19628074768313833
+    ],
+    "ame_over_slope_p10": [
+      0.1111769759192898,
+      0.11117697591928882
+    ],
+    "ame_over_slope_abs_diff_p01": 1.3600232051658168e-15,
+    "ame_over_slope_abs_diff_p10": 9.71445146547012e-16,
+    "joint_estimation_evidence": true,
+    "joint_estimation_note": "AME/slope = E[Lambda'(eta)] is a property of ONE fitted p path; equal ratios for RD_lag1 and RD_Ramp_1h_lag1 (to ~1e-15) show both slopes come from the same TVTP-2 equation (joint estimation)"
+  },
+  "slope_precision": {
+    "gamma01_csv": -0.5837780825414551,
+    "gamma01_used_yaml": -0.5837780825,
+    "gamma10_csv": 0.07769839363017603,
+    "gamma10_used_yaml": 0.0776983936,
+    "abs_rounding_gamma01": 4.145517262799103e-11,
+    "abs_rounding_gamma10": 3.017602834276545e-11
+  },
+  "grid": {
+    "first_label_utc": "2016-01-01T01:00:00+00:00",
+    "last_label_utc": "2025-12-31T20:00:00+00:00",
+    "n_rows": 87665,
+    "n_complete_grid_labels": 87668,
+    "missing_labels_utc": [
+      "2016-03-27T00:00:00+00:00",
+      "2016-03-27T01:00:00+00:00",
+      "2016-03-27T02:00:00+00:00"
+    ]
+  },
+  "windows": {
+    "W_T": "2022-12-31T20:00:00+00:00",
+    "W9": "2024-12-31T20:00:00+00:00",
+    "all": "2025-12-31T20:00:00+00:00"
+  },
+  "w9_inference": "W9 = first n_train = 78905 rows of the history (M9 run_summary); n_total = 87665 equals the history row count",
+  "z_scaler_window_statistics": {
+    "W_T": {
+      "window_end_utc": "2022-12-31T20:00:00+00:00",
+      "n_rows": 61361,
+      "mean": 2.9417631018242253e-05,
+      "std_ddof1": 0.9999649258429589
+    },
+    "W9": {
+      "window_end_utc": "2024-12-31T20:00:00+00:00",
+      "n_rows": 78905,
+      "mean": 0.09236085982745865,
+      "std_ddof1": 1.052863250538369
+    },
+    "all": {
+      "window_end_utc": "2025-12-31T20:00:00+00:00",
+      "n_rows": 87665,
+      "mean": 0.15053645290859768,
+      "std_ddof1": 1.0784090247787703
+    }
+  },
+  "ramp_scalers": {
+    "W_T": {
+      "mean": 3.51620435796096e-05,
+      "std": 0.2663933514013426,
+      "ddof": 1,
+      "n": 61359,
+      "window_name": "W_T",
+      "window_end_utc": "2022-12-31T20:00:00+00:00",
+      "window_start_utc": null,
+      "first_increment_utc": "2016-01-01T02:00:00+00:00",
+      "last_increment_utc": "2022-12-31T20:00:00+00:00",
+      "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+      "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+    },
+    "W9": {
+      "mean": 3.417142268311894e-05,
+      "std": 0.271450116132395,
+      "ddof": 1,
+      "n": 78903,
+      "window_name": "W9",
+      "window_end_utc": "2024-12-31T20:00:00+00:00",
+      "window_start_utc": null,
+      "first_increment_utc": "2016-01-01T02:00:00+00:00",
+      "last_increment_utc": "2024-12-31T20:00:00+00:00",
+      "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+      "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+    },
+    "all": {
+      "mean": 3.177700993136229e-05,
+      "std": 0.27452518063249015,
+      "ddof": 1,
+      "n": 87663,
+      "window_name": "all",
+      "window_end_utc": "2025-12-31T20:00:00+00:00",
+      "window_start_utc": null,
+      "first_increment_utc": "2016-01-01T02:00:00+00:00",
+      "last_increment_utc": "2025-12-31T20:00:00+00:00",
+      "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+      "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+    }
+  },
+  "ramp_scaler_used": "W9",
+  "ramp_invariance_under_z_rescaling_max_abs": 2.55351295663786e-15,
+  "primary": {
+    "coefficients": {
+      "alpha01": -1.0490993394164196,
+      "gamma01": -0.5837780825,
+      "h01": -0.06939531482057137,
+      "alpha10": -1.955839031679882,
+      "gamma10": 0.0776983936,
+      "h10": 0.4055443473030015,
+      "covariates": [
+        "RD_lag1",
+        "RD_Ramp_1h_lag1"
+      ],
+      "name": "tvtp2_m9_transfer"
+    },
+    "sample": {
+      "window_start_utc": "2016-01-01T01:00:00+00:00",
+      "window_end_utc": "2024-12-31T20:00:00+00:00",
+      "n_grid_labels": 78908,
+      "n_valid_transitions": 78902,
+      "first_valid_transition_utc": "2016-01-01T03:00:00+00:00",
+      "last_valid_transition_utc": "2024-12-31T20:00:00+00:00",
+      "n_dropped_sample_start": 2,
+      "dropped_sample_start_labels": [
+        "2016-01-01T01:00:00+00:00",
+        "2016-01-01T02:00:00+00:00"
+      ],
+      "rule_sample_start": "the first 2 hour(s) of the sample have no z_(t-1h) / z_(t-2h) pair, so r_(t-1) is undefined: dropped, never filled",
+      "n_dropped_missing_observation": 4,
+      "dropped_missing_observation_labels": [
+        "2016-03-27T01:00:00+00:00",
+        "2016-03-27T02:00:00+00:00",
+        "2016-03-27T03:00:00+00:00",
+        "2016-03-27T04:00:00+00:00"
+      ],
+      "rule_missing_observation": "a transition is dropped when z_(t-1h) or z_(t-2h) is missing on the complete hourly grid; no interpolation, no zero ramp",
+      "n_valid_with_missing_own_label": 1,
+      "valid_with_missing_own_label": [
+        "2016-03-27T00:00:00+00:00"
+      ]
+    },
+    "roots": {
+      "p01": {
+        "transition": "p01_normal_to_stress",
+        "alpha": -1.0490993394164196,
+        "gamma": -0.5837780825,
+        "h": -0.06939531482057137,
+        "target_mean_p": 0.26601408208827065,
+        "achieved_mean_p": 0.2660140820882693,
+        "residual": -1.3322676295501878e-15,
+        "n": 78902,
+        "bracket": [
+          -20.0,
+          20.0
+        ],
+        "xtol": 1e-12,
+        "rtol": 1e-12,
+        "iterations": 13,
+        "function_calls": 14,
+        "converged": true
+      },
+      "p10": {
+        "transition": "p10_stress_to_normal",
+        "alpha": -1.955839031679882,
+        "gamma": 0.0776983936,
+        "h": 0.4055443473030015,
+        "target_mean_p": 0.1322801024765158,
+        "achieved_mean_p": 0.1322801024765158,
+        "residual": 0.0,
+        "n": 78902,
+        "bracket": [
+          -20.0,
+          20.0
+        ],
+        "xtol": 1e-12,
+        "rtol": 1e-12,
+        "iterations": 13,
+        "function_calls": 14,
+        "converged": true
+      }
+    }
+  },
+  "single_covariate_same_sample": {
+    "alpha01": -1.045554311033635,
+    "alpha10": -1.8905912193011531,
+    "roots": {
+      "p01": {
+        "transition": "p01_normal_to_stress",
+        "alpha": -1.045554311033635,
+        "gamma": -0.5837780825,
+        "h": 0.0,
+        "target_mean_p": 0.26601408208827065,
+        "achieved_mean_p": 0.26601408208826927,
+        "residual": -1.3877787807814457e-15,
+        "n": 78902,
+        "bracket": [
+          -20.0,
+          20.0
+        ],
+        "xtol": 1e-12,
+        "rtol": 1e-12,
+        "iterations": 13,
+        "function_calls": 14,
+        "converged": true
+      },
+      "p10": {
+        "transition": "p10_stress_to_normal",
+        "alpha": -1.8905912193011531,
+        "gamma": 0.0776983936,
+        "h": 0.0,
+        "target_mean_p": 0.1322801024765158,
+        "achieved_mean_p": 0.13228010247656247,
+        "residual": 4.6657122609872204e-14,
+        "n": 78902,
+        "bracket": [
+          -20.0,
+          20.0
+        ],
+        "xtol": 1e-12,
+        "rtol": 1e-12,
+        "iterations": 14,
+        "function_calls": 15,
+        "converged": true
+      }
+    }
+  },
+  "production_1d_rederived": {
+    "alpha01": -1.0156656065851064,
+    "alpha10": -1.8952294098380955,
+    "yaml_alpha01": -1.0156656066,
+    "yaml_alpha10": -1.8952294098
+  },
+  "variants": [
+    {
+      "variant": "1D production (repo yaml; all rows, contemporaneous z)",
+      "alpha01": -1.0156656066,
+      "alpha10": -1.8952294098,
+      "h01": 0.0,
+      "h10": 0.0,
+      "n_transitions": 87665,
+      "note": "re-derived here: -1.0156656066, -1.8952294098",
+      "mean_p01": 0.27150886784432876,
+      "mean_p10": 0.1317490397470021,
+      "ame_ratio_p01": 0.18495441829310597,
+      "ame_ratio_p10": 0.11430276829058048,
+      "mean_inverse_p01": 4.539121697827538,
+      "mean_inverse_p10": 7.6285035396234235,
+      "forward_recursion_occupancy_stress": 0.6500365372615244,
+      "max_s": 0.8537795534595763,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "1D, D = W9 (x_(t-1) sample)  [R1]",
+      "alpha01": -1.045554311033635,
+      "alpha10": -1.8905912193011531,
+      "h01": 0.0,
+      "h10": 0.0,
+      "n_transitions": 78902,
+      "note": "same D as the 2D primary",
+      "mean_p01": 0.26601408208826927,
+      "mean_p10": 0.13228010247656247,
+      "ame_ratio_p01": 0.18272375165647844,
+      "ame_ratio_p10": 0.11469301155866543,
+      "mean_inverse_p01": 4.646498138079245,
+      "mean_inverse_p10": 7.597830466251761,
+      "forward_recursion_occupancy_stress": 0.6444722261702992,
+      "max_s": 0.8485888532026861,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "2D, D = W9, ramp scaler W9  [R3, primary]",
+      "alpha01": -1.0490993394164196,
+      "alpha10": -1.955839031679882,
+      "h01": -0.06939531482057137,
+      "h10": 0.4055443473030015,
+      "n_transitions": 78902,
+      "note": "frozen in tvtp2_frozen_parameters.yaml",
+      "mean_p01": 0.2660140820882693,
+      "mean_p10": 0.1322801024765158,
+      "ame_ratio_p01": 0.1822833880494949,
+      "ame_ratio_p10": 0.11143987123349311,
+      "mean_inverse_p01": 4.689760846647453,
+      "mean_inverse_p10": 8.58222495520647,
+      "forward_recursion_occupancy_stress": 0.6351760457396495,
+      "max_s": 0.8407974714119191,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "2D, D = W9, ramp scaler W_T",
+      "alpha01": -1.0491878792209057,
+      "alpha10": -1.958235317206508,
+      "h01": -0.06939531482057137,
+      "h10": 0.4055443473030015,
+      "n_transitions": 78902,
+      "note": "ramp-scaler window sensitivity",
+      "mean_p01": 0.2660140820882694,
+      "mean_p10": 0.1322801024765158,
+      "ame_ratio_p01": 0.18227282902549677,
+      "ame_ratio_p10": 0.1113024653206147,
+      "mean_inverse_p01": 4.690861408343587,
+      "mean_inverse_p10": 8.61995811149876,
+      "forward_recursion_occupancy_stress": 0.6350660635359143,
+      "max_s": 0.8406742606619444,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "2D, D = W9, ramp scaler all",
+      "alpha01": -1.0490470048304739,
+      "alpha10": -1.9544460681556999,
+      "h01": -0.06939531482057137,
+      "h10": 0.4055443473030015,
+      "n_transitions": 78902,
+      "note": "ramp-scaler window sensitivity",
+      "mean_p01": 0.2660140820882694,
+      "mean_p10": 0.13228010247651584,
+      "ame_ratio_p01": 0.18228958243607307,
+      "ame_ratio_p10": 0.11151949615262202,
+      "mean_inverse_p01": 4.689116453387077,
+      "mean_inverse_p10": 8.560320733577395,
+      "forward_recursion_occupancy_stress": 0.6352424265800466,
+      "max_s": 0.8408683538921213,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "2D, D = full sample, ramp scaler W9",
+      "alpha01": -1.0192472674177047,
+      "alpha10": -1.9619024765949837,
+      "h01": -0.06939531482057137,
+      "h10": 0.4055443473030015,
+      "n_transitions": 87662,
+      "note": "alpha-sample sensitivity",
+      "mean_p01": 0.26601408208826993,
+      "mean_p10": 0.1322801024765158,
+      "ame_ratio_p01": 0.18180837335807729,
+      "ame_ratio_p10": 0.11137821764395624,
+      "mean_inverse_p01": 4.745756575045514,
+      "mean_inverse_p10": 8.6088268543726,
+      "forward_recursion_occupancy_stress": 0.6339225275704813,
+      "max_s": 0.8460033432193862,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "1D, D = full sample (x_(t-1) sample)",
+      "alpha01": -1.0156351110506734,
+      "alpha10": -1.8952328450501525,
+      "h01": 0.0,
+      "h10": 0.0,
+      "n_transitions": 87662,
+      "note": "alpha-sample sensitivity twin",
+      "mean_p01": 0.26601408208826993,
+      "mean_p10": 0.13228010247655,
+      "ame_ratio_p01": 0.18225513103403093,
+      "ame_ratio_p10": 0.1146884697991772,
+      "mean_inverse_p01": 4.70096186885769,
+      "mean_inverse_p10": 7.599695075350298,
+      "forward_recursion_occupancy_stress": 0.6434022962479692,
+      "max_s": 0.8537849261084925,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "2D, z re-standardized on W9  [R3']",
+      "alpha01": -1.0949722451470763,
+      "alpha10": -1.948265892108403,
+      "h01": -0.06939531482057137,
+      "h10": 0.4055443473030015,
+      "n_transitions": 78902,
+      "note": "z-scale sensitivity (M9 may have standardized on its own window)",
+      "mean_p01": 0.26601408208826643,
+      "mean_p10": 0.1322801024765158,
+      "ame_ratio_p01": 0.18339608382788772,
+      "ame_ratio_p10": 0.11145797374633663,
+      "mean_inverse_p01": 4.589561820642693,
+      "mean_inverse_p10": 8.57562701298043,
+      "forward_recursion_occupancy_stress": 0.6378231555771547,
+      "max_s": 0.8223867778087619,
+      "n_s_ge_1": 0
+    },
+    {
+      "variant": "1D, z re-standardized on W9  [R1']",
+      "alpha01": -1.0915341338555542,
+      "alpha10": -1.8831734794874941,
+      "h01": 0.0,
+      "h10": 0.0,
+      "n_transitions": 78902,
+      "note": "z-scale sensitivity twin",
+      "mean_p01": 0.266014082088266,
+      "mean_p10": 0.13228010247658,
+      "ame_ratio_p01": 0.18382981978628077,
+      "ame_ratio_p10": 0.11470177115845441,
+      "mean_inverse_p01": 4.548829544904905,
+      "mean_inverse_p10": 7.594093916001783,
+      "forward_recursion_occupancy_stress": 0.6465009084892905,
+      "max_s": 0.8302732753397559,
+      "n_s_ge_1": 0
+    }
+  ],
+  "validation_metrics": {
+    "ergodic_ratio_occupancy_stress": {
+      "value": 0.6678834198368789,
+      "target": 0.6745780174292473,
+      "independent_of_parameters": true,
+      "note": "(1/d_n)/(1/d_n + 1/d_s) uses only the two targets; NOT a validation"
+    },
+    "forward_recursion_occupancy_stress": {
+      "mean_stress_probability": 0.6351760457396495,
+      "n_hours_used": 78806,
+      "n_segments": 2,
+      "burn_in_hours_per_segment": 48,
+      "method": "exact forward recursion pi_t = pi_(t-1) Pi(t) on the historical covariate path, segments split at gaps, each started at the stationary law of its first Pi",
+      "reported_m9": 0.6745780174292473,
+      "relative_error": -0.058409806829690325,
+      "note": "M9's value is a smoothed-probability average conditional on prices; this is a covariate-conditional chain average -- a gap is expected and is not forced"
+    },
+    "ame_ratio": {
+      "p01": 0.1822833880494949,
+      "p10": 0.11143987123349311,
+      "m9_p01": 0.1962807476831397,
+      "m9_p10": 0.1111769759192898
+    },
+    "mean_inverse_p": {
+      "p01": 4.689760846647453,
+      "p10": 8.58222495520647,
+      "m9_mean_expected_duration_normal": 4.134849768671386,
+      "m9_mean_expected_duration_stress": 8.585120922438264,
+      "note": "1/(1-p_ii,t) is a local approximation when P_t is time-varying (auxiliary metric)"
+    },
+    "achieved_mean_p": {
+      "p01": 0.2660140820882693,
+      "p10": 0.1322801024765158
+    },
+    "p01_duration_target_consistency": {
+      "target_mean_p": 0.26601408208827065,
+      "upper_bound_E_p_1mp": 0.19525059021900548,
+      "m9_ame_ratio": 0.1962807476831397,
+      "compatible": false,
+      "implied_minimum_mean_p_of_m9_path": 0.2682258592576378,
+      "note": "E[p(1-p)] = pbar(1-pbar) - Var(p) <= pbar(1-pbar); if the M9 AME ratio exceeds the bound, the duration target cannot be the mean of M9's own fitted p path"
+    },
+    "embeddability_historical_full_sample": {
+      "n_rows": 87662,
+      "n_s_ge_1": 0,
+      "share_s_ge_1": 0.0,
+      "n_s_ge_0.95": 0,
+      "near_threshold": 0.95,
+      "max_s": 0.8407974714119191,
+      "min_s": 0.14391899134919156,
+      "argmax_label": "2020-05-25T06:00:00+00:00",
+      "quantile_0.9999_s": 0.8029579777415167,
+      "first_violation_label": null,
+      "last_violation_label": null,
+      "embeddable": true,
+      "window_start_utc": "2016-01-01T03:00:00+00:00",
+      "window_end_utc": "2025-12-31T20:00:00+00:00"
+    },
+    "embeddability_historical_D": {
+      "n_rows": 78902,
+      "n_s_ge_1": 0,
+      "share_s_ge_1": 0.0,
+      "n_s_ge_0.95": 0,
+      "near_threshold": 0.95,
+      "max_s": 0.8407974714119191,
+      "min_s": 0.1443423031558982,
+      "argmax_label": "2020-05-25T06:00:00+00:00",
+      "quantile_0.9999_s": 0.8032298272270869,
+      "first_violation_label": null,
+      "last_violation_label": null,
+      "embeddable": true,
+      "window_start_utc": "2016-01-01T03:00:00+00:00",
+      "window_end_utc": "2024-12-31T20:00:00+00:00"
+    }
+  },
+  "ramp_scale_and_timing_evidence": {
+    "rows": [
+      {
+        "variant": "standardized ramp x 0, lag 1h",
+        "n": 78902,
+        "alpha01": -1.045554311033635,
+        "alpha10": -1.8905912193011531,
+        "mean_inverse_p01": 4.646498138079245,
+        "mean_inverse_p10": 7.597830466251761,
+        "ame_ratio_p01": 0.18272375165647844,
+        "ame_ratio_p10": 0.11469301155866543
+      },
+      {
+        "variant": "standardized ramp x 1, lag 1h",
+        "n": 78902,
+        "alpha01": -1.0490993394164196,
+        "alpha10": -1.955839031679882,
+        "mean_inverse_p01": 4.689760846647453,
+        "mean_inverse_p10": 8.58222495520647,
+        "ame_ratio_p01": 0.1822833880494949,
+        "ame_ratio_p10": 0.11143987123349311
+      },
+      {
+        "variant": "standardized ramp x 1.1, lag 1h",
+        "n": 78902,
+        "alpha01": -1.0495731630246619,
+        "alpha10": -1.9689044837397205,
+        "mean_inverse_p01": 4.6956800045204075,
+        "mean_inverse_p10": 8.789792850844574,
+        "ame_ratio_p01": 0.18222689426472907,
+        "ame_ratio_p10": 0.11068128061892643
+      },
+      {
+        "variant": "raw dz (unstandardized, sd 0.2715), lag 1h",
+        "n": 78902,
+        "alpha01": -1.0462991543392652,
+        "alpha10": -1.896012911482676,
+        "mean_inverse_p01": 4.655453328679353,
+        "mean_inverse_p10": 7.67915665223643,
+        "ame_ratio_p01": 0.18262760663846103,
+        "ame_ratio_p10": 0.11447902314434101
+      },
+      {
+        "variant": "standardized ramp, no lag (r_t)",
+        "n": 78903,
+        "alpha01": -1.04420603300193,
+        "alpha10": -1.9494654038662744,
+        "mean_inverse_p01": 4.630529741774483,
+        "mean_inverse_p10": 8.482772560540033,
+        "ame_ratio_p01": 0.18291384666724972,
+        "ame_ratio_p10": 0.11180040218208631
+      },
+      {
+        "variant": "standardized ramp, lag 2h (r_(t-2))",
+        "n": 78900,
+        "alpha01": -1.0522893909417113,
+        "alpha10": -1.9600412073993125,
+        "mean_inverse_p01": 4.730742803862532,
+        "mean_inverse_p10": 8.649001265636757,
+        "ame_ratio_p01": 0.18189073983558535,
+        "ame_ratio_p10": 0.11121079524813585
+      },
+      {
+        "variant": "standardized ramp, sign flipped",
+        "n": 78902,
+        "alpha01": -1.044183829252598,
+        "alpha10": -1.9430151763539063,
+        "mean_inverse_p01": 4.630436792690025,
+        "mean_inverse_p10": 8.628527012224872,
+        "ame_ratio_p01": 0.18291163257828047,
+        "ame_ratio_p10": 0.11317480041207494
+      }
+    ],
+    "m9_mean_expected_duration_stress": 8.585120922438264,
+    "interpretation": "E[1/p10] discriminates the ramp SCALE (standardized ~8.58 vs raw ~7.68, M9 8.585) but not its direction or lag (all timing variants land within 8.48-8.65): scale is supported, direction/lag are unverified"
+  },
+  "rd_lag1_file_evidence": {
+    "file": "inputs/historical/rd_lag1_standardized.csv",
+    "sha256": "e6af5fa01faca195e3c4562392cddfc43c751aa6ad07530868be966b415720c0",
+    "rows_total": 87665,
+    "rows_equal_to_calendar_lag_of_z": 87663,
+    "rows_calendar_lag_not_computable_from_rd_standardized": 2,
+    "rows_contradicting_row_order_lag": [
+      {
+        "label_utc": "2016-03-27T03:00:00+00:00",
+        "rd_lag1": -1.531324537672116,
+        "row_order_value": -1.200441331463619
+      }
+    ],
+    "rows_not_derivable_from_rd_standardized": [
+      {
+        "label_utc": "2016-01-01T01:00:00+00:00",
+        "rd_lag1": -1.8903582032166115,
+        "row_order_value": null
+      },
+      {
+        "label_utc": "2016-03-27T03:00:00+00:00",
+        "rd_lag1": -1.531324537672116,
+        "row_order_value": -1.200441331463619
+      }
+    ],
+    "finding": "RD_lag1 in the shipped file is a CALENDAR one-hour lag: at 2016-03-27 03:00 UTC it carries z(02:00), an hour absent from rd_standardized.csv, not the row-order value z(2016-03-26 23:00). The upstream lag was therefore built on a calendar-consistent RD series. This supports (does not prove) a calendar-time ramp construction; the ramp itself is still unverified.",
+    "extra_z_values_recovered": {
+      "2016-01-01T00:00:00+00:00": -1.8903582032166115,
+      "2016-03-27T02:00:00+00:00": -1.531324537672116
+    },
+    "alpha_if_gap_supplemented": {
+      "alpha01": -1.049135256738181,
+      "alpha10": -1.9558284647790083,
+      "n_transitions": 78904,
+      "abs_change_alpha01": 3.591732176144724e-05,
+      "abs_change_alpha10": 1.0566900873643092e-05
+    },
+    "used_in_primary": false
+  },
+  "decisions": {
+    "ramp_scaler_window": "W9 (h slopes come from M9, whose training window W9 is inferred; the p10 moment check mildly favours it)",
+    "alpha_sample": "W9 (durations are M9 diagnostics); full sample reported as a sensitivity",
+    "p01_target_conflict": "documented limitation, target kept (same as 1D production)",
+    "time_alignment": "production l(tau) = t_v + floor(tau) - 1h kept; +/-1h reported as a separate sensitivity",
+    "non_embeddable_rows": "continuous-time mode REJECTS s >= 1; no silent clipping; discrete-time switching mode not implemented"
+  }
+}

@@ -80,3 +80,43 @@ def fast_grid():
 @pytest.fixture
 def make_model():
     return _make_model
+
+
+# ---------------------------------------------------------------------------
+# two-covariate TVTP (EXPERIMENTAL) fixtures -- repository data only
+# ---------------------------------------------------------------------------
+TVTP2_YAML = REPO_ROOT / "inputs" / "historical" / "tvtp2_frozen_parameters.yaml"
+RD_HISTORY = REPO_ROOT / "inputs" / "historical" / "rd_standardized.csv"
+M9_BUNDLE = REPO_ROOT / "inputs" / "historical" / "archive" / "calibration_bundle"
+TRY_TRAIN_END = pd.Timestamp("2022-12-31 20:00:00+00:00")
+
+
+@pytest.fixture(scope="session")
+def tvtp2_params(params):
+    from pde_option_model.params_frozen import load_tvtp2_parameters
+    return load_tvtp2_parameters(TVTP2_YAML, base_params=params, base_params_path=PARAMS_YAML)
+
+
+@pytest.fixture(scope="session")
+def z_history():
+    from pde_option_model.tvtp2 import load_hourly_z_history
+    return load_hourly_z_history(RD_HISTORY)
+
+
+@pytest.fixture(scope="session")
+def path_builder(z_history, tvtp2_params):
+    from pde_option_model.scenarios import CovariatePathBuilder
+    return CovariatePathBuilder(z_history, TRY_TRAIN_END, 1.0, tvtp2_params.ramp_scaler,
+                                str(RD_HISTORY))
+
+
+@pytest.fixture(scope="session")
+def panel(z_history, tvtp2_params):
+    from pde_option_model.tvtp2 import build_covariate_panel
+    return build_covariate_panel(z_history, tvtp2_params.ramp_scaler)
+
+
+@pytest.fixture(scope="session")
+def production_grid():
+    """Grid settings of config/forward_centered_config.yaml (production)."""
+    return ResidualGridSettings(n_space_nodes=1201, n_time_steps=None, n_std=6.0)

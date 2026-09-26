@@ -33,6 +33,7 @@ import pandas as pd
 import yaml
 
 from .forward_centered import ForwardCenteredModel
+from .generator import TVTP_MODE_2D
 from .legacy_moments import (EXPLOSION_WARNING, legacy_expected_spot,
                              legacy_explosion_report, load_legacy_reference)
 from .market_calibration import (PRICE_LABEL, REPORTING_HORIZONS_HOURS,
@@ -282,6 +283,10 @@ def write_calibration_outputs(
     with open(rec("parameter_identification.json"), "w", encoding="utf-8") as fh:
         json.dump(result.parameter_provenance, fh, indent=2, ensure_ascii=False)
 
+    with open(rec("tvtp_provenance.json"), "w", encoding="utf-8") as fh:
+        json.dump({"tvtp_mode": result.tvtp_mode, **result.tvtp_provenance}, fh,
+                  indent=2, ensure_ascii=False, default=str)
+
     plot_monthly_fit(result, rec("monthly_forward_fit.png"))
     cmp_table = plot_legacy_vs_forward_centered(
         result, params,
@@ -340,6 +345,9 @@ def _audit_markdown(result: CalibrationResult, params: FrozenM2Parameters,
         f"| valuation date | {result.valuation_date} |",
         f"| quote source | {result.quote_source} |",
         f"| model type | {result.model_type} |",
+        f"| TVTP mode | `{result.tvtp_mode}`"
+        + (" — **EXPERIMENTAL** (" + str(result.tvtp_provenance.get("label", "")) + ")"
+           if result.tvtp_mode == TVTP_MODE_2D else " (production default)") + " |",
         f"| curve mode | {result.curve.mode} |",
         f"| monthly RMSE | {m['monthly_RMSE']:.6e} TRY/MWh |",
         f"| monthly MAE | {m['monthly_MAE']:.6e} TRY/MWh |",
@@ -489,11 +497,36 @@ def _limitations_markdown(result: CalibrationResult,
     mean, var, p_stress, fwd = model.moments_at(hz)
     sd = np.sqrt(var)
     jan = result.january_status
+    is2d = result.tvtp_mode == TVTP_MODE_2D
+    tp = result.tvtp_provenance
     lines = [
         "# Model limitations and assumption inventory",
         "",
         f"Label of every price produced here: **{PRICE_LABEL}**.",
         "",
+    ]
+    if is2d:
+        co = tp.get("coefficients", {})
+        sc = tp.get("ramp_scaler", {})
+        lines += [
+            "> **EXPERIMENTAL two-covariate TVTP (`rd_ramp_2d_experimental`).** "
+            f"{tp.get('label', '')}. The `RD_Ramp_1h_lag1` covariate is a "
+            "RECONSTRUCTION (definition not found in any accessible source); these "
+            "outputs do not reproduce M9 and do not replace the accepted "
+            "single-covariate results.",
+            "",
+            f"- parameters: `{tp.get('parameters_file')}` (status `{tp.get('status')}`)",
+            f"- alpha01 = {co.get('alpha01', float('nan')):.6f}, gamma01 = "
+            f"{co.get('gamma01', float('nan')):.6f}, h01 = {co.get('h01', float('nan')):.6f}; "
+            f"alpha10 = {co.get('alpha10', float('nan')):.6f}, gamma10 = "
+            f"{co.get('gamma10', float('nan')):.6f}, h10 = {co.get('h10', float('nan')):.6f}",
+            f"- ramp scaler: window {sc.get('window_name')} (labels <= {sc.get('window_end_utc')}), "
+            f"m_r = {sc.get('mean', float('nan')):.3e}, s_r = {sc.get('std', float('nan')):.6f}, "
+            f"ddof = {sc.get('ddof')}, n = {sc.get('n')}",
+            "- transition premium: ASSUMED zero (q^Q = q^P); not calibrated",
+            "",
+        ]
+    lines += [
         "## What is genuinely constrained by the market",
         "",
         "| quantity | status |",
@@ -581,6 +614,7 @@ def _limitations_markdown(result: CalibrationResult,
         "contained (and did not contain). Full derivation trail in "
         "`docs/tvtp_derivation_methodology.md`.",
         "",
+        *(_limitations_2d_items(tp) if is2d else []),
         "### (a) `tvtp.alpha01`, `tvtp.alpha10` are DERIVED, not estimated",
         "",
         "The uploaded M9 bundle exports the two `gamma` slopes for `RD_lag1` but "
@@ -596,7 +630,10 @@ def _limitations_markdown(result: CalibrationResult,
         "Consequence: no MLE standard error attached; a cross-check simulation "
         "reproduces the target 67% stress occupancy to within 4.5%.",
         "",
-        "### (b) `RD_Ramp_1h_lag1` covariate is dropped (omitted-variable risk)",
+        ("### (b) `RD_Ramp_1h_lag1` covariate is dropped (omitted-variable risk)"
+         if not is2d else
+         "### (b) [single-covariate production text, superseded in this run by (2D-b)] "
+         "`RD_Ramp_1h_lag1` covariate is dropped (omitted-variable risk)"),
         "",
         "The M9 fit (`M9_student_t_tvtp_TVTP-2`) uses two transition covariates: "
         "`RD_lag1` and `RD_Ramp_1h_lag1`. The current PDE code hard-codes a "
@@ -715,3 +752,31 @@ def _limitations_markdown(result: CalibrationResult,
         "",
     ]
     return "\n".join(lines) + "\n"
+
+
+def _limitations_2d_items(tp: Dict[str, Any]) -> list[str]:
+    """Items that replace (a)/(b) in an EXPERIMENTAL two-covariate run."""
+    sc = tp.get("ramp_scaler", {})
+    ds = tp.get("derivation_sample", {})
+    return [
+        "### (2D-a) Intercepts re-derived with the ramp term",
+        "",
+        "In this run `alpha01`, `alpha10` are the two-covariate intercepts of "
+        f"`{tp.get('parameters_file')}`, derived on the paired sample "
+        f"{ds.get('first_valid_transition_utc')} → {ds.get('last_valid_transition_utc')} "
+        f"({ds.get('n_valid_transitions')} transitions; dropped "
+        f"{ds.get('n_dropped_sample_start')} sample-start and "
+        f"{ds.get('n_dropped_missing_observation')} gap transitions). The single-covariate "
+        "intercepts of the base yaml are NOT used. Moment matching, no standard error.",
+        "",
+        "### (2D-b) `RD_Ramp_1h_lag1` is included but RECONSTRUCTED",
+        "",
+        f"Definition used: {sc.get('definition')}. Status: {sc.get('status')}. "
+        "The M9 slopes (h01 = raw gamma10, h10 = raw gamma01 of the ramp row, "
+        "regime-label swapped) were fitted on the ORIGINAL ramp; if its direction, "
+        "lag or scale differ from this reconstruction, the transferred slopes are "
+        "applied to a different variable. Marginal-moment evidence supports the "
+        "standardized scale but cannot identify direction or lag "
+        "(`outputs/tvtp2_experimental/derivation/tvtp2_derivation_audit.md`).",
+        "",
+    ]

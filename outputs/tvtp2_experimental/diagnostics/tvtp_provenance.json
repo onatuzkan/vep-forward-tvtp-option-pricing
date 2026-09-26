@@ -1,0 +1,104 @@
+{
+  "tvtp_mode": "rd_ramp_2d_experimental",
+  "status": "experimental_reconstructed",
+  "label": "M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium",
+  "parameter_set_name": "tvtp2_m9_transfer",
+  "verified_reproduction_of_m9": false,
+  "parameters_file": "inputs/historical/tvtp2_frozen_parameters.yaml",
+  "coefficients": {
+    "alpha01": -1.0490993394164196,
+    "gamma01": -0.5837780825,
+    "h01": -0.06939531482057137,
+    "alpha10": -1.955839031679882,
+    "gamma10": 0.0776983936,
+    "h10": 0.4055443473030015,
+    "covariates": [
+      "RD_lag1",
+      "RD_Ramp_1h_lag1"
+    ]
+  },
+  "ramp_scaler": {
+    "mean": 3.417142268311894e-05,
+    "std": 0.271450116132395,
+    "ddof": 1,
+    "n": 78903,
+    "window_name": "W9",
+    "window_end_utc": "2024-12-31T20:00:00+00:00",
+    "window_start_utc": null,
+    "first_increment_utc": "2016-01-01T02:00:00+00:00",
+    "last_increment_utc": "2024-12-31T20:00:00+00:00",
+    "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+    "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+  },
+  "lag_hours": 1,
+  "history_file": "inputs/historical/rd_standardized.csv",
+  "history_sha256": "bea51c98c84ea4a6fe62111ae8993410aee8a430434d9601b0c292cbb58c6e04",
+  "base_parameters_file": "inputs/historical/m2_frozen_parameters.yaml",
+  "base_parameters_sha256": "b80fa69d1130e4d7ab05d9830b53deb2d59920381b8c57708ac4e22cc9b35ab2",
+  "base_parameters_match": true,
+  "derivation_sample": {
+    "first_valid_transition_utc": "2016-01-01T03:00:00+00:00",
+    "last_valid_transition_utc": "2024-12-31T20:00:00+00:00",
+    "n_valid_transitions": 78902,
+    "n_dropped_sample_start": 2,
+    "n_dropped_missing_observation": 4
+  },
+  "transition_premium": {
+    "eta01": 0.0,
+    "eta10": 0.0,
+    "status": "ASSUMED: zero transition premium, q^Q = q^P (eta01 = eta10 = 0); NOT calibrated -- forward quotes cannot identify it"
+  },
+  "provenance": {
+    "tvtp2.alpha01": "derived: brentq root of mean_D logistic(a + gamma01 z_(t-1) + h01 r_(t-1)) = 1/d_n on D = W9 (paired x_(t-1)); moment matching, NOT an MLE estimate, no standard error",
+    "tvtp2.alpha10": "derived: brentq root of mean_D logistic(a + gamma10 z_(t-1) + h10 r_(t-1)) = 1/d_s on D = W9; moment matching, NOT an MLE estimate",
+    "tvtp2.gamma01": "estimated (transferred): M9 raw gamma10 of RD_lag1, regime-label swapped; value exactly as in the production yaml (10 dp)",
+    "tvtp2.gamma10": "estimated (transferred): M9 raw gamma01 of RD_lag1, regime-label swapped; value exactly as in the production yaml (10 dp)",
+    "tvtp2.h01": "estimated (transferred): M9 raw gamma10 of RD_Ramp_1h_lag1 (full precision), regime-label swapped; applied to a RECONSTRUCTED ramp covariate",
+    "tvtp2.h10": "estimated (transferred): M9 raw gamma01 of RD_Ramp_1h_lag1 (full precision), regime-label swapped; applied to a RECONSTRUCTED ramp covariate",
+    "covariates.ramp.scaler": "reconstructed: train-only mean/std (ddof = 1) of hourly dz on W9 (labels <= 2024-12-31T20:00:00+00:00)",
+    "covariates.ramp.definition": "assumed: ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced",
+    "covariates.z": "inherited: rd_standardized.csv, TRY-window standardization reconstructed in markov_adapter (ddof = 1 assumed)",
+    "transition_premium": "ASSUMED: zero transition premium, q^Q = q^P (eta01 = eta10 = 0); NOT calibrated -- forward quotes cannot identify it"
+  },
+  "covariate_path": {
+    "name": "diagnostics_720h",
+    "mode": "climatology",
+    "offset": 0.0,
+    "initial_hours": "scenario",
+    "lag_hours": 1.0,
+    "alignment": "l(tau) = floor(t_v + tau - lag); covariates evaluated at hour labels, sampled on a master grid, linear between master nodes (same as the single-covariate production path)",
+    "valuation_utc": "2025-12-31T20:00:00+00:00",
+    "horizon_hours": 720.0,
+    "n_master_nodes": 2881,
+    "first_label_utc": "2025-12-31T18:00:00+00:00",
+    "last_label_utc": "2026-01-30T19:00:00+00:00",
+    "n_hour_labels": 722,
+    "z_range_used": [
+      -1.1784445148350475,
+      0.9567947560338177
+    ],
+    "units": "standardized",
+    "n_observed_labels": 0,
+    "source": {
+      "history_file": "inputs/historical/rd_standardized.csv",
+      "climatology_train_end_utc": "2022-12-31T20:00:00+00:00"
+    },
+    "ramp_range_used": [
+      -1.4565441603980127,
+      2.1916474589031103
+    ],
+    "ramp_scaler": {
+      "mean": 3.417142268311894e-05,
+      "std": 0.271450116132395,
+      "ddof": 1,
+      "n": 78903,
+      "window_name": "W9",
+      "window_end_utc": "2024-12-31T20:00:00+00:00",
+      "window_start_utc": null,
+      "first_increment_utc": "2016-01-01T02:00:00+00:00",
+      "last_increment_utc": "2024-12-31T20:00:00+00:00",
+      "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+      "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+    }
+  }
+}

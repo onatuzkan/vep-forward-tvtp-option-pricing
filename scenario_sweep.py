@@ -1,4 +1,14 @@
+"""Residual-demand scenario sweep of the 72 h K = 3000 call.
+
+    python scenario_sweep.py                                   # production (rd_lag1_1d)
+    python scenario_sweep.py --config config/forward_centered_tvtp2_experimental.yaml
+
+The second form runs the EXPERIMENTAL two-covariate TVTP and writes to
+outputs/tvtp2_experimental/scenario_sweep/ (an offset shifts z only; the ramp
+of the shifted path is unchanged).  Every row records the TVTP mode.
+"""
 from pathlib import Path
+import argparse
 import os
 import re
 import subprocess
@@ -6,11 +16,32 @@ import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import yaml
 
 
 OFFSETS = [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]
 
-OUTDIR = Path("outputs/scenario_sweep")
+_ap = argparse.ArgumentParser(description="RD scenario sweep")
+_ap.add_argument("--config", default=None, help="run_pde.py config (default: production)")
+_ap.add_argument("--outdir", default=None)
+_ap.add_argument("--params", default="inputs/historical/m2_frozen_parameters.yaml")
+_args = _ap.parse_args()
+
+
+def _tvtp_mode_of(config):
+    if not config:
+        return "rd_lag1_1d"
+    with open(config, "r", encoding="utf-8") as fh:
+        blob = yaml.safe_load(fh) or {}
+    return (blob.get("tvtp") or {}).get("mode", "rd_lag1_1d")
+
+
+TVTP_MODE = _tvtp_mode_of(_args.config)
+OUTDIR = Path(_args.outdir or ("outputs/scenario_sweep" if TVTP_MODE == "rd_lag1_1d"
+                               else "outputs/tvtp2_experimental/scenario_sweep"))
+if TVTP_MODE != "rd_lag1_1d" and OUTDIR.resolve() == Path("outputs/scenario_sweep").resolve():
+    raise SystemExit("refusing to write experimental two-covariate results into "
+                     "outputs/scenario_sweep")
 OUTDIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -32,10 +63,11 @@ for offset in OFFSETS:
     cmd = [
         sys.executable,
         "run_pde.py",
+        *(["--config", _args.config] if _args.config else []),
         "price",
         "--model", "forward_centered",
         "--curve", "outputs/market_calibration_final",
-        "--params", "inputs/historical/m2_frozen_parameters.yaml",
+        "--params", _args.params,
         "--option-type", "call",
         "--strike", "3000",
         "--maturity-hours", "72",
@@ -87,8 +119,15 @@ for offset in OFFSETS:
         "option value",
     )
 
+    ramp_match = re.search(
+        r"TVTP r\(t-1\) range\s*:\s*\[\s*([-+]?\d+(?:\.\d+)?),\s*([-+]?\d+(?:\.\d+)?)\s*\]",
+        text)
+
     rows.append(
         {
+            "tvtp_mode": TVTP_MODE,
+            "ramp_min": float(ramp_match.group(1)) if ramp_match else None,
+            "ramp_max": float(ramp_match.group(2)) if ramp_match else None,
             "rd_offset_sigma": offset,
             "z_min": float(z_match.group(1)),
             "z_max": float(z_match.group(2)),

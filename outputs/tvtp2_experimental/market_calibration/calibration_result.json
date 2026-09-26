@@ -1,0 +1,407 @@
+{
+  "optimizer_success": true,
+  "calibration_accepted": true,
+  "valuation_date": "2025-12-31T20:00:00+00:00",
+  "quote_source": "EPIAS_VEP_daily_reference_prices",
+  "model_type": "forward_centered",
+  "price_label": "VEP-forward-curve anchored option prices",
+  "monthly_RMSE": 4.003326662691281e-12,
+  "monthly_MAE": 2.6526928801710406e-12,
+  "monthly_MAPE": 8.632427708115508e-14,
+  "maximum_absolute_monthly_error": 9.094947017729282e-12,
+  "finite_value_checks": {
+    "hourly_forward_curve_finite": true,
+    "monthly_model_averages_finite": true,
+    "monthly_residuals_finite": true,
+    "expected_spot_finite": true
+  },
+  "expected_spot_at_72h": 2916.15734228052,
+  "expected_spot_at_168h": 2913.9937986554623,
+  "expected_spot_at_336h": 2910.2075973139417,
+  "expected_spot_at_720h": 2901.5112124113307,
+  "expected_spot_detail": {
+    "72h": 2916.15734228052,
+    "72h_detail": {
+      "expected_spot_TRY_MWh": 2916.15734228052,
+      "timestamp_utc": "2026-01-03T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-03T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    },
+    "168h": 2913.9937986554623,
+    "168h_detail": {
+      "expected_spot_TRY_MWh": 2913.9937986554623,
+      "timestamp_utc": "2026-01-07T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-07T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    },
+    "336h": 2910.2075973139417,
+    "336h_detail": {
+      "expected_spot_TRY_MWh": 2910.2075973139417,
+      "timestamp_utc": "2026-01-14T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-14T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    },
+    "720h": 2901.5112124113307,
+    "720h_detail": {
+      "expected_spot_TRY_MWh": 2901.5112124113307,
+      "timestamp_utc": "2026-01-30T20:00:00+00:00",
+      "timestamp_turkey": "2026-01-30T23:00:00+03:00",
+      "delivery_month": "2026-01",
+      "directly_constrained_by_a_VEP_quote": false,
+      "near_term_anchored": true
+    }
+  },
+  "parameter_provenance": {
+    "price_label": "VEP-forward-curve anchored option prices",
+    "must_not_be_called": "Fully market-calibrated option prices",
+    "1_calibrated_from_market_data": {
+      "hourly_forward_curve_F_t": {
+        "unit": "TRY/MWh",
+        "source": "EPİAŞ VEP monthly baseload quotes",
+        "constraint": "mean of F over each delivery month = observed quote",
+        "identified": true
+      }
+    },
+    "2_inherited_from_historical_M2_fit": {
+      "kappa_per_hour": {
+        "value": 0.078394,
+        "source": "AR(1) phi of the historical fit"
+      },
+      "sigma_y_normal": {
+        "value": 0.003534807,
+        "unit": "per sqrt(hour), y units",
+        "source": "M9 sigma1 (low-vol state), regime-label swapped to yaml convention"
+      },
+      "sigma_y_stress": {
+        "value": 0.0924066544,
+        "unit": "per sqrt(hour), y units",
+        "source": "M9 sigma0 (high-vol state), regime-label swapped to yaml convention"
+      },
+      "scale_P": {
+        "value": 282.48,
+        "unit": "TRY/MWh",
+        "source": "preprocessing metadata (training median absolute price); source files pde_export.json / prepared_meta.json NOT present in current inputs, value trusted on faith"
+      },
+      "tvtp_coefficients": {
+        "tvtp_mode": "rd_ramp_2d_experimental",
+        "status": "experimental_reconstructed",
+        "label": "M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium",
+        "alpha01": -1.0490993394164196,
+        "gamma01": -0.5837780825,
+        "h01": -0.06939531482057137,
+        "alpha10": -1.955839031679882,
+        "gamma10": 0.0776983936,
+        "h10": 0.4055443473030015,
+        "covariates": [
+          "RD_lag1",
+          "RD_Ramp_1h_lag1"
+        ],
+        "gamma_source": "estimated (transferred): M9 raw gamma10 of RD_lag1, regime-label swapped; value exactly as in the production yaml (10 dp)",
+        "h_source": "estimated (transferred): M9 raw gamma10 of RD_Ramp_1h_lag1 (full precision), regime-label swapped; applied to a RECONSTRUCTED ramp covariate",
+        "alpha_source": "derived: brentq root of mean_D logistic(a + gamma01 z_(t-1) + h01 r_(t-1)) = 1/d_n on D = W9 (paired x_(t-1)); moment matching, NOT an MLE estimate, no standard error",
+        "parameters_file": "inputs/historical/tvtp2_frozen_parameters.yaml",
+        "verified_reproduction_of_m9": false,
+        "placeholder": false,
+        "placeholder_fields": []
+      },
+      "pi_filtered": {
+        "value": [
+          0.931977,
+          0.068023
+        ],
+        "source": "filtered regime probabilities at valuation"
+      }
+    },
+    "3_fixed_by_assumption": {
+      "residual_mode": "additive",
+      "residual_kappa_per_hour": 0.078394,
+      "residual_regime_means_m_i": [
+        0.0,
+        0.0
+      ],
+      "residual_x0_mode": "zero",
+      "sigma_transfer_rule": "delta method: sigma^X_i(t) = sigma^y_i * sqrt(F(t)^2 + scale_P^2)",
+      "january_anchor_mode": "spot_to_next_linear",
+      "january_anchor_level_TRY_MWh": null,
+      "discount_rate_r_annual": 0.4,
+      "tvtp_ramp_covariate_definition": {
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced",
+        "scaler": {
+          "mean": 3.417142268311894e-05,
+          "std": 0.271450116132395,
+          "ddof": 1,
+          "n": 78903,
+          "window_name": "W9",
+          "window_end_utc": "2024-12-31T20:00:00+00:00",
+          "window_start_utc": null,
+          "first_increment_utc": "2016-01-01T02:00:00+00:00",
+          "last_increment_utc": "2024-12-31T20:00:00+00:00",
+          "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+          "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+        }
+      },
+      "tvtp_transition_premium": "ASSUMED: zero transition premium, q^Q = q^P (eta01 = eta10 = 0); NOT calibrated -- forward quotes cannot identify it",
+      "tvtp_covariate_path": {
+        "name": "calibration",
+        "mode": "climatology",
+        "offset": 0.0,
+        "initial_hours": "scenario",
+        "lag_hours": 1.0,
+        "alignment": "l(tau) = floor(t_v + tau - lag); covariates evaluated at hour labels, sampled on a master grid, linear between master nodes (same as the single-covariate production path)",
+        "valuation_utc": "2025-12-31T20:00:00+00:00",
+        "horizon_hours": 5089.0,
+        "n_master_nodes": 20357,
+        "first_label_utc": "2025-12-31T18:00:00+00:00",
+        "last_label_utc": "2026-07-31T20:00:00+00:00",
+        "n_hour_labels": 5091,
+        "z_range_used": [
+          -1.5226644047951545,
+          1.3085728875713203
+        ],
+        "units": "standardized",
+        "n_observed_labels": 0,
+        "source": {
+          "history_file": "inputs/historical/rd_standardized.csv",
+          "climatology_train_end_utc": "2022-12-31T20:00:00+00:00"
+        },
+        "ramp_range_used": [
+          -1.834113428012407,
+          2.9672891550625584
+        ],
+        "ramp_scaler": {
+          "mean": 3.417142268311894e-05,
+          "std": 0.271450116132395,
+          "ddof": 1,
+          "n": 78903,
+          "window_name": "W9",
+          "window_end_utc": "2024-12-31T20:00:00+00:00",
+          "window_start_utc": null,
+          "first_increment_utc": "2016-01-01T02:00:00+00:00",
+          "last_increment_utc": "2024-12-31T20:00:00+00:00",
+          "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+          "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+        }
+      }
+    },
+    "4_not_identified_without_option_prices": {
+      "volatility_risk_premium": null,
+      "sigma_risk_premium": null,
+      "eta01_transition_premium": null,
+      "eta10_transition_premium": null,
+      "regime_market_price_of_risk_lambda_i": null,
+      "reason": "Forward prices constrain only E^Q[P_t], i.e. the first moment. Volatility and regime-transition premia enter the pricing measure through higher moments and the generator, and are not identified by any number of forward quotes. Option premia are required.",
+      "how_to_identify_later": "With observed option premia, hold F(t) fixed (it is already matched) and calibrate sigma multipliers plus eta01/eta10 to the implied-volatility surface: the level of implied vol pins the sigma premium, its term structure and skew pin the transition premia."
+    },
+    "tvtp_mode": "rd_ramp_2d_experimental",
+    "tvtp_status": "experimental_reconstructed",
+    "tvtp_label": "M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium"
+  },
+  "warnings": [
+    "valuation falls inside delivery month(s) ['2025-12']; only the hours from valuation onward are priced and no monthly baseload average is formed for them",
+    "delivery months inside the pricing horizon with NO observed quote: ['2026-01'] -> near-term anchored, not directly constrained by an observed VEP quote",
+    "EXPERIMENTAL two-covariate TVTP (rd_ramp_2d_experimental): M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium; the RD_Ramp_1h_lag1 definition is reconstructed, not verified against M9 -- these results do not replace the accepted single-covariate results",
+    "months ['2026-01'] have no observed VEP quote: near-term anchored, not directly constrained by an observed January VEP quote",
+    "4 of 4 reported horizons (72h, 168h, 336h, 720h) fall in a month WITHOUT an observed VEP quote and are near-term anchored, not directly constrained by market data",
+    "legacy_asinh_ou: E[P_t] = scale_P * exp(v(t)/2) * sinh(m(t)) grows exponentially in the variance v(t) = sigma^2 (1 - e^{-2 kappa t}) / (2 kappa). With the fitted near-unit-root kappa and the stress-regime sigma this makes long-horizon expected prices economically meaningless. Use the legacy mode for short-horizon benchmarking and diagnostics only."
+  ],
+  "january_calibration_status": {
+    "months_without_observed_quote": [
+      "2026-01"
+    ],
+    "flagged_extrapolated": [
+      "2025-12",
+      "2026-01"
+    ],
+    "anchor_mode": "spot_to_next_linear",
+    "anchor_level_TRY_MWh": null,
+    "anchor_pins_spot": true,
+    "spot_used_TRY_MWh": 2917.78,
+    "status": "near-term anchored, not directly constrained by an observed January VEP quote",
+    "how_to_remove": "add an EBM0126 row to inputs/market/vep_monthly_quotes.csv; it becomes a hard monthly constraint with no code change"
+  },
+  "direct_market_constraints": [
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07"
+  ],
+  "extrapolated_periods": [
+    "2025-12",
+    "2026-01"
+  ],
+  "acceptance_checks": [
+    {
+      "check": "forward_curve_solved",
+      "passed": true,
+      "detail": "smooth_constrained: 5089 hourly nodes"
+    },
+    {
+      "check": "monthly_delivery_average_matches_quote",
+      "passed": true,
+      "detail": "max abs monthly error 9.095e-12 TRY/MWh (limit 0.1)"
+    },
+    {
+      "check": "monthly_MAPE_within_tolerance",
+      "passed": true,
+      "detail": "MAPE 8.632e-14% (limit 1.0%)"
+    },
+    {
+      "check": "all_values_finite",
+      "passed": true,
+      "detail": "4/4 finiteness checks passed"
+    },
+    {
+      "check": "no_implausible_forward_magnitude",
+      "passed": true,
+      "detail": "largest |value| 3608.92 TRY/MWh (limit 1e+05)"
+    },
+    {
+      "check": "monthly_average_uses_true_utc_delivery_hours",
+      "passed": true,
+      "detail": "delivery-hour counts: EBM0226=672, EBM0326=744, EBM0426=720, EBM0526=744, EBM0626=720, EBM0726=744"
+    },
+    {
+      "check": "unquoted_months_flagged_as_extrapolation",
+      "passed": true,
+      "detail": "unquoted months ['2026-01']; flagged extrapolated ['2025-12', '2026-01']"
+    }
+  ],
+  "curve_diagnostics": {
+    "n_hours": 5089.0,
+    "min_TRY_MWh": 2193.0697964580327,
+    "max_TRY_MWh": 3608.915768375682,
+    "mean_TRY_MWh": 2740.798339445658,
+    "first_value_TRY_MWh": 2917.78,
+    "spot_used_TRY_MWh": 2917.78,
+    "max_abs_monthly_error_TRY_MWh": 9.094947017729282e-12
+  },
+  "tvtp_mode": "rd_ramp_2d_experimental",
+  "tvtp_provenance": {
+    "tvtp_mode": "rd_ramp_2d_experimental",
+    "status": "experimental_reconstructed",
+    "label": "M9-transferred slopes + reconstructed ramp + derived intercepts, zero transition premium",
+    "parameter_set_name": "tvtp2_m9_transfer",
+    "verified_reproduction_of_m9": false,
+    "parameters_file": "inputs/historical/tvtp2_frozen_parameters.yaml",
+    "coefficients": {
+      "alpha01": -1.0490993394164196,
+      "gamma01": -0.5837780825,
+      "h01": -0.06939531482057137,
+      "alpha10": -1.955839031679882,
+      "gamma10": 0.0776983936,
+      "h10": 0.4055443473030015,
+      "covariates": [
+        "RD_lag1",
+        "RD_Ramp_1h_lag1"
+      ]
+    },
+    "ramp_scaler": {
+      "mean": 3.417142268311894e-05,
+      "std": 0.271450116132395,
+      "ddof": 1,
+      "n": 78903,
+      "window_name": "W9",
+      "window_end_utc": "2024-12-31T20:00:00+00:00",
+      "window_start_utc": null,
+      "first_increment_utc": "2016-01-01T02:00:00+00:00",
+      "last_increment_utc": "2024-12-31T20:00:00+00:00",
+      "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+      "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+    },
+    "lag_hours": 1,
+    "history_file": "inputs/historical/rd_standardized.csv",
+    "history_sha256": "bea51c98c84ea4a6fe62111ae8993410aee8a430434d9601b0c292cbb58c6e04",
+    "base_parameters_file": "inputs/historical/m2_frozen_parameters.yaml",
+    "base_parameters_sha256": "b80fa69d1130e4d7ab05d9830b53deb2d59920381b8c57708ac4e22cc9b35ab2",
+    "base_parameters_match": true,
+    "derivation_sample": {
+      "first_valid_transition_utc": "2016-01-01T03:00:00+00:00",
+      "last_valid_transition_utc": "2024-12-31T20:00:00+00:00",
+      "n_valid_transitions": 78902,
+      "n_dropped_sample_start": 2,
+      "n_dropped_missing_observation": 4
+    },
+    "transition_premium": {
+      "eta01": 0.0,
+      "eta10": 0.0,
+      "status": "ASSUMED: zero transition premium, q^Q = q^P (eta01 = eta10 = 0); NOT calibrated -- forward quotes cannot identify it"
+    },
+    "provenance": {
+      "tvtp2.alpha01": "derived: brentq root of mean_D logistic(a + gamma01 z_(t-1) + h01 r_(t-1)) = 1/d_n on D = W9 (paired x_(t-1)); moment matching, NOT an MLE estimate, no standard error",
+      "tvtp2.alpha10": "derived: brentq root of mean_D logistic(a + gamma10 z_(t-1) + h10 r_(t-1)) = 1/d_s on D = W9; moment matching, NOT an MLE estimate",
+      "tvtp2.gamma01": "estimated (transferred): M9 raw gamma10 of RD_lag1, regime-label swapped; value exactly as in the production yaml (10 dp)",
+      "tvtp2.gamma10": "estimated (transferred): M9 raw gamma01 of RD_lag1, regime-label swapped; value exactly as in the production yaml (10 dp)",
+      "tvtp2.h01": "estimated (transferred): M9 raw gamma10 of RD_Ramp_1h_lag1 (full precision), regime-label swapped; applied to a RECONSTRUCTED ramp covariate",
+      "tvtp2.h10": "estimated (transferred): M9 raw gamma01 of RD_Ramp_1h_lag1 (full precision), regime-label swapped; applied to a RECONSTRUCTED ramp covariate",
+      "covariates.ramp.scaler": "reconstructed: train-only mean/std (ddof = 1) of hourly dz on W9 (labels <= 2024-12-31T20:00:00+00:00)",
+      "covariates.ramp.definition": "assumed: ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced",
+      "covariates.z": "inherited: rd_standardized.csv, TRY-window standardization reconstructed in markov_adapter (ddof = 1 assumed)",
+      "transition_premium": "ASSUMED: zero transition premium, q^Q = q^P (eta01 = eta10 = 0); NOT calibrated -- forward quotes cannot identify it"
+    },
+    "covariate_path": {
+      "name": "calibration",
+      "mode": "climatology",
+      "offset": 0.0,
+      "initial_hours": "scenario",
+      "lag_hours": 1.0,
+      "alignment": "l(tau) = floor(t_v + tau - lag); covariates evaluated at hour labels, sampled on a master grid, linear between master nodes (same as the single-covariate production path)",
+      "valuation_utc": "2025-12-31T20:00:00+00:00",
+      "horizon_hours": 5089.0,
+      "n_master_nodes": 20357,
+      "first_label_utc": "2025-12-31T18:00:00+00:00",
+      "last_label_utc": "2026-07-31T20:00:00+00:00",
+      "n_hour_labels": 5091,
+      "z_range_used": [
+        -1.5226644047951545,
+        1.3085728875713203
+      ],
+      "units": "standardized",
+      "n_observed_labels": 0,
+      "source": {
+        "history_file": "inputs/historical/rd_standardized.csv",
+        "climatology_train_end_utc": "2022-12-31T20:00:00+00:00"
+      },
+      "ramp_range_used": [
+        -1.834113428012407,
+        2.9672891550625584
+      ],
+      "ramp_scaler": {
+        "mean": 3.417142268311894e-05,
+        "std": 0.271450116132395,
+        "ddof": 1,
+        "n": 78903,
+        "window_name": "W9",
+        "window_end_utc": "2024-12-31T20:00:00+00:00",
+        "window_start_utc": null,
+        "first_increment_utc": "2016-01-01T02:00:00+00:00",
+        "last_increment_utc": "2024-12-31T20:00:00+00:00",
+        "definition": "r_t = (dz_t - m_r) / s_r with dz_t = z_t - z_(t-1h) computed on the complete hourly UTC grid (dz_t undefined unless both labels t and t-1h are observed); transition S_(t-1) -> S_t uses x_(t-1) = (z_(t-1h), r_(t-1h))",
+        "status": "ASSUMED/RECONSTRUCTED: the original M9 construction of RD_Ramp_1h_lag1 (difference direction, lag, raw RD vs z, standardization window, ddof) was not found in the repository, its git history, the SSRN manuscript or the calibration bundle; z.diff() on the complete hourly grid is a reconstruction and M9 is NOT claimed to be reproduced"
+      }
+    },
+    "covariate_path_embeddability": {
+      "n_rows": 5090,
+      "n_s_ge_1": 0,
+      "share_s_ge_1": 0.0,
+      "n_s_ge_0.95": 0,
+      "near_threshold": 0.95,
+      "max_s": 0.5654182425885442,
+      "min_s": 0.2705769653091448,
+      "argmax_label": "2026-05-01T04:00:00+00:00",
+      "quantile_0.9999_s": 0.5654182425885442,
+      "first_violation_label": null,
+      "last_violation_label": null,
+      "embeddable": true,
+      "scope": "hour labels used by path 'calibration'"
+    }
+  }
+}

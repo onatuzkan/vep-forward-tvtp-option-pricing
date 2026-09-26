@@ -284,3 +284,172 @@ def freeze_from_artifacts(input_root: str | Path, out_path: str | Path,
         yaml.safe_dump(blob, fh, sort_keys=False, allow_unicode=True)
     logger.info("frozen parameters written to %s", out)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Two-covariate TVTP parameter set (EXPERIMENTAL, separate YAML)
+# ---------------------------------------------------------------------------
+@dataclass
+class FrozenTVTP2Parameters:
+    """Frozen two-covariate TVTP set (RD_lag1 + reconstructed RD_Ramp_1h_lag1).
+
+    Loaded from its OWN file (default ``inputs/historical/tvtp2_frozen_parameters.yaml``);
+    the single-covariate ``m2_frozen_parameters.yaml`` is never modified.  Only the
+    transition law comes from here: kappa, sigma, pi, spot and the valuation time
+    stay those of the base (single-covariate) frozen parameter file.
+    """
+
+    coefficients: Any                    # generator.TVTP2Coefficients
+    ramp_scaler: Any                     # tvtp2.RampScaler
+    lag_hours: int
+    tvtp_mode: str
+    status: str
+    label: str
+    parameter_set_name: str
+    verified_reproduction_of_m9: bool
+    history_file: str
+    history_sha256: str
+    base_parameters_file: str
+    base_parameters_sha256: str
+    base_valuation_utc: pd.Timestamp
+    derivation: Dict[str, Any] = field(default_factory=dict)
+    m9_source: Dict[str, Any] = field(default_factory=dict)
+    transition_premium: Dict[str, Any] = field(default_factory=dict)
+    provenance: Dict[str, str] = field(default_factory=dict)
+    placeholders: List[str] = field(default_factory=list)
+    source_file: Optional[str] = None
+    base_parameters_match: Optional[bool] = None
+
+    @property
+    def is_experimental(self) -> bool:
+        return not self.verified_reproduction_of_m9
+
+    def provenance_summary(self) -> Dict[str, Any]:
+        c = self.coefficients
+        return {
+            "tvtp_mode": self.tvtp_mode,
+            "status": self.status,
+            "label": self.label,
+            "parameter_set_name": self.parameter_set_name,
+            "verified_reproduction_of_m9": self.verified_reproduction_of_m9,
+            "parameters_file": self.source_file,
+            "coefficients": {"alpha01": c.alpha01, "gamma01": c.gamma01, "h01": c.h01,
+                             "alpha10": c.alpha10, "gamma10": c.gamma10, "h10": c.h10,
+                             "covariates": list(c.covariates)},
+            "ramp_scaler": self.ramp_scaler.as_dict(),
+            "lag_hours": self.lag_hours,
+            "history_file": self.history_file,
+            "history_sha256": self.history_sha256,
+            "base_parameters_file": self.base_parameters_file,
+            "base_parameters_sha256": self.base_parameters_sha256,
+            "base_parameters_match": self.base_parameters_match,
+            "derivation_sample": {k: self.derivation.get("sample", {}).get(k) for k in (
+                "first_valid_transition_utc", "last_valid_transition_utc",
+                "n_valid_transitions", "n_dropped_sample_start",
+                "n_dropped_missing_observation")},
+            "transition_premium": self.transition_premium,
+            "provenance": dict(self.provenance),
+        }
+
+
+def load_tvtp2_parameters(path: str | Path,
+                          base_params: Optional[FrozenM2Parameters] = None,
+                          base_params_path: Optional[str | Path] = None
+                          ) -> FrozenTVTP2Parameters:
+    """Load and validate the two-covariate TVTP YAML.
+
+    Refuses: a mode other than ``rd_ramp_2d_experimental``; a reconstructed ramp
+    labelled as verified; a non-zero (i.e. pretend-calibrated) transition
+    premium; scaler windows or derivation samples that end after the valuation
+    time of the base parameters (look-ahead leakage).
+    """
+    from .generator import TVTP2Coefficients, TVTP_MODE_2D
+    from .tvtp2 import EXPERIMENTAL_LABEL, STATUS_EXPERIMENTAL, RampScaler, sha256_file
+
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"two-covariate TVTP parameter file not found: {p}")
+    with open(p, "r", encoding="utf-8") as fh:
+        blob = yaml.safe_load(fh)
+    if not isinstance(blob, dict):
+        raise FrozenParameterError(f"{p.name}: expected a YAML mapping")
+
+    def need(d: Dict[str, Any], key: str, where: str) -> Any:
+        if not isinstance(d, dict) or key not in d or d[key] is None:
+            raise FrozenParameterError(f"{p.name}: missing required key {where}{key!r}")
+        return d[key]
+
+    mode = str(need(blob, "tvtp_mode", ""))
+    if mode != TVTP_MODE_2D:
+        raise FrozenParameterError(f"{p.name}: tvtp_mode must be {TVTP_MODE_2D!r}, got {mode!r}")
+    tv = need(blob, "tvtp2", "")
+    coef = TVTP2Coefficients(
+        alpha01=float(need(tv, "alpha01", "tvtp2.")), gamma01=float(need(tv, "gamma01", "tvtp2.")),
+        h01=float(need(tv, "h01", "tvtp2.")), alpha10=float(need(tv, "alpha10", "tvtp2.")),
+        gamma10=float(need(tv, "gamma10", "tvtp2.")), h10=float(need(tv, "h10", "tvtp2.")),
+        covariates=tuple(tv.get("covariates", ("RD_lag1", "RD_Ramp_1h_lag1"))),
+        name=str(blob.get("parameter_set_name", "tvtp2")))
+    cov = need(blob, "covariates", "")
+    ramp = need(cov, "ramp", "covariates.")
+    scaler = RampScaler.from_dict(need(ramp, "scaler", "covariates.ramp."))
+    status = str(need(blob, "status", ""))
+    verified = bool(blob.get("verified_reproduction_of_m9", False))
+    ramp_status = str(ramp.get("status", ""))
+    reconstructed = any(w in ramp_status.upper() for w in ("RECONSTRUCT", "ASSUMED"))
+    if reconstructed and (verified or status != STATUS_EXPERIMENTAL):
+        raise FrozenParameterError(
+            f"{p.name}: the ramp covariate is reconstructed/assumed, so the set must be "
+            f"status={STATUS_EXPERIMENTAL!r} with verified_reproduction_of_m9: false")
+    label = str(need(blob, "label", ""))
+    if reconstructed and label != EXPERIMENTAL_LABEL:
+        raise FrozenParameterError(f"{p.name}: experimental sets must carry the label "
+                                   f"{EXPERIMENTAL_LABEL!r}")
+    prem = blob.get("transition_premium", {}) or {}
+    if float(prem.get("eta01", 0.0)) != 0.0 or float(prem.get("eta10", 0.0)) != 0.0:
+        raise FrozenParameterError(
+            f"{p.name}: non-zero transition premia are not supported; eta01 = eta10 = 0 is "
+            "the documented zero-premium ASSUMPTION and nothing identifies another value")
+    base = need(blob, "base_parameters", "")
+    bval = pd.Timestamp(str(need(base, "valuation_utc", "base_parameters.")))
+    bval = bval.tz_localize("UTC") if bval.tzinfo is None else bval.tz_convert("UTC")
+    der = blob.get("derivation", {}) or {}
+    ends = [("covariates.ramp.scaler.window_end_utc", scaler.window_end_utc)]
+    last = (der.get("sample", {}) or {}).get("last_valid_transition_utc")
+    if last:
+        ends.append(("derivation.sample.last_valid_transition_utc", pd.Timestamp(str(last))))
+    for nm, ts in ends:
+        if ts > bval:
+            raise FrozenParameterError(f"{p.name}: {nm} = {ts} is after the valuation time "
+                                       f"{bval} (look-ahead leakage)")
+    if base_params is not None and base_params.valuation_utc != bval:
+        raise FrozenParameterError(
+            f"{p.name}: derived for valuation {bval}, but the base parameters value at "
+            f"{base_params.valuation_utc}")
+    prov: Dict[str, str] = {str(k): str(v) for k, v in (blob.get("provenance", {}) or {}).items()}
+    placeholders = [k for k, v in prov.items()
+                    if str(v).startswith(PLACEHOLDER_TAG) or _provenance_indicates_placeholder(v)]
+    base_file = str(base.get("file", ""))
+    base_sha = str(base.get("sha256", ""))
+    match: Optional[bool] = None
+    if base_params_path is not None and Path(base_params_path).exists() and base_sha:
+        match = sha256_file(base_params_path) == base_sha
+        if not match:
+            logger.warning("%s was derived against %s with sha256 %s..., but the base "
+                           "parameter file in use has a different hash; kappa/sigma/pi come "
+                           "from the file in use", p.name, base_file, base_sha[:12])
+    out = FrozenTVTP2Parameters(
+        coefficients=coef, ramp_scaler=scaler, lag_hours=int(cov.get("lag_hours", 1)),
+        tvtp_mode=mode, status=status, label=label,
+        parameter_set_name=str(blob.get("parameter_set_name", "")),
+        verified_reproduction_of_m9=verified,
+        history_file=str(cov.get("history_file", "")),
+        history_sha256=str(cov.get("history_sha256", "")),
+        base_parameters_file=base_file, base_parameters_sha256=base_sha,
+        base_valuation_utc=bval, derivation=der,
+        m9_source=blob.get("m9_source", {}) or {},
+        transition_premium=prem, provenance=prov, placeholders=placeholders,
+        source_file=str(p), base_parameters_match=match)
+    if placeholders:
+        logger.warning("two-covariate TVTP set contains PLACEHOLDER field(s): %s", placeholders)
+    logger.info("two-covariate TVTP parameters loaded from %s (%s)", p.name, status)
+    return out

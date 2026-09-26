@@ -17,6 +17,19 @@ Exit codes
 
 Everything is path- and config-driven; no absolute or Windows-specific paths
 appear anywhere.  All monetary values are TRY/MWh.
+
+TVTP modes
+----------
+    rd_lag1_1d               single covariate RD_lag1 (DEFAULT, production)
+    rd_ramp_2d_experimental  RD_lag1 + reconstructed RD_Ramp_1h_lag1 (EXPERIMENTAL)
+
+The two-covariate mode is selected by its own configuration / parameter file:
+
+    python run_pde.py --config config/forward_centered_tvtp2_experimental.yaml price ...
+
+or with ``--tvtp-mode rd_ramp_2d_experimental [--tvtp2-params FILE]``.  Its
+default output directories live under ``outputs/tvtp2_experimental/``; it
+refuses to write into the accepted single-covariate output directories.
 """
 from __future__ import annotations
 
@@ -51,12 +64,21 @@ from pde_option_model.market_data import load_quotes                # noqa: E402
 from pde_option_model.model_modes import (                          # noqa: E402
     DEFAULT_MARKET_MODE, MODEL_MODES, MODE_DESCRIPTIONS,
     validate_model_mode, write_calibration_outputs)
-from pde_option_model.params_frozen import load_frozen_parameters   # noqa: E402
+from pde_option_model.params_frozen import (                        # noqa: E402
+    load_frozen_parameters, load_tvtp2_parameters)
 from pde_option_model.grid import TimeGrid                           # noqa: E402
 from pde_option_model.scenarios import (                            # noqa: E402
-    ScenarioBuilder, ScenarioSpec)
+    CovariatePathBuilder, ScenarioBuilder, ScenarioSpec)
+from pde_option_model.generator import (                            # noqa: E402
+    TVTP_MODE_1D, TVTP_MODE_2D, TVTP_MODES, CovariateError, EmbeddabilityError)
 
 DEFAULT_CONFIG = "config/forward_centered_config.yaml"
+DEFAULT_TVTP2_PARAMS = "inputs/historical/tvtp2_frozen_parameters.yaml"
+TVTP2_OUTPUT_ROOT = "outputs/tvtp2_experimental"
+# accepted single-covariate outputs: never written by the experimental mode
+PROTECTED_OUTPUT_DIRS = ("outputs/market_calibration_final",
+                         "outputs/forward_centered_diagnostics",
+                         "outputs/scenario_sweep")
 LOG_FORMAT = "%(levelname)-7s %(name)s: %(message)s"
 
 
@@ -67,7 +89,18 @@ def _setup_logging(verbosity: int) -> None:
     logging.basicConfig(level=level, format=LOG_FORMAT, stream=sys.stderr)
 
 
-def _load_config(path: Optional[str]) -> Dict[str, Any]:
+def _deep_merge(base: Dict[str, Any], over: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(base)
+    for k, v in over.items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = _deep_merge(out[k], v)
+        else:
+            out[k] = v
+    return out
+
+
+def _load_config(path: Optional[str], _seen: Optional[set] = None) -> Dict[str, Any]:
+    """YAML config; an optional ``extends: <file>`` key deep-merges a base config."""
     p = Path(path or DEFAULT_CONFIG)
     if not p.exists():
         if path is not None:
@@ -77,8 +110,120 @@ def _load_config(path: Optional[str]) -> Dict[str, Any]:
         cfg = yaml.safe_load(fh) or {}
     if not isinstance(cfg, dict):
         raise ValueError(f"{p}: expected a YAML mapping")
+    base_path = cfg.pop("extends", None)
+    if base_path:
+        seen = set(_seen or ())
+        if str(p.resolve()) in seen:
+            raise ValueError(f"{p}: circular 'extends'")
+        seen.add(str(p.resolve()))
+        base = _load_config(str(base_path), seen)
+        base.pop("_config_path", None)
+        cfg = _deep_merge(base, cfg)
+        cfg["_extends"] = str(base_path)
     cfg["_config_path"] = str(p)
     return cfg
+
+
+# ---------------------------------------------------------------------------
+# TVTP mode selection (single covariate default / EXPERIMENTAL two covariates)
+# ---------------------------------------------------------------------------
+def _tvtp_mode(cfg: Dict[str, Any], args: argparse.Namespace) -> str:
+    mode = getattr(args, "tvtp_mode", None) or _get(cfg, "tvtp.mode", TVTP_MODE_1D)
+    if mode not in TVTP_MODES:
+        raise ValueError(f"unknown TVTP mode {mode!r}; choose from {TVTP_MODES}")
+    return str(mode)
+
+
+def _load_tvtp2(args: argparse.Namespace, cfg: Dict[str, Any], params,
+                params_path: str):
+    """The two-covariate parameter set, or None in the single-covariate mode."""
+    if _tvtp_mode(cfg, args) != TVTP_MODE_2D:
+        return None
+    path = (getattr(args, "tvtp2_params", None)
+            or _get(cfg, "tvtp.parameters_file", DEFAULT_TVTP2_PARAMS))
+    return load_tvtp2_parameters(path, base_params=params, base_params_path=params_path)
+
+
+def _history_series(cfg: Dict[str, Any], args: argparse.Namespace):
+    from pde_option_model.tvtp2 import load_hourly_z_history
+    history_file = (getattr(args, "scenario_history", None)
+                    or _get(cfg, "scenario.history_file",
+                            "inputs/historical/rd_standardized.csv"))
+    return load_hourly_z_history(history_file), str(history_file)
+
+
+def _covariate_builder(cfg: Dict[str, Any], args: argparse.Namespace, tvtp2):
+    """(z, ramp) path builder; the frozen ramp scaler is re-verified on the history."""
+    z_history, history_file = _history_series(cfg, args)
+    train_end = pd.Timestamp(_get(cfg, "scenario.train_end_utc", "2022-12-31 20:00:00+00:00"))
+    train_end = (train_end.tz_localize("UTC") if train_end.tzinfo is None
+                 else train_end.tz_convert("UTC"))
+    lag = float(_get(cfg, "scenario.covariate_lag_hours", 1.0))
+    b = CovariatePathBuilder(z_history, train_end, covariate_lag_hours=lag,
+                             ramp_scaler=None if tvtp2 is None else tvtp2.ramp_scaler,
+                             history_file=history_file)
+    if tvtp2 is not None:
+        b.verify_ramp_scaler()
+        if lag != float(tvtp2.lag_hours):
+            logging.getLogger(__name__).warning(
+                "covariate lag %.0f h differs from the %d h of the two-covariate "
+                "parameter set: this is an ALIGNMENT SENSITIVITY, not the frozen set",
+                lag, tvtp2.lag_hours)
+    return b
+
+
+def _scenario_spec(cfg: Dict[str, Any], args: argparse.Namespace, name: str) -> ScenarioSpec:
+    mode = getattr(args, "scenario_mode", None) or _get(cfg, "scenario.mode", "climatology")
+    off = getattr(args, "scenario_offset", None)
+    offset = float(off if off is not None else _get(cfg, "scenario.offset", 0.0))
+    custom = getattr(args, "scenario_custom_csv", None) or _get(cfg, "scenario.custom_csv")
+    initial = (getattr(args, "initial_hours", None)
+               or _get(cfg, "tvtp.initial_hours", "scenario"))
+    return ScenarioSpec(name=name, mode=mode, offset=offset, custom_csv=custom,
+                        initial_hours=initial)
+
+
+def _build_tvtp2_path(builder: CovariatePathBuilder, cfg, args, valuation_utc,
+                      grid_settings, name: str, maturity_utc=None, horizon_hours=None):
+    return builder.build(_scenario_spec(cfg, args, name), valuation_utc,
+                         maturity_utc=maturity_utc, horizon_hours=horizon_hours,
+                         grid_settings=grid_settings)
+
+
+def _resolve_outdir(requested: Optional[str], mode: str, default_1d: str,
+                    sub_2d: str) -> Path:
+    """Mode-dependent default; the EXPERIMENTAL mode never writes accepted outputs."""
+    out = Path(requested) if requested else (
+        Path(default_1d) if mode == TVTP_MODE_1D else Path(TVTP2_OUTPUT_ROOT) / sub_2d)
+    if mode == TVTP_MODE_2D:
+        res = out.resolve()
+        for prot in PROTECTED_OUTPUT_DIRS:
+            pr = (REPO_ROOT / prot).resolve()
+            if res == pr or pr in res.parents:
+                raise ValueError(
+                    f"refusing to write EXPERIMENTAL two-covariate outputs into the "
+                    f"accepted directory {prot}; choose an --outdir under "
+                    f"{TVTP2_OUTPUT_ROOT}/")
+    return out
+
+
+def _print_tvtp_header(tvtp2, path=None) -> None:
+    if tvtp2 is None:
+        print(f"  TVTP mode                : {TVTP_MODE_1D} (single covariate RD_lag1, default)")
+        return
+    c = tvtp2.coefficients
+    print(f"  TVTP mode                : {tvtp2.tvtp_mode}  ** EXPERIMENTAL **")
+    print(f"  TVTP label               : {tvtp2.label}")
+    print(f"  TVTP parameters          : {tvtp2.source_file} ({tvtp2.status})")
+    print(f"  TVTP coefficients        : a01={c.alpha01:+.6f} g01={c.gamma01:+.6f} "
+          f"h01={c.h01:+.6f} | a10={c.alpha10:+.6f} g10={c.gamma10:+.6f} h10={c.h10:+.6f}")
+    s = tvtp2.ramp_scaler
+    print(f"  ramp scaler              : {s.window_name} <= {s.window_end_utc.isoformat()}, "
+          f"m_r={s.mean:.3e}, s_r={s.std:.6f}, ddof={s.ddof} [reconstructed]")
+    if path is not None:
+        rr = path.describe().get("ramp_range_used", [float("nan")] * 2)
+        print(f"  TVTP r(t-1) range        : [{rr[0]:.4f}, {rr[1]:.4f}] "
+              f"(initial hours: {path.initial_hours})")
 
 
 def _get(cfg: Dict[str, Any], dotted: str, default: Any = None) -> Any:
@@ -111,7 +256,10 @@ def _load_market_inputs(args: argparse.Namespace, cfg: Dict[str, Any]):
 
 
 def _build_model(quotes, params, cfg: Dict[str, Any],
-                 anchor: NearTermAnchor, curve_mode: str) -> ForwardCenteredModel:
+                 anchor: NearTermAnchor, curve_mode: str,
+                 tvtp2=None) -> ForwardCenteredModel:
+    """Forward-centered model; ``tvtp2`` switches the transition law to the
+    EXPERIMENTAL two-covariate set (everything else is unchanged)."""
     curve = build_forward_curve(
         quotes, mode=curve_mode, anchor=anchor,
         spot_price_TRY_MWh=params.spot_price_TRY_MWh,
@@ -125,10 +273,12 @@ def _build_model(quotes, params, cfg: Dict[str, Any],
         x0_mode=_get(cfg, "residual.x0_mode", "zero"))
     return ForwardCenteredModel(
         curve=curve, spec=spec,
-        tvtp=TVTPCoefficients(params.alpha01, params.gamma01,
-                              params.alpha10, params.gamma10),
+        tvtp=(TVTPCoefficients(params.alpha01, params.gamma01,
+                               params.alpha10, params.gamma10)
+              if tvtp2 is None else tvtp2.coefficients),
         pi_filtered=params.pi_filtered, valuation_utc=params.valuation_utc,
-        spot_price_TRY_MWh=params.spot_price_TRY_MWh)
+        spot_price_TRY_MWh=params.spot_price_TRY_MWh,
+        expected_ramp_scaler=None if tvtp2 is None else tvtp2.ramp_scaler)
 
 
 def _grid_settings(cfg: Dict[str, Any]) -> ResidualGridSettings:
@@ -248,6 +398,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
             f"stress-regime stationary inflation factor "
             f"exp(sigma^2/(4 kappa)) = {rep['stationary_inflation_stress']:.3e}")
 
+    # --- two-covariate TVTP (EXPERIMENTAL; only when that mode is selected) --
+    if params is not None and _tvtp_mode(cfg, args) == TVTP_MODE_2D:
+        _validate_tvtp2(args, cfg, params, pp, quotes, add)
+
     # --- report -----------------------------------------------------------
     width = max(len(n) for n, _, _ in checks) + 2
     print(f"\nvalidate — {len(checks)} checks\n" + "=" * (width + 46))
@@ -257,6 +411,59 @@ def cmd_validate(args: argparse.Namespace) -> int:
     print("=" * (width + 46))
     print(f"{n_ok}/{len(checks)} checks passed\n")
     return 0 if n_ok == len(checks) else 1
+
+
+def _validate_tvtp2(args, cfg, params, params_path, quotes, add) -> None:
+    """Checks of the EXPERIMENTAL two-covariate set against repository data."""
+    from pde_option_model.generator import TVTP2Coefficients
+    from pde_option_model.tvtp2 import (EXPERIMENTAL_LABEL, build_covariate_panel,
+                                        derive_intercepts, historical_embeddability)
+    try:
+        tv2 = _load_tvtp2(args, cfg, params, params_path)
+        add("tvtp2_parameters_are_labelled_experimental",
+            tv2.is_experimental and tv2.label == EXPERIMENTAL_LABEL,
+            f"{tv2.source_file}: status {tv2.status}, verified={tv2.verified_reproduction_of_m9}")
+        b = _covariate_builder(cfg, args, tv2)              # raises on a scaler mismatch
+        s = tv2.ramp_scaler
+        add("tvtp2_ramp_scaler_reproduces_from_history", True,
+            f"{s.window_name}: m_r={s.mean:.6e}, s_r={s.std:.9f}, n={s.n} recomputed exactly")
+        c = tv2.coefficients
+        tg = tv2.derivation["targets"]
+        panel = build_covariate_panel(b.z_history, s, lag_hours=tv2.lag_hours)
+        end = pd.Timestamp(tv2.derivation["sample"]["last_valid_transition_utc"])
+        d = derive_intercepts(panel, c.gamma01, c.h01, c.gamma10, c.h10,
+                              tg["duration_normal_h"], tg["duration_stress_h"], end)
+        dev = max(abs(d["alpha01"] - c.alpha01), abs(d["alpha10"] - c.alpha10))
+        add("tvtp2_intercepts_reproduce_from_history", dev < 1e-9,
+            f"max |alpha - frozen| = {dev:.1e} on {d['sample']['n_valid_transitions']} transitions")
+        D = panel.sample(end)
+        zz, rr = D["z_lag"].to_numpy(), D["r_lag"].to_numpy()
+        one = TVTPCoefficients(params.alpha01, params.gamma01, params.alpha10, params.gamma10)
+        a1, b1 = one.probabilities(zz)
+        a2, b2 = TVTP2Coefficients.from_single_covariate(one).probabilities(zz, rr)
+        add("tvtp2_zero_ramp_reproduces_single_covariate",
+            bool(np.array_equal(a1, a2) and np.array_equal(b1, b2)),
+            f"{zz.size} historical transitions, bitwise")
+        hrep = historical_embeddability(panel, c)
+        add("tvtp2_historical_path_is_embeddable", hrep["n_s_ge_1"] == 0,
+            f"s>=1: {hrep['n_s_ge_1']} of {hrep['n_rows']}, max s = {hrep['max_s']:.4f} "
+            f"at {hrep['argmax_label']}")
+        gs = _grid_settings(cfg)
+        path = _build_tvtp2_path(b, cfg, args, params.valuation_utc, gs, "validate",
+                                 horizon_hours=720.0)
+        prep = path.embeddability(c)
+        add("tvtp2_scenario_path_is_embeddable", prep["embeddable"],
+            f"{path.mode} offset {path.offset:+g}: max s = {prep['max_s']:.4f}, "
+            f"s>=0.95: {prep['n_s_ge_0.95']}")
+        m2 = _build_model(quotes, params, cfg, _build_anchor(cfg, None, None),
+                          "smooth_constrained", tvtp2=tv2)
+        t = np.arange(0.0, 721.0, 1.0)
+        summ = m2.residual_summary(t, covariate_path=path)
+        dev = float(np.max(np.abs(summ["expected_spot_TRY_MWh"] - summ["forward_TRY_MWh"])))
+        add("tvtp2_residual_expectation_is_centred", dev < 1e-9,
+            f"max |E[P_t] - F(t)| over 720 h on the 2D path = {dev:.3e} TRY/MWh")
+    except Exception as exc:                                  # report, do not crash
+        add("tvtp2_checks_completed", False, f"{type(exc).__name__}: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -272,10 +479,21 @@ def cmd_calibrate_market(args: argparse.Namespace) -> int:
         return 2
 
     quotes, params, qpath, ppath = _load_market_inputs(args, cfg)
+    tvtp_mode = _tvtp_mode(cfg, args)
+    outdir = _resolve_outdir(args.outdir, tvtp_mode, "outputs/market_calibration_final",
+                             "market_calibration")
+    tvtp2 = _load_tvtp2(args, cfg, params, ppath)
     anchor = _build_anchor(cfg, args.january_anchor_mode, args.january_anchor_level)
     curve_mode = args.curve_mode or _get(cfg, "market.curve_mode", "smooth_constrained")
     r_annual = float(args.r_annual if args.r_annual is not None
                      else _get(cfg, "contract.r_annual", 0.40))
+    cal_path = builder = None
+    if tvtp2 is not None:
+        builder = _covariate_builder(cfg, args, tvtp2)
+        horizon = (quotes.last_delivery_utc - params.valuation_utc).total_seconds() / 3600.0
+        cal_path = _build_tvtp2_path(builder, cfg, args, params.valuation_utc,
+                                     _grid_settings(cfg), "calibration",
+                                     horizon_hours=float(np.ceil(horizon)))
 
     criteria = AcceptanceCriteria(
         max_abs_monthly_error_TRY_MWh=float(
@@ -292,7 +510,8 @@ def cmd_calibrate_market(args: argparse.Namespace) -> int:
         residual_x0_mode=_get(cfg, "residual.x0_mode", "zero"),
         smoothness_weight=float(_get(cfg, "market.smoothness_weight", 1.0)),
         level_weight=float(_get(cfg, "market.level_weight", 1e-4)),
-        criteria=criteria, r_annual=r_annual)
+        criteria=criteria, r_annual=r_annual,
+        tvtp2_params=tvtp2, covariate_path=cal_path)
 
     sens = None
     if not args.no_sensitivity:
@@ -312,32 +531,53 @@ def cmd_calibrate_market(args: argparse.Namespace) -> int:
         # sensitivity table's base row is directly comparable to the main
         # 72h benchmark (~677 TRY/MWh under M9 sigmas) rather than to the
         # constant-z fallback (~686).
-        try:
-            _sens_scen, sens_z_fn = _build_tvtp_scenario(opt, sens_gs, cfg, args)
-        except Exception as exc:                              # pragma: no cover
-            logging.getLogger(__name__).warning(
-                "sensitivity climatology z path unavailable (%s); "
-                "falling back to constant z=0", exc)
-            sens_z_fn = None
-        sens = near_term_anchor_sensitivity(
-            quotes, params, levels, curve_mode=curve_mode, option=opt,
-            grid_settings=sens_gs, z_lagged_fn=sens_z_fn)
+        if tvtp2 is None:
+            try:
+                _sens_scen, sens_z_fn = _build_tvtp_scenario(opt, sens_gs, cfg, args)
+            except Exception as exc:                          # pragma: no cover
+                logging.getLogger(__name__).warning(
+                    "sensitivity climatology z path unavailable (%s); "
+                    "falling back to constant z=0", exc)
+                sens_z_fn = None
+            sens = near_term_anchor_sensitivity(
+                quotes, params, levels, curve_mode=curve_mode, option=opt,
+                grid_settings=sens_gs, z_lagged_fn=sens_z_fn)
+        else:
+            # same (z, ramp) scenario: long path for the expected-spot rows,
+            # option-grid path for the option value (no silent z = 0 fallback)
+            opt_path = _build_tvtp2_path(builder, cfg, args, params.valuation_utc,
+                                         sens_gs, "sensitivity_option",
+                                         maturity_utc=opt.maturity_utc)
+            sens = near_term_anchor_sensitivity(
+                quotes, params, levels, curve_mode=curve_mode, option=opt,
+                grid_settings=sens_gs, tvtp2_params=tvtp2, covariate_path=cal_path,
+                option_covariate_path=opt_path)
 
     out = write_calibration_outputs(
-        result, params, args.outdir, anchor_sensitivity=sens,
+        result, params, outdir, anchor_sensitivity=sens,
         legacy_reference_path=_get(
             cfg, "legacy.reference_file",
             "inputs/legacy_reference/legacy_model_implied_forwards.json"),
         r_annual=r_annual,
         extra_notes={"quotes_file": qpath, "frozen_parameters_file": ppath,
                      "curve_mode": curve_mode,
-                     "january_anchor_mode": anchor.mode})
+                     "january_anchor_mode": anchor.mode,
+                     "tvtp_mode": tvtp_mode,
+                     **({"tvtp2_parameters_file": tvtp2.source_file,
+                         "tvtp2_status": tvtp2.status,
+                         "tvtp2_label": tvtp2.label,
+                         "tvtp2_covariate_path": (f"{cal_path.mode}, offset {cal_path.offset:+g}, "
+                                                  f"initial hours {cal_path.initial_hours}, "
+                                                  f"{cal_path.labels[0].isoformat()} .. "
+                                                  f"{cal_path.labels[-1].isoformat()}")}
+                        if tvtp2 is not None else {})})
 
     m = result.metrics
     print(f"\ncalibrate-market — {PRICE_LABEL}")
     print("=" * 78)
     print(f"  optimizer_success        : {result.optimizer_success}")
     print(f"  calibration_accepted     : {result.calibration_accepted}")
+    _print_tvtp_header(tvtp2, cal_path)
     print(f"  curve mode               : {curve_mode}")
     print(f"  monthly RMSE             : {m['monthly_RMSE']:.6e} TRY/MWh")
     print(f"  monthly MAE              : {m['monthly_MAE']:.6e} TRY/MWh")
@@ -481,7 +721,8 @@ def _build_tvtp_scenario(contract, grid_settings, cfg, args):
 def cmd_price(args: argparse.Namespace) -> int:
     cfg = _load_config(args.config)
     mode = validate_model_mode(args.model)
-    quotes, params, _, _ = _load_market_inputs(args, cfg)
+    quotes, params, _, ppath = _load_market_inputs(args, cfg)
+    tvtp2 = _load_tvtp2(args, cfg, params, ppath)
 
     pi_override_mode = getattr(args, "pi_override", "filtered") or "filtered"
     if pi_override_mode == "stationary":
@@ -520,7 +761,7 @@ def cmd_price(args: argparse.Namespace) -> int:
                 else _get(cfg, "contract.maturity_hours", 72))
     otype = args.option_type or _get(cfg, "contract.option_type", "call")
 
-    model = _build_model(quotes, params, cfg, anchor, curve_mode)
+    model = _build_model(quotes, params, cfg, anchor, curve_mode, tvtp2=tvtp2)
     a0 = float(getattr(args, "risk_premium_a0", 0.0) or 0.0)
     a1 = float(getattr(args, "risk_premium_a1", 0.0) or 0.0)
     if a0 != 0.0 or a1 != 0.0:
@@ -542,18 +783,38 @@ def cmd_price(args: argparse.Namespace) -> int:
 
     gs = _grid_settings(cfg)
 
-    scenario, z_lagged_fn = _build_tvtp_scenario(
-        contract,
-        gs,
-        cfg,
-        args,
-    )
+    path = None
+    if tvtp2 is None:
+        scenario, z_lagged_fn = _build_tvtp_scenario(
+            contract,
+            gs,
+            cfg,
+            args,
+        )
+        z_range = (float(scenario.z_lagged.min()), float(scenario.z_lagged.max()))
+    else:
+        builder = _covariate_builder(cfg, args, tvtp2)
+        path = _build_tvtp2_path(builder, cfg, args, contract.valuation_utc, gs,
+                                 "pricing", maturity_utc=contract.maturity_utc)
+        audit = path.embeddability(tvtp2.coefficients)
+        if not audit["embeddable"]:
+            print(f"ERROR: two-covariate TVTP REJECTED for this scenario: "
+                  f"{audit['n_s_ge_1']} of {audit['n_rows']} hour label(s) have "
+                  f"p01 + p10 >= 1 (share {audit['share_s_ge_1']:.4f}, max s = "
+                  f"{audit['max_s']:.4f} at {audit['argmax_label']}; first "
+                  f"{audit['first_violation_label']}, last {audit['last_violation_label']}). "
+                  "The continuous-time chain does not exist there; no clipping is "
+                  "applied.", file=sys.stderr)
+            return 2
+        z_lagged_fn = None
+        z_range = tuple(path.describe()["z_range_used"])
 
     res = price_forward_centered(
         model,
         contract,
         gs,
         z_lagged_fn=z_lagged_fn,
+        covariate_path=path,
     )
 
     mc = None
@@ -565,6 +826,7 @@ def cmd_price(args: argparse.Namespace) -> int:
             dt_hours=float(args.mc_dt_hours),
             seed=int(args.mc_seed),
             z_lagged_fn=z_lagged_fn,
+            covariate_path=path,
         )
     d = model.curve.frame
     anchored = bool(d.loc[d["time_utc"] == contract.maturity_utc.isoformat(),
@@ -577,8 +839,19 @@ def cmd_price(args: argparse.Namespace) -> int:
     print(f"  valuation / maturity     : {contract.valuation_utc.isoformat()} -> "
           f"{contract.maturity_utc.isoformat()} ({hours} h)")
     print(f"  model mode               : {mode}")
+    _print_tvtp_header(tvtp2)
     print(f"  TVTP scenario            : {args.scenario_mode or _get(cfg, 'scenario.mode', 'climatology')}")
-    print(f"  TVTP z(t-1) range        : [{scenario.z_lagged.min():.4f}, {scenario.z_lagged.max():.4f}]")
+    print(f"  TVTP z(t-1) range        : [{z_range[0]:.4f}, {z_range[1]:.4f}]")
+    if path is not None:
+        rr = path.describe()["ramp_range_used"]
+        print(f"  TVTP r(t-1) range        : [{rr[0]:.4f}, {rr[1]:.4f}] "
+              f"(initial hours: {path.initial_hours})")
+        print(f"  transition audit         : max s = {res.diagnostics['max_s']:.4f}, "
+              f"mean p01 = {res.diagnostics['mean_p01_one_hour']:.4f}, mean p10 = "
+              f"{res.diagnostics['mean_p10_one_hour']:.4f}, expected switches = "
+              f"{res.diagnostics['expected_transitions']:.2f}")
+        print(f"  P(stress at T)           : {res.diagnostics['p_stress_at_expiry']:.4f} "
+              f"(mean over [0,T] {res.diagnostics['mean_p_stress']:.4f})")
     print(f"  F(T)                     : {res.forward_at_expiry:.2f} TRY/MWh"
           f"{'   [near-term anchored]' if anchored else ''}")
     print(f"  E[P_T]                   : {res.expected_spot_at_expiry:.2f} TRY/MWh")
@@ -596,6 +869,13 @@ def cmd_price(args: argparse.Namespace) -> int:
               f"{mc['mean_price_T_se']:.2f} TRY/MWh")
         print(f"  analytic E[P_T]          : {mc['analytic_expected_spot_T']:.2f} TRY/MWh")
         print(f"  MC P(P_T < 0)            : {mc['prob_negative_price']:.4f}")
+        print(f"  MC E[X_T] vs ODE mu_X(T) : {mc['mean_residual_T']:.2f} +/- "
+              f"{mc['mean_residual_T_se']:.2f} vs {mc['analytic_mean_residual_T']:.2f}")
+        print(f"  MC P(stress at T)        : {mc['p_stress_T_mc']:.4f} +/- "
+              f"{mc['p_stress_T_se']:.4f} vs ODE {mc['analytic_p_stress_T']:.4f}")
+    if tvtp2 is not None:
+        print("  NOTE: EXPERIMENTAL two-covariate price, conditional on the covariate path; "
+              "zero transition premium ASSUMED; not a reproduction of M9.")
     print("=" * 78 + "\n")
     return 0
 
@@ -610,7 +890,11 @@ def cmd_diagnostics(args: argparse.Namespace) -> int:
 
     cfg = _load_config(args.config)
     validate_model_mode(args.model)
-    quotes, params, _, _ = _load_market_inputs(args, cfg)
+    quotes, params, _, ppath = _load_market_inputs(args, cfg)
+    tvtp_mode = _tvtp_mode(cfg, args)
+    outdir = _resolve_outdir(args.outdir, tvtp_mode, "outputs/forward_centered_diagnostics",
+                             "diagnostics")
+    tvtp2 = _load_tvtp2(args, cfg, params, ppath)
 
     if args.curve:
         cdir = Path(args.curve)
@@ -627,8 +911,8 @@ def cmd_diagnostics(args: argparse.Namespace) -> int:
     anchor = _build_anchor(cfg, args.january_anchor_mode, args.january_anchor_level)
     model = _build_model(quotes, params, cfg, anchor,
                          args.curve_mode or _get(cfg, "market.curve_mode",
-                                                 "smooth_constrained"))
-    outdir = Path(args.outdir)
+                                                 "smooth_constrained"),
+                         tvtp2=tvtp2)
     outdir.mkdir(parents=True, exist_ok=True)
 
     diag_gs = _grid_settings(cfg)
@@ -641,22 +925,50 @@ def cmd_diagnostics(args: argparse.Namespace) -> int:
         r_annual=float(_get(cfg, "contract.r_annual", 0.40)),
     )
 
-    diag_scenario, diag_z_lagged_fn = _build_tvtp_scenario(
-        diag_contract,
-        diag_gs,
-        cfg,
-        args,
-    )
-
     t = np.arange(0.0, 721.0, 1.0)
-    z_diag = diag_z_lagged_fn(t)
-
-    summ = model.residual_summary(
-        t,
-        z_lagged=z_diag,
-    )
+    builder = diag_path = None
+    if tvtp2 is None:
+        diag_scenario, diag_z_lagged_fn = _build_tvtp_scenario(
+            diag_contract,
+            diag_gs,
+            cfg,
+            args,
+        )
+        z_diag = diag_z_lagged_fn(t)
+        summ = model.residual_summary(
+            t,
+            z_lagged=z_diag,
+        )
+    else:
+        builder = _covariate_builder(cfg, args, tvtp2)
+        diag_path = _build_tvtp2_path(builder, cfg, args, params.valuation_utc, diag_gs,
+                                      "diagnostics_720h",
+                                      maturity_utc=diag_contract.maturity_utc)
+        audit = diag_path.embeddability(tvtp2.coefficients)
+        if not audit["embeddable"]:
+            print(f"ERROR: two-covariate TVTP REJECTED for the diagnostics path "
+                  f"({audit['n_s_ge_1']} hour(s) with p01 + p10 >= 1, max s = "
+                  f"{audit['max_s']:.4f})", file=sys.stderr)
+            return 2
+        diag_z_lagged_fn = None
+        summ = model.residual_summary(t, covariate_path=diag_path)
+        # hourly (z, ramp) path with the one-hour transition law it implies
+        hf = diag_path.hourly_frame()
+        ok = np.isfinite(hf["ramp"].to_numpy())
+        p01 = np.full(len(hf), np.nan)
+        p10 = np.full(len(hf), np.nan)
+        p01[ok], p10[ok] = tvtp2.coefficients.probabilities(
+            hf["z"].to_numpy()[ok], hf["ramp"].to_numpy()[ok])
+        hf["p01"], hf["p10"], hf["s"] = p01, p10, p01 + p10
+        hf.to_csv(outdir / "tvtp_covariate_path.csv", index=False)
+        with open(outdir / "tvtp_embeddability.json", "w", encoding="utf-8") as fh:
+            json.dump(audit, fh, indent=2, default=str)
 
     summ.to_csv(outdir / "residual_diagnostics.csv", index=False)
+    from pde_option_model.market_calibration import tvtp_provenance_block
+    with open(outdir / "tvtp_provenance.json", "w", encoding="utf-8") as fh:
+        json.dump(tvtp_provenance_block(params, tvtp2, diag_path, ppath), fh,
+                  indent=2, ensure_ascii=False, default=str)
 
     fig, axes = plt.subplots(1, 3, figsize=(16, 4.4))
     ax = axes[0]
@@ -672,7 +984,9 @@ def cmd_diagnostics(args: argparse.Namespace) -> int:
     ax.plot(summ["hours"], summ["p_stress"], color="#9467bd")
     ax.set_xlabel("hours"); ax.set_ylabel("Q(J_t = stress)")
     ax.set_title("Regime probability")
-    fig.suptitle(f"forward_centered diagnostics — {PRICE_LABEL}", fontsize=10)
+    fig.suptitle(f"forward_centered diagnostics — {PRICE_LABEL}"
+                 + ("" if tvtp2 is None else
+                    f"\nTVTP {tvtp2.tvtp_mode} (EXPERIMENTAL): {tvtp2.label}"), fontsize=10)
     fig.tight_layout()
     fig.savefig(outdir / "residual_diagnostics.png", dpi=150)
     plt.close(fig)
@@ -692,6 +1006,7 @@ def cmd_diagnostics(args: argparse.Namespace) -> int:
             EuropeanOption("call", K, params.valuation_utc, T, r_annual),
             gs,
             z_lagged_fn=diag_z_lagged_fn,
+            covariate_path=diag_path,
         )
 
         p = price_forward_centered(
@@ -699,6 +1014,7 @@ def cmd_diagnostics(args: argparse.Namespace) -> int:
             EuropeanOption("put", K, params.valuation_utc, T, r_annual),
             gs,
             z_lagged_fn=diag_z_lagged_fn,
+            covariate_path=diag_path,
         )
         rows.append({"strike_TRY_MWh": K, "call_TRY_MWh": c.value,
                      "put_TRY_MWh": p.value,
@@ -729,6 +1045,7 @@ def cmd_diagnostics(args: argparse.Namespace) -> int:
 
     print(f"\ndiagnostics ({args.model})")
     print("=" * 78)
+    _print_tvtp_header(tvtp2, diag_path)
     print(summ[summ["hours"].isin([0, 72, 168, 336, 720])].to_string(index=False))
     print("-" * 78)
     print(smile.to_string(index=False))
@@ -784,6 +1101,16 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--january-anchor-level", type=float, default=None,
                         help="January baseload level (TRY/MWh) for explicit_level")
         sp.add_argument("--r-annual", type=float, default=None)
+        sp.add_argument("--tvtp-mode", default=None, choices=list(TVTP_MODES),
+                        help=("TVTP transition law: rd_lag1_1d (default, production) or "
+                              "rd_ramp_2d_experimental (RD_lag1 + reconstructed "
+                              "RD_Ramp_1h_lag1; EXPERIMENTAL). Overrides tvtp.mode."))
+        sp.add_argument("--tvtp2-params", default=None,
+                        help=f"two-covariate parameter YAML (default {DEFAULT_TVTP2_PARAMS})")
+        sp.add_argument("--initial-hours", default=None, choices=["scenario", "observed"],
+                        help=("two-covariate mode: take the labels <= t_v from the "
+                              "scenario (default, production rule) or from the observed "
+                              "history"))
 
     sv = sub.add_parser("validate", help="structural and numerical self-checks")
     common(sv)
@@ -793,7 +1120,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="build the VEP-anchored curve and run acceptance")
     common(sc)
     sc.add_argument("--model", default=DEFAULT_MARKET_MODE, choices=list(MODEL_MODES))
-    sc.add_argument("--outdir", default="outputs/market_calibration_final")
+    sc.add_argument("--outdir", default=None,
+                    help=("default outputs/market_calibration_final (rd_lag1_1d) or "
+                          f"{TVTP2_OUTPUT_ROOT}/market_calibration (two-covariate)"))
     sc.add_argument("--no-sensitivity", action="store_true")
     sc.set_defaults(func=cmd_calibrate_market)
 
@@ -870,7 +1199,9 @@ def build_parser() -> argparse.ArgumentParser:
     common(sd)
     sd.add_argument("--model", default=DEFAULT_MARKET_MODE, choices=list(MODEL_MODES))
     sd.add_argument("--curve", default=None)
-    sd.add_argument("--outdir", default="outputs/forward_centered_diagnostics")
+    sd.add_argument("--outdir", default=None,
+                    help=("default outputs/forward_centered_diagnostics (rd_lag1_1d) or "
+                          f"{TVTP2_OUTPUT_ROOT}/diagnostics (two-covariate)"))
     sd.set_defaults(func=cmd_diagnostics)
 
     sf = sub.add_parser("freeze-params",
@@ -890,6 +1221,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except CalibrationRejected as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
+    except EmbeddabilityError as exc:
+        print(f"ERROR: EmbeddabilityError: {exc}", file=sys.stderr)
+        rep = getattr(exc, "report", {}) or {}
+        if rep:
+            print("       audit: " + json.dumps(rep, default=str), file=sys.stderr)
+        return 2
     except (FileNotFoundError, ValueError) as exc:
         print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2

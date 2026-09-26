@@ -32,6 +32,14 @@ Two success flags, deliberately separate
     honours.  When it is False the run writes ``calibration_result.json`` with
     the failure recorded, refuses to emit ``calibrated_config.yaml``, and the
     process exits non-zero.
+
+TVTP mode reporting
+-------------------
+Every result records ``tvtp_mode`` (``rd_lag1_1d`` default, or the
+EXPERIMENTAL ``rd_ramp_2d_experimental``) and the parameter / covariate-path
+provenance.  In the two-covariate mode the monthly identity is evaluated on
+the supplied (z, ramp) path; it holds for any path because the centering
+uses the same q sequence, but the path must exist and be embeddable.
 """
 from __future__ import annotations
 
@@ -52,7 +60,8 @@ from .forward_centered import (ForwardCenteredModel, ResidualGridSettings,
                                simulate_forward_centered)
 from .forward_curve import (CURVE_COLUMNS, ForwardCurve, NearTermAnchor,
                             build_forward_curve)
-from .generator import TVTPCoefficients
+from .generator import (TVTP2Coefficients, TVTPCoefficients, TVTP_MODE_1D,
+                        TVTP_MODE_2D, EmbeddabilityError)
 from .legacy_moments import (EXPLOSION_WARNING, legacy_expected_spot,
                              legacy_explosion_report, load_legacy_reference)
 from .market_data import MarketQuoteSet
@@ -121,6 +130,8 @@ class CalibrationResult:
     metrics: Dict[str, float] = field(default_factory=dict)
     finite_checks: Dict[str, bool] = field(default_factory=dict)
     price_label: str = PRICE_LABEL
+    tvtp_mode: str = TVTP_MODE_1D
+    tvtp_provenance: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def failed_checks(self) -> List[str]:
@@ -159,15 +170,85 @@ class CalibrationResult:
             "extrapolated_periods": self.curve.extrapolated_months,
             "acceptance_checks": [c.row() for c in self.checks],
             "curve_diagnostics": self.curve.diagnostics,
+            "tvtp_mode": self.tvtp_mode,
+            "tvtp_provenance": self.tvtp_provenance,
         }
 
 
 # ---------------------------------------------------------------------------
+def tvtp_provenance_block(params: FrozenM2Parameters,
+                          tvtp2_params: Optional[Any] = None,
+                          covariate_path: Optional[Any] = None,
+                          params_file: Optional[str] = None) -> Dict[str, Any]:
+    """Selected TVTP mode + parameter / covariate-path provenance (both modes)."""
+    if tvtp2_params is None:
+        out: Dict[str, Any] = {
+            "tvtp_mode": TVTP_MODE_1D,
+            "status": "production default (single covariate RD_lag1)",
+            "parameters_file": params_file or params.source_file,
+            "coefficients": {"alpha01": params.alpha01, "gamma01": params.gamma01,
+                             "alpha10": params.alpha10, "gamma10": params.gamma10},
+            "covariates": ["RD_lag1"],
+            "ramp_covariate": "omitted (single-covariate reduction of M9 TVTP-2)",
+            "transition_premium": "ASSUMED zero (q^Q = q^P); not calibrated",
+        }
+    else:
+        out = dict(tvtp2_params.provenance_summary())
+    if covariate_path is not None:
+        out["covariate_path"] = covariate_path.describe()
+    return out
+
+
 def parameter_identification(params: FrozenM2Parameters,
                              spec: ResidualSpec,
                              anchor: NearTermAnchor,
-                             r_annual: float) -> Dict[str, Any]:
-    """The four disjoint provenance groups required by the specification."""
+                             r_annual: float,
+                             tvtp2_params: Optional[Any] = None,
+                             covariate_path: Optional[Any] = None) -> Dict[str, Any]:
+    """The four disjoint provenance groups required by the specification.
+
+    ``tvtp2_params`` (two-covariate mode) replaces the TVTP block by the
+    EXPERIMENTAL two-covariate coefficients and their provenance tags.
+    """
+    blob = _parameter_identification_1d(params, spec, anchor, r_annual)
+    blob["tvtp_mode"] = TVTP_MODE_1D if tvtp2_params is None else tvtp2_params.tvtp_mode
+    if tvtp2_params is None:
+        return blob
+    c = tvtp2_params.coefficients
+    pv = tvtp2_params.provenance
+    blob["tvtp_status"] = tvtp2_params.status
+    blob["tvtp_label"] = tvtp2_params.label
+    blob["2_inherited_from_historical_M2_fit"]["tvtp_coefficients"] = {
+        "tvtp_mode": tvtp2_params.tvtp_mode,
+        "status": tvtp2_params.status,
+        "label": tvtp2_params.label,
+        "alpha01": c.alpha01, "gamma01": c.gamma01, "h01": c.h01,
+        "alpha10": c.alpha10, "gamma10": c.gamma10, "h10": c.h10,
+        "covariates": list(c.covariates),
+        "gamma_source": pv.get("tvtp2.gamma01", ""),
+        "h_source": pv.get("tvtp2.h01", ""),
+        "alpha_source": pv.get("tvtp2.alpha01", ""),
+        "parameters_file": tvtp2_params.source_file,
+        "verified_reproduction_of_m9": tvtp2_params.verified_reproduction_of_m9,
+        "placeholder": bool(tvtp2_params.placeholders),
+        "placeholder_fields": list(tvtp2_params.placeholders),
+    }
+    g3 = blob["3_fixed_by_assumption"]
+    g3["tvtp_ramp_covariate_definition"] = {
+        "definition": tvtp2_params.ramp_scaler.definition,
+        "status": tvtp2_params.ramp_scaler.status,
+        "scaler": tvtp2_params.ramp_scaler.as_dict()}
+    g3["tvtp_transition_premium"] = tvtp2_params.transition_premium.get(
+        "status", "ASSUMED zero transition premium")
+    if covariate_path is not None:
+        g3["tvtp_covariate_path"] = covariate_path.describe()
+    return blob
+
+
+def _parameter_identification_1d(params: FrozenM2Parameters,
+                                 spec: ResidualSpec,
+                                 anchor: NearTermAnchor,
+                                 r_annual: float) -> Dict[str, Any]:
     return {
         "price_label": PRICE_LABEL,
         "must_not_be_called": FORBIDDEN_LABEL,
@@ -274,6 +355,8 @@ def run_market_calibration(
     criteria: Optional[AcceptanceCriteria] = None,
     r_annual: float = 0.40,
     curve_solver_tolerance_TRY_MWh: float = 1.0e3,
+    tvtp2_params: Optional[Any] = None,
+    covariate_path: Optional[Any] = None,
 ) -> CalibrationResult:
     """Build the curve, centre the residual, and run every acceptance check.
 
@@ -283,6 +366,10 @@ def run_market_calibration(
     the quotes is reported as ``calibration_accepted = False`` rather than
     raising -- exactly the case the specification asks to be distinguished from
     ``optimizer_success``.
+
+    ``tvtp2_params`` selects the EXPERIMENTAL two-covariate TVTP; it then
+    requires ``covariate_path`` (a (z, ramp) path covering the curve horizon).
+    A non-embeddable path (p01 + p10 >= 1 anywhere) rejects the mode.
     """
     criteria = criteria or AcceptanceCriteria()
     anchor = anchor or NearTermAnchor()
@@ -313,13 +400,36 @@ def run_market_calibration(
         kappa_per_hour=residual_kappa_per_hour,
         regime_means=residual_regime_means,
         x0_mode=residual_x0_mode)                        # type: ignore[arg-type]
+    if tvtp2_params is None:
+        tvtp_coef: Any = TVTPCoefficients(params.alpha01, params.gamma01,
+                                          params.alpha10, params.gamma10)
+    else:
+        if covariate_path is None:
+            raise ValueError("the two-covariate TVTP calibration needs a (z, ramp) "
+                             "covariate_path covering the curve horizon")
+        tvtp_coef = tvtp2_params.coefficients
+        audit = covariate_path.embeddability(tvtp_coef)
+        if not audit["embeddable"]:
+            raise EmbeddabilityError(
+                f"covariate path '{covariate_path.name}' has {audit['n_s_ge_1']} hour(s) "
+                f"with p01 + p10 >= 1 (max s = {audit['max_s']:.4f} at "
+                f"{audit['argmax_label']}); the two-covariate continuous-time mode is "
+                "REJECTED for this path", audit)
     model = ForwardCenteredModel(
         curve=curve, spec=spec,
-        tvtp=TVTPCoefficients(params.alpha01, params.gamma01,
-                              params.alpha10, params.gamma10),
+        tvtp=tvtp_coef,
         pi_filtered=params.pi_filtered, valuation_utc=params.valuation_utc,
         spot_price_TRY_MWh=params.spot_price_TRY_MWh,
-        covariate_lag_hours=params.covariate_lag_hours)
+        covariate_lag_hours=params.covariate_lag_hours,
+        covariate_path=covariate_path if tvtp2_params is not None else None,
+        expected_ramp_scaler=(tvtp2_params.ramp_scaler if tvtp2_params is not None
+                              else None))
+    if tvtp2_params is not None:
+        warnings.append(
+            "EXPERIMENTAL two-covariate TVTP (rd_ramp_2d_experimental): "
+            f"{tvtp2_params.label}; the RD_Ramp_1h_lag1 definition is reconstructed, "
+            "not verified against M9 -- these results do not replace the accepted "
+            "single-covariate results")
 
     if params.has_placeholders:
         warnings.append(
@@ -460,9 +570,16 @@ def run_market_calibration(
         model_type="forward_centered",
         curve=curve, model=model, fit_table=fit, checks=checks,
         warnings=warnings, expected_spot=expected_spot,
-        parameter_provenance=parameter_identification(params, spec, anchor, r_annual),
+        parameter_provenance=parameter_identification(
+            params, spec, anchor, r_annual, tvtp2_params,
+            covariate_path if tvtp2_params is not None else None),
         january_status=january_status, metrics=metrics, finite_checks=finite_checks,
+        tvtp_mode=model.tvtp_mode,
+        tvtp_provenance=tvtp_provenance_block(
+            params, tvtp2_params, covariate_path if tvtp2_params is not None else None),
     )
+    if tvtp2_params is not None:
+        result.tvtp_provenance["covariate_path_embeddability"] = audit
     logger.info("calibration: optimizer_success=%s calibration_accepted=%s "
                 "(max monthly err %.3e TRY/MWh, MAPE %.3e%%)",
                 result.optimizer_success, result.calibration_accepted,
@@ -481,6 +598,9 @@ def near_term_anchor_sensitivity(
     option: Optional[EuropeanOption] = None,
     grid_settings: Optional[ResidualGridSettings] = None,
     z_lagged_fn: Optional[Any] = None,
+    tvtp2_params: Optional[Any] = None,
+    covariate_path: Optional[Any] = None,
+    option_covariate_path: Optional[Any] = None,
 ) -> pd.DataFrame:
     """Sensitivity of near-term results to the anchor level, under the
     production ``spot_to_next_linear`` mode.
@@ -507,6 +627,11 @@ def near_term_anchor_sensitivity(
     back to a constant (z=0) exogenous path, which drifts by 1-2% from the
     production benchmark.  ``cmd_calibrate_market`` in ``run_pde.py`` builds
     the production z path once and passes it here.
+
+    ``tvtp2_params`` runs the same sweep under the EXPERIMENTAL two-covariate
+    TVTP: ``covariate_path`` (covering the reporting horizons) feeds the
+    expected-spot rows and ``option_covariate_path`` (built for the option's
+    master grid) the option value.  Every row records ``tvtp_mode``.
     """
     rows: List[Dict[str, Any]] = []
     for lev in anchor_levels_TRY_MWh:
@@ -515,12 +640,18 @@ def near_term_anchor_sensitivity(
                                     spot_price_TRY_MWh=float(lev))
         model = ForwardCenteredModel(
             curve=curve, spec=ResidualSpec.from_frozen(params),
-            tvtp=TVTPCoefficients(params.alpha01, params.gamma01,
-                                  params.alpha10, params.gamma10),
+            tvtp=(TVTPCoefficients(params.alpha01, params.gamma01,
+                                   params.alpha10, params.gamma10)
+                  if tvtp2_params is None else tvtp2_params.coefficients),
             pi_filtered=params.pi_filtered, valuation_utc=params.valuation_utc,
             spot_price_TRY_MWh=float(lev),
-            allow_spot_mismatch=True)
-        es = model.expected_spot(np.array(REPORTING_HORIZONS_HOURS, dtype=float))
+            allow_spot_mismatch=True,
+            expected_ramp_scaler=(None if tvtp2_params is None
+                                  else tvtp2_params.ramp_scaler))
+        # E[P_t] = F(t) for any covariate path; the 2D model uses the given path
+        hz_arr = np.array(REPORTING_HORIZONS_HOURS, dtype=float)
+        es = (model.expected_spot(hz_arr) if tvtp2_params is None
+              else model.expected_spot(hz_arr, covariate_path=covariate_path))
         row: Dict[str, Any] = {
             "january_anchor_TRY_MWh": float(lev),
             "anchor_vs_spot_pct": float(100.0 * (lev / params.spot_price_TRY_MWh - 1.0)),
@@ -532,11 +663,15 @@ def near_term_anchor_sensitivity(
         for h, v in zip(REPORTING_HORIZONS_HOURS, es):
             row[f"expected_spot_{h}h_TRY_MWh"] = float(v)
         if option is not None:
-            pr = price_forward_centered(model, option, grid_settings,
-                                        z_lagged_fn=z_lagged_fn)
+            pr = (price_forward_centered(model, option, grid_settings,
+                                         z_lagged_fn=z_lagged_fn)
+                  if tvtp2_params is None else
+                  price_forward_centered(model, option, grid_settings,
+                                         covariate_path=option_covariate_path))
             row["option_type"] = option.option_type
             row["strike_TRY_MWh"] = float(option.strike)
             row["option_value_TRY_MWh"] = float(pr.value)
+        row["tvtp_mode"] = model.tvtp_mode
         rows.append(row)
     df = pd.DataFrame(rows)
     if option is not None and len(df) > 1:
@@ -575,6 +710,12 @@ def calibrated_config(result: CalibrationResult, params: FrozenM2Parameters,
             "extrapolated_periods": result.curve.extrapolated_months,
         },
         "historical_parameters": params.summary(),
+        "tvtp": {
+            "mode": result.tvtp_mode,
+            "status": result.tvtp_provenance.get("status"),
+            "parameters_file": result.tvtp_provenance.get("parameters_file"),
+            "label": result.tvtp_provenance.get("label"),
+        },
         "contract_defaults": {"r_annual": float(r_annual)},
         "acceptance": {
             "optimizer_success": bool(result.optimizer_success),
