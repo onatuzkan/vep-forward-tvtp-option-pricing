@@ -65,9 +65,14 @@ ODE emits.  The linear term vanishes because centering already
 subtracts E[X_t] -- so the first-order correction cannot survive.  This
 is the analytic reason for the log-log slope 2.0000 documented in
 `outputs/market_calibration_final/risk_premium_sensitivity.csv` (the
-variance uplift channel of `docs/risk_neutral_methodology.md`).  A
-priori Q1 is HARDLY IDENTIFIED from options at plausible premium
-magnitudes: the option-value gradient at a=0 is O(||a||^2).
+variance uplift channel of `docs/risk_neutral_methodology.md`).
+FW12b re-measured this slope under the PRODUCTION climatology z(t-1)
+path (the original measurement was under the silent z = 0 fallback);
+the observed log-log slope is **2.0000** to four significant digits
+in both scenarios, i.e. the quadratic suppression is a property of
+the model and does not depend on the z path.  A priori Q1 is HARDLY
+IDENTIFIED from options at plausible premium magnitudes: the option-
+value gradient at a = 0 is O(||a||^2).
 
 **Q2 transition channel.**  eta_ij enters the occupancy p_i(t)
 LINEARLY at first order, and the mixture variance rate depends on p_i
@@ -80,8 +85,12 @@ sigma_s^2).  Hence Var_Q(P_T) is LINEAR in eta_ij around zero:
 with the first-order coefficient bounded below by
 (sigma_s^2 - sigma_n^2) * dpi_stress/deta * T, which for the shipped
 sigmas (0.0035, 0.0924) is a large positive number.  A priori Q2 is
-FIRST-ORDER identified from options and materially more powerful than
-Q1.  The FW2 sensitivity sweep in §4 verifies this numerically.
+FIRST-ORDER identified from options and materially more powerful
+than Q1.  The FW2 sensitivity sweep in §4 verifies this numerically
+(FW12b-regenerated version at 1201 nodes with the climatology z
+path -- the archived FW2 output at 601 nodes with silent z = 0 gave
+similar-order but different numeric magnitudes; see
+`outputs/fw2_risk_premium/archive/README.md` for the audit trail).
 
 **Consequence for the paper.**  The two channels are not symmetric.  A
 paper making a "we set a=0 for a reason" claim should state Proposition

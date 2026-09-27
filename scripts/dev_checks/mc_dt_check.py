@@ -98,7 +98,7 @@ constant = price_forward_centered(
     model,
     contract,
     gs,
-)
+allow_constant_transition_scenario=True)
 
 # New behaviour: climatological time-varying z(t-1)
 tvtp = price_forward_centered(

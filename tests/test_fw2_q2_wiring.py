@@ -54,11 +54,11 @@ def _model_and_contract():
 def test_none_and_zero_eta_reproduce_baseline_bit_for_bit(_model_and_contract):
     model, contract = _model_and_contract
     gs = ResidualGridSettings()
-    base = price_forward_centered(model, contract, grid_settings=gs)
+    base = price_forward_centered(model, contract, grid_settings=gs, allow_constant_transition_scenario=True)
     none_ = price_forward_centered(model, contract, grid_settings=gs,
-                                   eta_ij=None)
+                                   eta_ij=None, allow_constant_transition_scenario=True)
     zero_ = price_forward_centered(model, contract, grid_settings=gs,
-                                   eta_ij=(0.0, 0.0))
+                                   eta_ij=(0.0, 0.0), allow_constant_transition_scenario=True)
     assert base.value == none_.value
     assert base.value == zero_.value
     assert base.centering_at_expiry == zero_.centering_at_expiry
@@ -72,7 +72,7 @@ def test_none_and_zero_eta_reproduce_baseline_bit_for_bit(_model_and_contract):
 def test_centering_identity_under_q2(_model_and_contract, eta):
     model, contract = _model_and_contract
     gs = ResidualGridSettings()
-    r = price_forward_centered(model, contract, grid_settings=gs, eta_ij=eta)
+    r = price_forward_centered(model, contract, grid_settings=gs, eta_ij=eta, allow_constant_transition_scenario=True)
     assert abs(r.expected_spot_at_expiry - r.forward_at_expiry) < 1e-6
 
 
@@ -155,7 +155,7 @@ def test_q2_price_is_monotonic_in_eta01_holding_eta10(_model_and_contract):
     values = []
     for e in (-0.3, 0.0, 0.3, 0.6):
         r = price_forward_centered(model, contract, grid_settings=gs,
-                                   eta_ij=(e, 0.0))
+                                   eta_ij=(e, 0.0), allow_constant_transition_scenario=True)
         values.append(r.value)
     for a, b in zip(values, values[1:]):
         assert b > a, f"eta_01 sweep not monotone: {values}"

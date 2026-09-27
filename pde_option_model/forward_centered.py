@@ -725,19 +725,51 @@ def build_residual_grid(model: ForwardCenteredModel, contract: EuropeanOption,
 
 
 def _solver_covariates(model: ForwardCenteredModel, t: np.ndarray, z_lagged_fn,
-                       covariate_path) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
-    """Covariates on a solver grid for price / simulate (one source only)."""
+                       covariate_path, allow_constant_transition_scenario: bool
+                       ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+    """Covariates on a solver grid for price / simulate (one source only).
+
+    A single-covariate model MUST receive either an explicit
+    ``z_lagged_fn`` (production case; the CLI builds the climatology
+    path) or the explicit opt-in
+    ``allow_constant_transition_scenario=True`` (which sets
+    ``z(t-1) = 0`` for every t, i.e. reduces TVTP to a constant-
+    transition Markov chain).  A missing z path is a caller bug --
+    the shipped model is TVTP, and running it at z = 0 without saying
+    so silently prices a DIFFERENT model.  See FW12b for the audit
+    that motivated this guard.
+    """
     if covariate_path is not None:
         if z_lagged_fn is not None:
             raise ForwardCenteredError("pass either z_lagged_fn or covariate_path, not both")
+        if allow_constant_transition_scenario:
+            raise ForwardCenteredError(
+                "allow_constant_transition_scenario=True cannot be combined with a "
+                "covariate_path; the two would specify different z(t-1) paths")
         return model.resolve_covariates(t, covariate_path=covariate_path)
     if model.is_two_covariate:
         if z_lagged_fn is not None:
             raise ForwardCenteredError(
                 "the two-covariate TVTP needs covariate_path=; z_lagged_fn alone would "
                 "drop the ramp")
+        if allow_constant_transition_scenario:
+            raise ForwardCenteredError(
+                "allow_constant_transition_scenario is only defined for the single-"
+                "covariate model; the two-covariate mode has no constant-transition "
+                "limit that corresponds to a single (z=0) path")
         return model.resolve_covariates(t)            # model.covariate_path or error
-    return (None if z_lagged_fn is None else np.asarray(z_lagged_fn(t), dtype=float)), None
+    # single-covariate branch
+    if z_lagged_fn is None:
+        if not allow_constant_transition_scenario:
+            raise ForwardCenteredError(
+                "single-covariate TVTP pricing needs an explicit z_lagged_fn "
+                "(e.g. the climatology path built by run_pde.py's "
+                "_build_tvtp_scenario) OR the explicit opt-in "
+                "allow_constant_transition_scenario=True which prices the "
+                "constant-transition limit at z(t-1)=0.  Refusing the silent "
+                "z=0 fallback to prevent the FW2 scenario-plumbing bug.")
+        return np.zeros_like(t, dtype=float), None
+    return np.asarray(z_lagged_fn(t), dtype=float), None
 
 
 def _apply_eta_to_generator(q01: np.ndarray, q10: np.ndarray,
@@ -772,6 +804,7 @@ def price_forward_centered(
     grid: Optional[SpaceGrid] = None,
     covariate_path: Optional[Any] = None,
     eta_ij: Optional[Sequence[float]] = None,
+    allow_constant_transition_scenario: bool = False,
 ) -> ForwardCenteredPricingResult:
     """Price a European option on the EXPIRY-HOUR spot under the centered model.
 
@@ -789,12 +822,21 @@ def price_forward_centered(
     moment ODE and the PDE, so ``E^Q[P_t] = F(t)`` is preserved by
     construction.  ``eta_ij=None`` (default) reproduces the shipped
     physical-generator run bit-for-bit.
+
+    ``allow_constant_transition_scenario`` (FW12b) is a required
+    opt-in for the *constant-transition limit* where ``z(t-1) = 0``
+    for every t; the shipped model is TVTP, so any caller who wants
+    the constant-transition run must say so explicitly.  With
+    ``z_lagged_fn=None`` and ``covariate_path=None`` and this flag
+    False, the pricer raises rather than silently defaulting to
+    z = 0 (see FW12b for the audit that motivated this).
     """
     gs = grid_settings or ResidualGridSettings()
     tgrid = TimeGrid(contract.valuation_utc, contract.maturity_utc,
                      gs.n_steps(contract.tau_hours))
     t = tgrid.times_hours
-    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path)
+    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path,
+                                      allow_constant_transition_scenario)
 
     f_path = model.forward_at(t)
     sig_path = model.spec.sigma_price(f_path)               # (2, n)
@@ -874,6 +916,7 @@ def simulate_forward_centered(
     z_lagged_fn=None,
     covariate_path: Optional[Any] = None,
     eta_ij: Optional[Sequence[float]] = None,
+    allow_constant_transition_scenario: bool = False,
 ) -> Dict[str, float]:
     """Time-discretized Monte Carlo cross-check of the residual PDE.
 
@@ -892,7 +935,8 @@ The joint CTMC-OU simulation is time-discretized and converges as dt decreases. 
     n_steps = max(int(np.ceil(tau / dt_hours)), 4)
     dt = tau / n_steps
     t = np.linspace(0.0, tau, n_steps + 1)
-    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path)
+    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path,
+                                      allow_constant_transition_scenario)
 
     f_path = model.forward_at(t)
     sig_path = model.spec.sigma_price(f_path)
@@ -955,6 +999,7 @@ def simulate_residual_at_hours(
     seed: int = 20260924,
     z_lagged_fn=None,
     covariate_path: Optional[Any] = None,
+    allow_constant_transition_scenario: bool = False,
 ) -> Dict[str, Any]:
     """Monte Carlo residual X at several horizons (same scheme as the pricer).
 
@@ -975,7 +1020,8 @@ def simulate_residual_at_hours(
     idx = np.rint(hrs / dt_hours).astype(int)
     if np.max(np.abs(t[idx] - hrs)) > 1e-9:
         raise ForwardCenteredError("record_hours must be nodes of the Monte Carlo grid")
-    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path)
+    z_lag, r_lag = _solver_covariates(model, t, z_lagged_fn, covariate_path,
+                                      allow_constant_transition_scenario)
     f_path = model.forward_at(t)
     sig_path = model.spec.sigma_price(f_path)
     q01, q10 = (model.generator_path(t, z_lag) if r_lag is None

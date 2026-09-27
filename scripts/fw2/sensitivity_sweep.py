@@ -62,8 +62,9 @@ A_STRESS_VALUES = (0.0, 10.0, 25.0, 50.0)
 # eta grid: multiplicative q^Q = q^P * exp(eta).  |eta| <= 0.75 keeps
 # the intensity within a factor of ~2.1 of the physical value, well
 # inside the discrete-embedding safe zone at kappa/q of the yaml.
-# Sparse grid used for the primary table; the eta_01 * eta_10 cross-
-# product is capped at 3x3 = 9 to keep the sweep under an hour of PDE.
+# FW12b: sparse grid used for the primary table; the eta_01 * eta_10
+# cross-product is 3x3 - 1 = 8 non-baseline combinations to keep the
+# ~500-row sweep at 1201 nodes under an hour of wall clock time.
 ETA_VALUES = (-0.5, 0.0, 0.5)
 
 # joint corners used to characterise the maximum-effect envelope
@@ -98,13 +99,17 @@ class Setup:
             model.valuation_utc + pd.Timedelta(hours=int(maturity_h)),
             r_annual=R_ANNUAL,
         )
-        # smaller grid than production (601 vs 1201 nodes) -- the sweep
-        # reports RELATIVE price effects, so 601 nodes are more than
-        # enough for 2-3 sig fig deltas at 24-72 h horizons and keeps
-        # the ~500-row sweep within a few minutes of wall clock time.
+        # FW12b fix: use the PRODUCTION climatology z(t-1) path.  The
+        # original FW2 sweep called price_forward_centered without
+        # z_lagged_fn and hit the (now-removed) silent z=0 fallback,
+        # so the sensitivity numbers were measured under the constant-
+        # transition limit rather than the shipped TVTP model.
+        from scripts.fw12._shared import climatology_z_lagged_fn
+        gs = ResidualGridSettings(n_space_nodes=1201)
+        z_fn = climatology_z_lagged_fn(model, contract, gs)
         res = price_forward_centered(model, contract,
-                                     grid_settings=ResidualGridSettings(
-                                         n_space_nodes=601),
+                                     grid_settings=gs,
+                                     z_lagged_fn=z_fn,
                                      eta_ij=eta_ij)
         info = {"expected_spot_T": res.expected_spot_at_expiry,
                 "forward_T": res.forward_at_expiry,

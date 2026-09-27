@@ -177,8 +177,8 @@ def test_pde_matches_monte_carlo_at_short_horizon(model, params, fast_grid):
     T = params.valuation_utc + pd.Timedelta(hours=72)
     for otype in ("call", "put"):
         c = EuropeanOption(otype, 3000.0, params.valuation_utc, T, 0.40)
-        pde = price_forward_centered(model, c, fast_grid)
-        mc = simulate_forward_centered(model, c, n_paths=40_000, seed=11)
+        pde = price_forward_centered(model, c, fast_grid, allow_constant_transition_scenario=True)
+        mc = simulate_forward_centered(model, c, n_paths=40_000, seed=11, allow_constant_transition_scenario=True)
         z = abs(pde.value - mc["value"]) / max(mc["std_error"], 1e-12)
         assert z < 3.5, f"{otype}: PDE {pde.value} vs MC {mc['value']}+-{mc['std_error']}"
 
@@ -187,11 +187,11 @@ def test_monte_carlo_reports_seed_and_standard_error(model, params):
     T = params.valuation_utc + pd.Timedelta(hours=48)
     mc = simulate_forward_centered(
         model, EuropeanOption("call", 3000.0, params.valuation_utc, T, 0.40),
-        n_paths=20_000, seed=4242)
+        n_paths=20_000, seed=4242, allow_constant_transition_scenario=True)
     assert mc["seed"] == 4242 and mc["std_error"] > 0 and mc["n_paths"] == 20_000
     same = simulate_forward_centered(
         model, EuropeanOption("call", 3000.0, params.valuation_utc, T, 0.40),
-        n_paths=20_000, seed=4242)
+        n_paths=20_000, seed=4242, allow_constant_transition_scenario=True)
     assert mc["value"] == same["value"], "seeded Monte Carlo must be reproducible"
 
 
@@ -199,7 +199,7 @@ def test_monte_carlo_mean_price_matches_the_forward(model, params):
     T = params.valuation_utc + pd.Timedelta(hours=72)
     mc = simulate_forward_centered(
         model, EuropeanOption("call", 3000.0, params.valuation_utc, T, 0.40),
-        n_paths=60_000, seed=7)
+        n_paths=60_000, seed=7, allow_constant_transition_scenario=True)
     z = abs(mc["mean_price_T"] - mc["analytic_expected_spot_T"]) / mc["mean_price_T_se"]
     assert z < 3.5
 
@@ -208,7 +208,7 @@ def test_call_is_decreasing_in_strike(model, params, fast_grid):
     T = params.valuation_utc + pd.Timedelta(hours=72)
     vals = [price_forward_centered(
         model, EuropeanOption("call", K, params.valuation_utc, T, 0.40),
-        fast_grid).value for K in (2000., 2500., 3000., 3500., 4000.)]
+        fast_grid, allow_constant_transition_scenario=True).value for K in (2000., 2500., 3000., 3500., 4000.)]
     assert np.all(np.diff(vals) < 0)
     assert np.all(np.array(vals) >= -1e-8)
 
@@ -217,7 +217,7 @@ def test_put_is_increasing_in_strike(model, params, fast_grid):
     T = params.valuation_utc + pd.Timedelta(hours=72)
     vals = [price_forward_centered(
         model, EuropeanOption("put", K, params.valuation_utc, T, 0.40),
-        fast_grid).value for K in (2000., 2500., 3000., 3500., 4000.)]
+        fast_grid, allow_constant_transition_scenario=True).value for K in (2000., 2500., 3000., 3500., 4000.)]
     assert np.all(np.diff(vals) > 0)
     assert np.all(np.array(vals) >= -1e-8)
 
@@ -228,9 +228,9 @@ def test_put_call_parity(model, params, fast_grid):
     disc = float(np.exp(-0.40 / 8760.0 * 72.0))
     for K in (2000., 2500., 3000., 3500., 4000.):
         c = price_forward_centered(
-            model, EuropeanOption("call", K, params.valuation_utc, T, 0.40), fast_grid)
+            model, EuropeanOption("call", K, params.valuation_utc, T, 0.40), fast_grid, allow_constant_transition_scenario=True)
         p = price_forward_centered(
-            model, EuropeanOption("put", K, params.valuation_utc, T, 0.40), fast_grid)
+            model, EuropeanOption("put", K, params.valuation_utc, T, 0.40), fast_grid, allow_constant_transition_scenario=True)
         assert abs((c.value - p.value) - disc * (c.forward_at_expiry - K)) < 1e-4
 
 
@@ -239,7 +239,7 @@ def test_payoff_uses_the_price_not_the_residual_state(model, params, fast_grid):
     T = params.valuation_utc + pd.Timedelta(hours=24)
     v = price_forward_centered(
         model, EuropeanOption("call", 5.0e4, params.valuation_utc, T, 0.40),
-        fast_grid).value
+        fast_grid, allow_constant_transition_scenario=True).value
     assert 0.0 <= v < 1e-3
 
 
@@ -256,7 +256,7 @@ def test_option_is_on_the_expiry_hour_spot_not_a_monthly_average(model, params,
     T = q.delivery_start_utc + pd.Timedelta(hours=360)
     res = price_forward_centered(
         model, EuropeanOption("call", 2900.99, params.valuation_utc, T, 0.40),
-        fast_grid)
+        fast_grid, allow_constant_transition_scenario=True)
     f_hour = float(model.curve.values.reindex([T]).iloc[0])
     assert abs(res.forward_at_expiry - f_hour) < 1e-6
     assert abs(res.forward_at_expiry - q.price_TRY_MWh) > 1e-6
@@ -267,7 +267,7 @@ def test_grid_boundary_guard(model, params):
     tight = ResidualGridSettings(n_space_nodes=101, x_min=1.0e5, x_max=1.1e5)
     with pytest.raises(ForwardCenteredError, match="too close to the residual grid"):
         price_forward_centered(model, EuropeanOption(
-            "call", 3000.0, params.valuation_utc, T, 0.40), tight)
+            "call", 3000.0, params.valuation_utc, T, 0.40), tight, allow_constant_transition_scenario=True)
 
 
 def test_spec_rejects_inverted_regime_volatilities():
