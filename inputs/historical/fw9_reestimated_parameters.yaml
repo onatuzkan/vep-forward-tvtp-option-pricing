@@ -1,0 +1,64 @@
+# =============================================================================
+# FW9 self-estimated MS-AR(1) TVTP parameters (CANDIDATE; not for production)
+# =============================================================================
+# Consistent parameter set assembled from the FW9b work package:
+#   * sigmas / alphas / gammas: profile fit at phi = argmax with proper SEs
+#     (outputs/fw9_self_estimation/profile_phi_TVTP_1cov_argmax.pkl)
+#   * phi and kappa: from the deseasonalised single-regime AR(1) fit
+#     (outputs/fw9_self_estimation/deseasonalized_ar1.json)
+# The frozen production yaml at inputs/historical/m2_frozen_parameters.yaml
+# is UNCHANGED; this file is an audit artefact of the FW9b re-estimation.
+# =============================================================================
+description: "FW9b independent re-estimation with proper boundary handling and object-matched inheritance"
+model: "MS-AR(1) with TVTP; 1 covariate = RD_lag1; index 0 = normal, index 1 = stress"
+
+scale_P: 282.48                # inherited yaml value; FW9 diagnoses window sensitivity
+
+# --- mean reversion (from the deseasonalised AR(1) fit, FW9 §2) ------------
+phi: 0.9834248395
+kappa_per_hour: 0.0167140656
+half_life_hours: 41.470890
+
+# --- regime volatilities (profile fit at phi=argmax, FW9 §1c) --------------
+sigma_y_normal: 0.0070502873
+sigma_y_stress: 0.2415162450
+
+# --- TVTP logistic transition coefficients (profile fit) -------------------
+tvtp:
+  alpha01: -0.6781208671
+  gamma01: -0.4435903849
+  alpha10: -1.6511023843
+  gamma10: 0.1758777326
+  covariate: RD_WS_standardized_lag1h
+  placeholder: false
+
+# --- boundary flag ---------------------------------------------------------
+# phi_MS_AR from the free-phi MLE lands on the unit-root boundary in every start.
+# The value shipped in this candidate yaml is the DESEASONALISED phi, which sits
+# in the interior and has a proper Hessian-based standard error.
+boundary_flags:
+  phi_MS_AR_boundary: true
+  phi_deseasonalized_boundary: false
+
+# --- provenance ------------------------------------------------------------
+provenance:
+  sigmas_source: profile fit at phi=argmax (FW9b §1c)
+  alphas_source: MLE at phi=argmax profile node (FW9b §1c)
+  gammas_source: MLE at phi=argmax profile node (FW9b §1c)
+  phi_source: deseasonalised single-regime AR(1) (FW9b §2)
+  kappa_source: transformed from deseasonalised phi
+  n_obs: 61368
+  estimation_window_start_utc: "2018-12-31T21:00:00+00:00"
+  estimation_window_end_utc: "2025-12-31T20:00:00+00:00"
+  provenance_tag: Calibrated (FW9b independent MLE)
+
+standard_errors:
+  mu_normal_se: 5.430418e-05
+  mu_stress_se: 1.220471e-03
+  sigma_normal_se: 6.241626e-05
+  sigma_stress_se: 8.822320e-04
+  phi_deseasonalized_se: 7.315308e-04
+  alpha01_se: 1.864151e-02
+  gamma01_se: 1.589354e-02
+  alpha10_se: 1.704236e-02
+  gamma10_se: 1.534512e-02

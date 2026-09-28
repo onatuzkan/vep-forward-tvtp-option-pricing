@@ -1,0 +1,16 @@
+{
+  "fw9_terminal_filtered": {
+    "normal": 0.9833791189299227,
+    "stress": 0.016620881070077368
+  },
+  "yaml_pi_filtered": {
+    "normal": 0.931977,
+    "stress": 0.068023
+  },
+  "m9_stationary_pi": {
+    "normal": 0.325422,
+    "stress": 0.674578
+  },
+  "terminal_ts_utc": "2025-12-31 20:00:00+00:00",
+  "n_obs": 61368
+}

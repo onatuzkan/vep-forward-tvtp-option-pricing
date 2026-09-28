@@ -1,0 +1,4 @@
+residual_definition,kappa_min,kappa_max,yaml_kappa,yaml_inside
+R1_asinh_raw,0.016729234416439316,0.019598854900592787,0.078394,False
+R2_TRY_minus_monthly,0.2049615156831227,0.22463384763279126,0.078394,False
+R3_asinh_minus_how_clim,0.016228055444381467,0.01672923441643819,0.078394,False

@@ -1,0 +1,17 @@
+{
+  "phi": 0.983424839476413,
+  "c": 0.03293399261151452,
+  "sigma_eps": 0.1719955795167035,
+  "se_phi": 0.0007315307873750671,
+  "se_c": 0.0016092738546104395,
+  "n": 61367,
+  "loglik": 20947.50086140068,
+  "AIC": -41889.00172280136,
+  "BIC": -41861.927840270255,
+  "kappa_per_hour": 0.01671406555126677,
+  "half_life_hours": 41.4708903967061,
+  "yaml_phi": 0.9246,
+  "yaml_kappa_per_hour": 0.078394,
+  "yaml_half_life_hours": 8.842,
+  "pipeline": "hour-of-week + month-of-year additive seasonal dummies on y = asinh(PTF/scale_P); AR(1) on the residual (OLS)"
+}

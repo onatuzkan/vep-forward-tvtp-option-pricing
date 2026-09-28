@@ -180,3 +180,43 @@ to worry about UNLESS an eta is so large that a downstream discrete
 recovery of p^Q(dt) via `generator_to_probs` blows past s^Q = 1; that
 is a numerical guardrail only, not a modelling constraint, and is
 enforced in `probs_to_generator`'s existing `on_nonembeddable=` hook.
+
+## Reconciling FW2 (Q2 envelope) with FW9 (transition-coefficient uncertainty)
+
+FW2's Q2 envelope reports the ATM 72 h call moving by up to +/-46 %
+under `|eta|=0.75` shifts of the generator intensities.  FW9c's
+parameter-wise decomposition of the FW9-vs-production gap reports
+that FW9's alpha/gamma differences from the yaml move the same
+call by only +3.75 TRY (a 2.2 % price change, 0.4 % of the total
+FW9-vs-production gap).  These two findings look like they conflict,
+but they are BOTH consequences of the same first-order sensitivity;
+the difference is the SIZE of the intervention.
+
+Quantitatively, at the climatology z = 0:
+
+* Yaml intensities: `p01 = 0.2659, p10 = 0.1307`, `s = 0.3965`.
+* FW9 intensities: `p01 = 0.3367, p10 = 0.1610`, `s = 0.4976`.
+* FW9 -- yaml is `delta_p01 = +0.071` (about +27 % of the base),
+  driven by `delta_alpha01 = +0.34` (log-odds shift).
+* An FW2 `eta_01 = +0.75` shift multiplies the CONTINUOUS-TIME
+  intensity `q_01` by `exp(0.75) = 2.12x` -- a two-fold shift.
+
+So the FW2 tested envelope is roughly **~2.2x larger in log-space
+than the FW9 uncertainty band** on the same coefficient, and the
+resulting price move is proportionately larger.  There is no
+contradiction: **the option price is LOCALLY insensitive to
+transition parameters in the FW9 estimation-uncertainty band (a
+0.4 % share of the FW9-vs-production gap) but GLOBALLY sensitive
+to large scale shifts (the +/-46 % FW2 envelope at |eta|=0.75)**.
+The linearisation in Proposition 2 predicts this scaling: the
+first-order coefficient `dVar / d eta_ij` is a fixed number; the
+price response scales with the intervention size.
+
+The consequence for the paper is that both statements are true and
+belong in different sections: FW9's small transition-parameter effect
+belongs where the manuscript reports parameter uncertainty; FW2's
+Q2 envelope belongs where the manuscript reports the risk-neutral-
+measure uncertainty band (a scale of intervention that FW9's fit
+does not restrict, precisely because Q2 shifts are not identified
+from the physical-measure MLE).
+

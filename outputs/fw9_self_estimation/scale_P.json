@@ -1,0 +1,10 @@
+{
+  "yaml_scale_P_TRY_MWh": 282.48,
+  "fw9_median_abs_PTF_full_window_TRY_MWh": 1399.99,
+  "fw9_deflated_median_abs_PTF_base_2025_12_TRY_MWh": 3092.0543271883007,
+  "window_start_utc": "2018-12-31 21:00:00+00:00",
+  "window_end_utc": "2025-12-31 20:00:00+00:00",
+  "n_obs": 61368,
+  "deflation_base_month": "2025-12-01",
+  "cpi_source": "TP.GENENDEKS.T1 (TUIK, base 2003=100)"
+}
