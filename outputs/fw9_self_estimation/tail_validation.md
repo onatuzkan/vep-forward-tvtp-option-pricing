@@ -1,5 +1,15 @@
 # FW9f section 4 -- Fast tail and quantile validation
 
+**Note on the 2025 sd_TRY = 531 figure and the difference from
+`stationary_variance_check.md` (624).**  The 531 value used here is
+the observed A3 TRY residual computed with an hour-of-week
+climatological shape estimated **from 2025 alone**;
+`stationary_variance_check.md` reports 624 with the hour-of-week
+shape pooled over **2019-2025**.  Both are legitimate constructions
+of the observed sd; production 582.5 sits between them (9.7 pct
+above 531, 6.7 pct below 624).  The choice of shape window is what
+moves the observed sd, not a change in the residual definition.
+
 Observed 2025 A3 TRY residual: n = 8757, mean = -0.00, std = 531.00
 
 Model-implied stationary residual: single long-path simulation of the MS-AR(1) plus TVTP process at 1 h step; each path n = 2000000 hours after 10000 h burn-in; climatology z_lag cycled hourly; asinh residual mapped to TRY via delta = sqrt(F^2 + s_P^2) = 2931.42 at F = 2917.78 TRY/MWh.

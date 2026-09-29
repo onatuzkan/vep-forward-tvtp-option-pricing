@@ -1,0 +1,4 @@
+subset,contract_day_pairs,nonzero_changes,share_nonzero,contracts,median_distinct_prices_per_contract
+all contracts 2022-2026,6893,584,0.08472363267082547,62,2.0
+delivery year 2026,1354,14,0.0103397341211226,12,2.0
+quotation dates in 2026,964,6,0.006224066390041493,14,2.0

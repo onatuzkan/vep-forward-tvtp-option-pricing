@@ -1,5 +1,16 @@
 # FW9e §3 -- Stationary variance check (regime-mixture aware)
 
+**Note on the 2025 sd_TRY = 624 figure and the difference from
+`tail_validation.md` (531).**  The 624 value used here is the observed
+A3 TRY-scale residual computed with a **hour-of-week climatological
+shape pooled over 2019-2025**; the `tail_validation.md` value 531 uses
+a hour-of-week shape estimated **from 2025 alone** (a shape closer
+to the realised 2025 mix).  Both are legitimate constructions of the
+observed sd; production 582.5 sits between them (9.7 pct above 531,
+6.7 pct below 624).  The choice of shape window is what moves the
+observed sd, not a change in the residual definition.
+
+
 Production parameters imply a stationary residual dispersion
 in the asinh scale computed as:
 ```
