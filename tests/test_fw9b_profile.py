@@ -81,21 +81,32 @@ def test_boundary_rows_do_not_report_se():
 
 @pytest.mark.skipif(not (OUT / "deseasonalized_ar1.json").exists(),
                     reason="run scripts/fw9/deseasonalized_ar1.py first")
-def test_deseasonalized_ar1_reproducibility_and_finite_output():
-    """Two calls to the OLS AR(1) on the same input produce identical
-    numbers -- the fit is deterministic."""
-    import subprocess, sys as _sys
-    r1 = subprocess.run([_sys.executable, "scripts/fw9/deseasonalized_ar1.py"],
-                        cwd=str(REPO_ROOT), capture_output=True, text=True)
-    assert r1.returncode == 0, r1.stderr
-    payload = json.loads((OUT / "deseasonalized_ar1.json").read_text())
-    for k in ("phi", "kappa_per_hour", "half_life_hours", "se_phi",
-              "loglik", "AIC", "BIC"):
-        assert k in payload
-        assert np.isfinite(payload[k])
-    assert 0 < payload["phi"] < 1
-    assert payload["kappa_per_hour"] > 0
-    assert payload["half_life_hours"] > 0
+def test_deseasonalized_ar1_reproducibility_and_finite_output(tmp_path):
+    """The OLS AR(1) on the same input is deterministic.  Redirect the
+    subprocess output into tmp_path so the persistent artefact under
+    outputs/fw9_self_estimation/ is not rewritten during pytest."""
+    import shutil
+    import subprocess
+    import sys as _sys
+
+    persistent = OUT / "deseasonalized_ar1.json"
+    backup = tmp_path / "deseasonalized_ar1.persisted_backup.json"
+    shutil.copyfile(persistent, backup)
+    try:
+        r1 = subprocess.run(
+            [_sys.executable, "scripts/fw9/deseasonalized_ar1.py"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True)
+        assert r1.returncode == 0, r1.stderr
+        payload = json.loads(persistent.read_text())
+        for k in ("phi", "kappa_per_hour", "half_life_hours", "se_phi",
+                  "loglik", "AIC", "BIC"):
+            assert k in payload
+            assert np.isfinite(payload[k])
+        assert 0 < payload["phi"] < 1
+        assert payload["kappa_per_hour"] > 0
+        assert payload["half_life_hours"] > 0
+    finally:
+        shutil.copyfile(backup, persistent)
 
 
 @pytest.mark.skipif(not (OUT / "price_impact_v2_grid.csv").exists(),

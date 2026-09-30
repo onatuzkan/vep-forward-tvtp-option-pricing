@@ -1,5 +1,6 @@
 # Runtime dependencies for the forward-centered PDE option model.
-# Pinned to the versions the current test suite (172 passed) is verified against.
+# Versions pinned to what the shipped test suite is verified against;
+# the pytest run itself reports the live pass count at the bottom.
 numpy==1.26.4
 pandas==2.3.3
 scipy==1.16.2
@@ -7,3 +8,6 @@ matplotlib==3.10.7
 PyYAML==6.0.3
 # Required by pandas.DataFrame.to_markdown() (calibration_audit.md writer).
 tabulate==0.9.0
+# Required by pandas.read_excel() for the TUIK CPI .xlsx feed used by
+# scripts/fw2/ (ex-post premium panel) and its tests.
+openpyxl==3.1.5

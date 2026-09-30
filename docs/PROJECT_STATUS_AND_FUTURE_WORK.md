@@ -1,367 +1,254 @@
 # Project Status and Roadmap
 
-Living document.  This is the **single source of truth** for both the
-team and future sessions: check a box (`[ ]` → `[x]`) as each item lands,
-and add commit hashes for completed work.  Faz 1 and Faz 2 are done;
-Faz 3 (manuscript) is in progress; Faz 4 (advisor outreach) and Faz 5
-(post-manuscript / advisor-directed work) are queued.
+Living document. Single source of truth on the status of every work
+package. Numbers cited here come from the tracked artefacts under
+`outputs/`; the CLAUDE.md guardrails on the accepted output trees
+still apply.
 
----
+## Model in one paragraph
 
-## Faz 1 — Foundational Correctness (COMPLETED)
+European option on the expiry-hour Turkish day-ahead price (PTF,
+TRY/MWh), valued 2025-12-31 20:00 UTC. Price level pinned to the
+EPIAS VEP monthly baseload strip (smooth constrained KKT curve,
+exact to 1e-12); residual around that curve follows a two-regime
+TVTP Markov-switching OU with parameters inherited from the M9 fit
+of the historical hourly PTF series and reconciled to the (P - F)
+deseasonalized single-regime persistence by the v2-kappa refit
+(`phi = 0.9246`, `kappa_per_hour = 0.078394`, half-life 8.84 h).
+Pricing engine is a coupled Crank-Nicolson PDE with a Monte Carlo
+cross-check. Every price is labelled *VEP-forward-curve anchored*:
+only the first moment is market-identified; volatility and
+regime-transition risk premia are not.
 
-Baseline pipeline, repo hygiene, and correctness fixes that make the
-project reproducible on any developer machine without regressions.
+## Status by work package
 
-- [x] **F1.1 Handoff baseline** — accepted forward-curve calibration
-  (six VEP monthly quotes reproduced to solver precision; near-term
-  anchor by `spot_to_next_linear`), 154 tests passing.  Commit
-  `e019439`.
-- [x] **F1.2 Repo reorganisation** — flat top-level layout, `.gitignore`
-  added, source zip removed from tracking, docs consolidated under
-  `docs/`.  Commit `aec36eb`.
-- [x] **F1.3 Windows UTF-8 encoding fix + near-term anchor sensitivity
-  methodology rewrite** — Turkish locale (cp1254) failures on
-  `Path.read_text` / `Path.write_text` closed by explicit
-  `encoding="utf-8"`; `near_term_anchor_sensitivity()` switched from a
-  flat `explicit_level` sweep to the production `spot_to_next_linear`
-  ramp so the table matches the anchor mode actually shipped.  Commit
-  `72ceea2`.
-- [x] **F1.4 Professional repo cleanup** — dead backup files removed
-  (`forward_calibration_backup.py`, `forward_centered_before_*.py`),
-  dev / derivation scripts moved to `scripts/dev_checks/` and
-  `scripts/tvtp_derivation/`, `.gitignore` UTF-16 artefact corrected,
-  `README.md` upgraded to professional standard, `requirements.txt`
-  and `requirements-dev.txt` pinned to test-verified versions.  Commit
-  `07c587a`.
+### FW1: kappa refit on (P - F) residuals directly (DONE, promoted to production)
 
----
+Yaml `phi`, `kappa_per_hour` and `half_life_hours` were reconciled
+from the raw asinh(PTF) within-regime persistence (`phi = 0.999996`,
+half-life about 19 y) to the deseasonalized single-regime AR(1)
+appropriate for the (P - F) residual (`phi = 0.9246`,
+`kappa_per_hour = 0.078394`, half-life 8.84 h). Pre-refit yaml
+archived to `inputs/historical/archive/m2_frozen_parameters.PRE_V2_KAPPA_REFIT.yaml`.
+The 2026-backtest `model_over_realized_ratio` moved from 7-13x
+(pre-v2) to 0.35-0.97 (v2). Full v2 residual stack (two-factor
+MS-AR(1) plus slow daily AR, level-scale factors, cap and floor)
+is NOT integrated into the single-OU yaml; only the kappa was
+promoted. Commit `e1140a2`. Outputs under
+`outputs/market_calibration_final/` (accepted).
 
-## Faz 2 — Option Pricing Engine (COMPLETED)
+### FW2: risk-premium wiring (Q1 drift, Q2 transition) and identifiability envelope (DONE)
 
-TVTP integration, risk-neutral wiring, comprehensive sensitivity /
-robustness analyses, realized-data backtest.  Everything the paper's
-"Model" and "Results" sections need to reference exists on `main`
-under `outputs/market_calibration_final/`.
+`price_forward_centered(..., eta_ij=...)` and the Q1 CLI flags
+`--risk-premium-a0`, `--risk-premium-a1` are wired end-to-end;
+`E^Q[P_t] = F(t)` is preserved by construction. Multiplicative Q2
+form guarantees generator validity. The ex-post forward-premium
+panel uses the 7 tracked VEP snapshots against realised hourly PTF,
+look-ahead-guarded to 2025-12-31 20:00 UTC. Panel size is `n_obs
+= 5-6` per horizon; pooled mean about 625 TRY/MWh; block-bootstrap
+SEs 280-530 TRY/MWh. Identifiability is derived in
+`docs/fw2_risk_premium_identification.md`: Q1 is O(a^2) in the
+terminal variance, Q2 is O(eta), so Q2 is a priori more powerful.
+The FW2 §4 sweep (480 rows) at the empirical upper bounds moves
+the 72 h call at K = 3000 by up to +5.7 % under Q1 alone (`a_stress = 50`),
++21 % to -30 % under Q2 alone (`|eta| = 0.5`), and +29 % at the joint corner `(a_stress = 50, eta = (+0.75, -0.75))`. Production `(a, eta) = (0, 0)` retained; the
+sweep is the manuscript's risk-premium uncertainty band. Outputs
+under `outputs/fw2_risk_premium/`.
 
-### Core parameter integration
+### FW3: closed-form benchmarks (Black-76, Bachelier, Lucia-Schwartz) (DONE)
 
-- [x] **F2.1 TVTP M9 integration** —
-  `inputs/historical/m2_frozen_parameters.yaml` now carries the M9 fit
-  under the yaml regime-label convention (`index 0 = normal`,
-  `index 1 = stress`).  Sigmas and gammas are the raw M9 numbers; the
-  missing `alpha01` / `alpha10` intercepts are DERIVED by root-finding
-  on the reported M9 mean-duration diagnostics
-  (`scripts/tvtp_derivation/derive_tvtp_parameters.py`; full write-up
-  in `docs/tvtp_derivation_methodology.md`).
-  `--pi-override {filtered,stationary}` added to the `price` CLI so the
-  M2-sourced `pi_filtered` is switchable to the M9 stationary occupancy
-  for short-horizon work.  Placeholder-keyword detector strengthened in
-  `params_frozen.py`.  Model_limitations items (a)-(e) auto-generated
-  thereafter.  Commit `59955ee`.
-- [x] **F2.2 Sigma-dependent diagnostic regeneration + sensitivity
-  z-path alignment + source-zip archival** — every artefact that
-  depended on the OLD placeholder sigmas rebuilt under the M9 yaml
-  (`outputs/forward_centered_diagnostics/`,
-  `legacy_vs_forward_centered`, `inputs/legacy_reference/`).
-  `near_term_anchor_sensitivity` now uses the same climatology z path
-  as `run_pde.py price`, so the sensitivity base row reproduces the
-  72 h benchmark (677.23 TRY/MWh) to solver precision.  Raw M9 zip
-  archived at `inputs/historical/archive/calibration_bundle/`.  Commit
-  `7986b44`.
-- [x] **F2.3 `phi` reconciliation with the M9 CSV row** — the yaml
-  carried `phi = 0.99961485` (kappa = 3.85e-4 /h, half-life ~1799 h)
-  inherited from the metadata `physical_measure_parameters` fallback
-  block (a different model, `M2_tvtp_TVTP-1`), while the shipped
-  `parameter_estimates.csv` assigns both M9 and M8 the same
-  `phi ≈ 0.999996` (kappa 4.11e-6/h, half-life ~19 years — essentially
-  a random walk on the transformed variable).  Yaml updated to the M9
-  CSV value; `kappa_per_hour` and `half_life_hours` re-derived; pre-fix
-  yaml archived to
-  `inputs/historical/archive/m2_frozen_parameters.PRE_PHI_FIX.yaml`.
-  All sigma-dependent artefacts regenerated; M8-vs-M9 robustness gap
-  preserved (~-0.60 % at every maturity), confirming the sigma-
-  difference finding is kappa-independent.  Test thresholds updated
-  for the new near-unit-root regime.
+Three benchmarks priced on the SAME F2.8 (K, T) grid (11 strikes
+by 6 maturities), the SAME F(T) and the SAME discount factor as the
+accepted PDE. Historical vol from real EPIAS PTF 2019-2025 (no
+look-ahead past 2025-12-31 20:00 UTC): hourly log-return sample
+gives 0.306 per sqrt(h) (annualised 28.64); daily log-return
+sample gives 0.0351 per sqrt(h) (annualised 3.28), PRIMARY input
+for Black-76; daily abs-return gives 78.07 per sqrt(h), PRIMARY
+input for Bachelier. Lucia-Schwartz sigma and kappa come from the
+yaml (M9 sigmas pooled by stationary occupancy, v2 kappa), not
+re-fitted. Model-implied Black-76 ATM IV drops from 3.29 at 24 h
+to 0.61 at 720 h, a mild negative smile at every maturity. Realized
+2026 discounted-payoff backtest (66 contracts): Model MAE 151, B3
+Lucia-Schwartz 157, B2 Bachelier 272, B1 Black-76 369 TRY/MWh. B3
+is within one std_error of the model; B1 and B2 are about two
+times worse. See `docs/fw3_benchmark_methodology.md` and
+`outputs/fw3_benchmarks/`.
 
-### Risk-neutral measure
+### FW4: two-covariate TVTP (experimental) and FW4-P ramp price impact (DONE, experimental)
 
-- [x] **F2.4 Risk-neutral Q1 drift channel wired** — `ResidualSpec`
-  grows an optional `drift_shift_per_hour`; the term enters the moment
-  ODE (`+ a_i p_i` on `u_i'`, `+ 2 a_i u_i` on `w_i'`), the pricing PDE
-  stencil (`+ a_i` on the drift row), and the MC simulator (effective
-  mean `m_eff_i = m_i + a_i/κ`).  Symmetric wiring preserves
-  `E^Q[P_t] = F(t)` exactly (verified by
-  `test_q1_drift_shift_preserves_centering`; three parametrised
-  `(a_0, a_1)` cases).  New CLI flags `--risk-premium-a0` and
-  `--risk-premium-a1` on `price`, default `(0, 0)` = physical measure =
-  every prior benchmark reproduced bit-for-bit.  Log-log diagnostic
-  confirmed the O(a²) scaling of the variance channel to 4 significant
-  digits.  Model_limitations item (f) auto-generated; full methodology
-  in `docs/risk_neutral_methodology.md`.  Commit `53adf35`.
+FW4 added an experimental `rd_ramp_2d_experimental` mode with
+M9-transferred slopes and a reconstructed ramp; the original ramp
+definition could not be located in the shipped bundle, so the
+build is labelled reconstruction throughout. FW9 then jointly
+re-estimated the two-covariate TVTP on raw asinh(PTF) and produced
+its own ramp series and slopes (`outputs/fw9_self_estimation/TVTP_2cov.pkl`;
+LR = 869.93 df = 2 versus one-covariate). The fit is at the unit
+root (`phi = 0.9999987`, half-life about 62 y) and did not meet
+gradient tolerance (gradient norm 96.6 at n = 61 368), so the ramp
+slopes carry no interpretable standard error. FW4-P priced the FW9
+ramp channel with occupancy held fixed: at 72 h K = 3000 the ramp
+effect is -1.042 % of the option value (versus -1.010 % from the
+FW4 reconstructed ramp). Ramp remains experimental; default TVTP-1
+mode is unchanged. Outputs under `outputs/tvtp2_experimental/` and
+`outputs/fw4p_ramp_price_impact/`.
 
-### Sensitivities, robustness and comparisons
+### FW5: real-terms scale_P (DONE inside FW9)
 
-- [x] **F2.5 Pooled-baseline vs M9 comparison** — 4-maturity call sweep
-  showing regime-conditioning changes option prices by 38-49 % vs a
-  single-volatility baseline; see
-  `outputs/market_calibration_final/model_comparison_pooled_vs_M9.md`.
-- [x] **F2.6 M8 vs M9 robustness check** — swapping to the top-2
-  alternative model's sigmas moves the 24 / 72 / 168 / 336 h call by
-  <1 % despite a large in-sample BIC gap; see
-  `outputs/market_calibration_final/model_robustness_M8_vs_M9.md`.
-- [x] **F2.7 Discount-rate (r_annual) sensitivity** — sweep at
-  `r_annual ∈ {0.15, 0.25, 0.30, 0.40, 0.50, 0.60}` at 24 / 72 / 336 h
-  shows <2 % impact on call value across the range; the flat-rate
-  assumption is non-critical at target maturities.  See
-  `outputs/market_calibration_final/discount_rate_sensitivity.md`.
-- [x] **F2.8 Strike × maturity option-value grid** — 66-point PDE
-  sweep (11 strikes × 6 maturities) + companion put pricings.  Two
-  heatmaps produced (raw call value and moneyness-normalised) with the
-  F(T) contour overlaid.  Put-call parity max error 1e-6 TRY/MWh.  See
-  `outputs/market_calibration_final/strike_maturity_grid.md`.
-- [x] **F2.9 Realized-PTF 2026 backtest** — hourly forward curve
-  compared against realised EPİAŞ PTF over 2025-12-31 → 2026-07-31
-  (5089 matched hours).  Overall MAE 1312 TRY/MWh, mean bias
-  −1019 TRY/MWh; realised prices systematically 39 % below forward.
-  Independently cross-checked against Turkish energy-sector press.
-  See `outputs/market_calibration_final/realized_2026_backtest.md`.
-- [x] **F2.10 Half-life reconciliation** — theoretical + numerical
-  (200 kh simulation) analysis showing the "19 yr vs 8.84 h"
-  discrepancy is a variable mismatch (raw `asinh(PTF)` vs
-  deseasonalised residual), not a bug; identifies the model's
-  inheritance of the raw-y kappa as the likely root cause of the
-  7-13× variance overshoot found in F2.9.  See
-  `outputs/market_calibration_final/half_life_reconciliation.md`.
+The documented scale definition applied to 2019-2025 gives 1 399.99
+TRY/MWh against the shipped 282.48, and 3 092.05 on the CPI-deflated
+series with base 2025-12. On the deflated series the regime sigmas
+fall by 22 to 33 %. The shipped value is consistent with an
+early-window median, but its reference window is not shipped. See
+items (c) and (h) of `model_limitations.md` and
+`outputs/fw9_self_estimation/scale_P.json`.
 
-### Documentation
+### F2.5 (predecessor of FW6a): WITHDRAWN
 
-- [x] **F2.11 Model limitations documentation** — items (a) through
-  (h) auto-generated by `_limitations_markdown` on every
-  `calibrate-market` run, covering: derived intercepts (a),
-  omitted-variable risk (b), unverifiable `scale_P` (c), regime-label
-  swap (d), M2-sourced `pi_filtered` (e), uncalibrated Q1 flags (f),
-  half-life reconciliation status (g), and the `scale_P` /
-  TRY-depreciation window mismatch (h).
+The pooled-vs-M9 comparison in
+`outputs/market_calibration_final/model_comparison_pooled_vs_M9.md`
+compared a pooled single-sigma OU against the two-regime TVTP with
+DIFFERENT sigmas on the two sides, so the reported 38 to 50 % gap and
+the term-structure spread conflate a regime-conditioning channel
+with a sigma-level channel. Under the v2 kappa the M9-vs-pooled
+contrast collapses to a nearly flat -53 % across 24 to 336 h. The effect of the regime mixture, measured at equal stationary variance, is about -9 % on the 72 h call at K = 3000 (FW9 round f). The F2.5 files are left untouched inside the accepted
+output tree; the withdrawal is recorded here and in
+`outputs/market_calibration_final/model_limitations.md`. See
+`outputs/f25_v2_kappa/FW6a_report_TR.md` for the full rebuild.
 
-- [x] **F2.12 v2 kappa refit — production integration (2026-09-13)** —
-  the residual OU rate in `inputs/historical/m2_frozen_parameters.yaml`
-  was reconciled from the raw-`asinh(PTF)` within-regime persistence
-  (phi=0.999996, half-life ~19 y) to the deseasonalized single-regime
-  persistence appropriate for the (P-F) residual
-  (phi=0.9246, kappa=0.0784/h, half-life 8.84h).  Pre-refit yaml
-  archived to
-  `inputs/historical/archive/m2_frozen_parameters.PRE_V2_KAPPA_REFIT.yaml`.
-  Legacy reference regenerated; pre-refit snapshot archived to
-  `inputs/legacy_reference/archive/legacy_model_implied_forwards.PRE_V2_KAPPA_REFIT_ERA.json`.
-  Five kappa-dependent parameter-value tests updated to the new regime;
-  three model-logic invariants (put-call parity, `E^Q[P_t]=F(t)`,
-  variance-channel theta-invariance) left untouched.  Test suite: 207
-  passing.  Numerical impact vs pre-refit:
-    * 72h K=3000 PDE call: 687.04 -> 166.75 TRY/MWh (-75.7%)
-    * 72h residual sd: 1838.3 -> 532.3 TRY/MWh (-71.0%)
-    * MC P(P_T<0): 0.0551 -> 0.0000 (variance no longer over-wide
-      enough to push simulated prices into negative territory)
-    * 2026-backtest `model_over_realized_ratio`: 7.00-12.58 (v1) ->
-      0.35-0.97 (v2, one order of magnitude improvement; monthly
-      residual std now O(1) x realized instead of 7-13x wide)
-    * M8-vs-M9 gap: -0.60% (v1) -> -0.70% (v2), preserved -- confirms
-      the finding is kappa-independent
-    * F(T) unchanged (VEP quotes preserved exactly, as required)
-  Scope note: v2 also fits a two-factor residual (fast MS-AR(1) + slow
-  daily AR) and level-scale factors, which are NOT integrated into the
-  single-OU yaml/ForwardCenteredModel; full v2 integration remains a
-  Faz 5+ item.  The refit closes the "7-13x overshoot" documented in
-  the 2026 backtest (F2.9) and the half-life reconciliation (F2.10).
+### FW6a: F2.5 rebuild under the v2 kappa (DONE)
 
----
+Independent reproduction of the F2.5 comparison under the shipped
+v2 kappa. Verified line for line against both eras (pre-v2 markdown
+and current CSV). Findings: (i) the term-structure spread the
+original F2.5 attributed to regime conditioning is a pre-v2 kappa
+artefact; (ii) most of the remaining flat -53 % gap is a sigma
+level difference between M0 and M9 estimates, not the value of
+regime conditioning; (iii) `E^Q[P_t] = F(t)` holds at machine
+precision in every variant. See `outputs/f25_v2_kappa/`.
 
-## Faz 3 — Manuscript Writing (COMPLETED)
+### FW6b: dropped
 
-Preprint draft assembled from the Faz 2 analyses under `paper/`
-(elsarticle, pdfLaTeX, 10 body sections + 3 appendices, ~9 750 words,
-11 figures, 6 tables, 42 bibliography entries).  Compiled PDF committed
-as `paper/Uzkan_Sacli_2026_forward_anchored_option_valuation_v1.pdf`.
-The naming convention (`Uzkan_Sacli_2026_..._v<N>.pdf`) is documented
-in `paper/README.md`; bump `<N>` on every material revision.
+Superseded by FW10b, which covers the same out-of-sample validation
+territory with a stricter day-ahead timing rule and the production
+HPFC-shaped forward curve.
 
-- [x] **W1 Literature review and positioning** — 42 references cited
-  in `paper/refs.bib`, drawing on Deng (2000), Huisman & de Jong,
-  Janczura & Weron, Benth et al. and the Turkish / EPİAŞ-specific
-  literature where relevant.  Positioning claim distilled into the
-  abstract and Section 1.
-- [x] **W2 Manuscript outline** — 10 body sections (introduction,
-  market data, forward curve, residual dynamics, valuation, provenance,
-  results, discussion, limitations, conclusion) plus appendices A-C
-  (moment ODE, transition intensities, numerics).  Section files under
-  `paper/sections/`.
-- [x] **W3 Methodology section** — `sections/03-forward-curve.tex` +
-  `sections/04-residual-dynamics.tex` + `sections/05-valuation.tex` +
-  appendices A (moment ODE) and B (transition intensities), sourced
-  from `docs/tvtp_derivation_methodology.md`, `docs/risk_neutral_methodology.md`
-  and the module docstrings.
-- [x] **W4 Results section** — `sections/07-results.tex` (~30 pages)
-  covering benchmarks (F2.1-F2.4), sensitivities (F2.5-F2.8), realised
-  2026 backtest (F2.9-F2.10), strike / maturity grid (F2.8), and the
-  multi-date forward-error diagnostic.  All 10 data figures produced
-  by `paper/make_figures.py` from tracked `outputs/` artefacts; Fig 4
-  (PDE vs Monte Carlo) rebuilt by `paper/make_pde_mc.py`.  Format:
-  publication DPI, colourblind-safe palette, ~9.5 pt labels, single-
-  column elsarticle width.
-- [x] **W5 Limitations and Future Work section** — `sections/09-limitations.tex`
-  distilled from `outputs/market_calibration_final/model_limitations.md`
-  items (a)-(h) and this document's Faz 5 items.
-- [x] **W6 Introduction / Abstract / Conclusion, full draft assembly**
-  — `sections/01-introduction.tex`, `sections/10-conclusion.tex`, and
-  the abstract in `main.tex`.  Whole document compiles cleanly:
-  0 errors, 0 undefined references, 0 overfull boxes.
-- [x] **W7 Team internal review** — full read-through completed on the
-  compiled v1 PDF prior to committing it.  Any post-review revisions
-  land as `_v2`, `_v3`, ... under the same naming convention.
+### FW7: TVTP ablation (DONE inside FW9)
 
----
+Time-varying against constant transitions: LR = 1178.66 (df = 2) on
+the transformed price level and LR = 1851 on the model-faithful A3
+residual. At equal stationary variance the regime mixture lowers the
+72 h call at K = 3000 by about 9 % relative to a single-regime
+process (FW9 round f). See `outputs/fw9_self_estimation/`.
 
-## Faz 4 — Advisor Outreach (NEXT)
+### FW8: absorbed into the manuscript
 
-Preprint upload + targeted outreach.  D1 is the immediate next
-concrete step; D2-D4 depend on the outcome of D1 and any response
-timeline agreed with the target researcher.
+Discussion moved directly into `paper/sections/`; no separate
+work-package artefact tree.
 
-- [ ] **D1 Publish preprint** — arXiv (q-fin.PR) or SSRN, with the
-  reproducibility bundle (repo commit hash, `outputs/` frozen snapshot,
-  `docs/*.md`).  Source PDF ready at
-  `paper/Uzkan_Sacli_2026_forward_anchored_option_valuation_v1.pdf`.
-- [ ] **D2 Targeted academic outreach with draft attached** — short
-  list of researchers whose recent work overlaps (electricity option
-  pricing, Markov-switching, Turkish market).
-- [ ] **D3 If a response is received** — joint revision plan agreed
-  in writing before further work; scope, authorship, and timelines
-  fixed up front.
-- [ ] **D4 If no response by an agreed deadline** — proceed
-  independently to Faz 5 based on internal review and preprint
-  feedback.
+### FW9: independent re-estimation and validation of the residual process (DONE)
 
----
+Full independent MLE of the two-regime TVTP MS-AR(1) with `RD_lag1`
+covariate on the model-faithful A3 residual, plus a companion
+two-covariate fit and a battery of sensitivities. Headline
+findings: (i) yaml `kappa = 0.078` and the innovation scale (222 against 359 TRY/MWh per hour in 2025) sit individually far from the FW9 estimates, but they offset in the stationary residual variance, whose TRY sd is 582.5 versus
+observed 2025 A3 residual TRY sd 531-624; KS statistic of yaml
+against 2025 is 0.087 versus 0.125 for FW9e A3 full window and
+0.159 for FW9f 2022-2025 regime-matched (FW9f §4); (ii) the FW9 profile-MLE alphas sit 14 to 18 standard errors from the derived yaml alphas, but the price impact is +3.75 TRY on the 72 h call at K = 3000 (0.4 % of the total FW9-vs-production gap); (iii)
+`pi_filtered` source uncertainty is effectively closed for T >= 24
+h; (iv) the FW9c/FW9d "yaml kappa outside bracket" framing is
+WITHDRAWN by FW9f; (v) the TVTP LR statistic is 1178.66 (df = 2) on the transformed price level, 1851 on the model-faithful A3 residual over 2019-2025 and 1692.56 over 2022-2025 (FW9f §3). FW4 (estimation), FW5 and FW7 were closed inside FW9. See `outputs/fw9_self_estimation/`,
+`FW9f_report_TR.md`, and `proposed_limitations_lines.md`.
 
-## Faz 5 — Future Work (post-manuscript or advisor-directed)
+### FW10: day-ahead publication timing audit and out-of-sample validation (DONE)
 
-Prioritised by "likely required for a Q1-tier submission" (Category A)
-→ "strengthens the case but not strictly required" (Category B) →
-"nice to have, time-permitting" (Category C).
+FW10b evaluates the shipped pipeline on 60 valuation days
+(2026-01-05 to 2026-09-24, N_PATHS = 10 000) under the corrected
+day-ahead timing rule (valuation at 11:00 TRT of day d, last known
+PTF hour d 23:00 TRT, forward curve from the last VEP GGF strictly
+before d 11:00 TRT, HPFC shape applied). PIT means run 0.33 to
+0.44 across all models and horizons, well below 0.5 (VEP forwards
+above realised); `var(z)` runs 4 to 11 for M0 across horizons.
+Under the FW10b forward-residual decomposition the pure-residual
+sd across 2026 is 723.1 TRY/MWh and the model residual is 387 to
+518 TRY/MWh, a factor 1.33 to 1.55 too narrow; the forward-curve error mean is +385 to +794 TRY/MWh and its sd 697 to 843 TRY/MWh,
+so the forward curve carries the bulk of the bias and about half
+of the error variance. Delta-hedge effectiveness against the VEP
+monthly quote is zero across every (model, h, K) cell: the VEP reference price rarely changes (14 of 1 354 contract-day pairs change on
+2026-delivery contracts), so hedge P and L is identically zero and
+the market microstructure, not the model, blocks hedge inference.
+Under the corrected timing rule the shipped 2025-12-31 valuation
+would be rebuilt from the 2025-12-30 VEP quote day, but the two
+quote days are bit-identical, so the shipped (K, T) grid moves by
+0 TRY. See `outputs/fw10_validation/`, `FW10_report_TR.md`,
+`forward_residual_decomposition.md`, `day_ahead_timing_check.md`,
+`vep_quote_staleness.csv`.
 
-### Category A — likely required for Q1-level ambition
+### FW11: stability of the stationary variance check across dates (DONE)
 
-- [x] ~~**FW1 Kappa refit on (P−F) residuals directly**~~ — **DONE
-  (2026-09-13), promoted to Faz 2 Completed as item F2.12.**  The
-  yaml `phi/kappa/half_life_hours` were reconciled to the
-  deseasonalized single-regime AR(1) values (phi=0.9246,
-  kappa=0.0784/h, half-life 8.84h).  Backtest
-  `model_over_realized_ratio` collapsed from 7-13x (v1) to 0.35-0.97
-  (v2 kappa), the empirical near-saturation of (P-F) residual std is
-  now respected, and MC P(P_T<0) went from 0.055 to 0.000.  The full
-  v2 stack (two-factor MS-AR(1) + slow daily AR + level uncertainty +
-  price cap) remains a **separate candidate** for a future full
-  integration; only the single-OU kappa was promoted here.  Full v2
-  promotion still requires (i) EPİAŞ regulatory citation for the
-  cap-schedule change date, (ii) a v2 yaml artefact, (iii)
-  invariant-test coverage against the two-factor residual, (iv)
-  updated `model_limitations.md` for v2 assumptions.
-- [x] **FW2 Risk-neutral premium beyond zero (2026-09-27)** —
-  Q2 transition-intensity shift `q_ij^Q = q_ij^P * exp(eta_ij)` wired
-  end-to-end into the forward-centered pipeline via
-  `price_forward_centered(..., eta_ij=...)`; centering identity
-  `E^Q[P_t] = F(t)` preserved by construction for every real
-  `(eta_01, eta_10)` (multiplicative form guarantees generator
-  validity, and moment ODE + PDE share the same q^Q).  Ex-post
-  forward-premium panel built from the 7 tracked VEP snapshots +
-  hourly realised PTF, look-ahead-guarded to 2025-12-31 20:00 UTC.
-  Identifiability derivation `docs/fw2_risk_premium_identification.md`:
-  Prop. 1 -- first moment is risk-neutral by centering; Prop. 2 --
-  Q1 drift channel is O(a^2), Q2 transition channel is O(eta) in
-  the terminal variance, so Q2 is a priori materially more powerful.
-  Joint (a_stress, eta_ij) sensitivity sweep (480 rows) confirms
-  this numerically: at empirical upper bounds the ATM 72 h call
-  moves by +3.9 % under Q1 alone (a=50) vs +/-27 % under Q2 alone
-  (|eta|=0.5), or up to -35 % at the joint corner (a=50,
-  eta=(-0.75, +0.75)).  Production `(a, eta) = (0, 0)` retained
-  (option data would be needed to identify a central premium);
-  frozen yaml untouched; the sweep envelope is the manuscript's
-  reported risk-premium uncertainty band.  899 accepted tests +
-  30 new FW2 tests all pass; four frozen artefact trees
-  hash-guarded byte-stable throughout.  See
-  `docs/fw2_risk_premium_identification.md` and
-  `outputs/fw2_risk_premium/`.
-- [x] **FW3 At least one benchmark model comparison (2026-09-26)** —
-  three closed-form benchmarks (Black-76, Bachelier, Lucia & Schwartz
-  2002 single-factor OU) priced on the same F2.8 contracts, same F(T)
-  and same discount factor as the accepted PDE.  Historical vol from
-  real EPIAS PTF 2019-2025 (no look-ahead past 2025-12-31 20:00 UTC),
-  daily-return primary + hourly reference; Lucia-Schwartz sigma and
-  kappa taken from `m2_frozen_parameters.yaml` (M9 sigmas pooled by
-  stationary occupancy, v2 kappa), not re-fitted.  Model-implied
-  Black-76 / Bachelier IV surface + ATM term structure show why a
-  single-lognormal-vol summary is insufficient (annualised ATM
-  Black-76 IV drops from 3.29 at 24h to 0.61 at 720h; mild negative
-  smile at every maturity).  Realized 2026 discounted-payoff backtest
-  (66 contracts, one draw each): Model MAE 151, B3 156, B1 369, B2
-  272 TRY/MWh — Lucia-Schwartz is within one std_error of the model,
-  Black-76 and Bachelier are ~2x worse.  Full 603 FW3 tests + 296
-  accepted tests all pass; frozen artefacts hash-guarded.  See
-  `docs/fw3_benchmark_methodology.md` (methodology + EK1 discussion of
-  the relationship to the existing F2.5 pooled-vs-M9 comparison) and
-  `outputs/fw3_benchmarks/` (all numeric outputs + paper-ready
-  table).
+Seven FW4 valuation dates plus 2026-09-27 plus a 2026-only
+sub-window, each with a 12-month rolling window; no new MLE fit,
+only OLS AR(1) and descriptive statistics; look-ahead guarded on
+every row. With the shape estimated on the twelve-month window,
+realised over production-implied dispersion is 0.93 to 1.13 (mean
+1.02) at the six dates from 2023-06-30 to 2025-12-31; the pooled
+shape gives ratios 9 to 18 % higher. The 2022 crisis year sits at
+1.26, the twelve months to 2026-09-27 at 1.65 and 2026 alone at 1.91,
+with `sd/L` of 0.330 and 0.384 against the production 0.199. Sub-50 TRY/MWh share rises from about
+1 % to 5-7 % in 2026 but excluding those hours moves the ratios
+by less than 0.03. See `outputs/fw11_variance_stability/`,
+`variance_stability.md`, `FW11_report_TR.md`.
 
-### Category B — strengthens the Q1 case, not strictly required
+### FW12: numerical convergence and scenario-plumbing repair (DONE)
 
-- [~] **FW4 Reconstruct `RD_Ramp_1h_lag1` as a genuine 2-covariate
-  TVTP** — the production default still drops the ramp covariate
-  (documented in `model_limitations.md` item (b)).  An EXPERIMENTAL,
-  separately selected mode `rd_ramp_2d_experimental` now exists
-  (2026-09-24): M9-transferred slopes, a RECONSTRUCTED ramp (the original
-  definition was not found), intercepts re-derived on the M9 training
-  window, zero transition premium.  Total ramp effect on the 72 h K = 3000
-  call −1.0 % (same order as the ±1 h alignment uncertainty).  Closing the
-  item needs the original estimation output (ramp definition, scaler,
-  shipped p series) to turn "reconstructed" into "verified".  See
-  `docs/tvtp2_methodology.md` and `outputs/tvtp2_experimental/`.
-- [ ] **FW5 Re-estimate `scale_P` on a real / inflation-deflated
-  price series** — `model_limitations.md` item (h).
-  Methodologically interesting given TRY's high-inflation context;
-  could be framed as a broader contribution for emerging-market
-  electricity price modelling.  Two alternatives: (i) real (deflated)
-  series, (ii) rolling / shorter estimation window.
-- [ ] **FW6 Extend the realized-PTF backtest as new months arrive** —
-  the current backtest (F2.9) ends 2026-07-31.  As `realized_ptf_2026.csv`
-  gets extended, re-running produces a longer out-of-sample record.
+Spatial convergence sweep at the production climatology z path,
+T = 72 h, K = 3000: values 167.0716, 166.8415, **166.7477 (n =
+1201, production)**, 166.7070, 166.6940 at n = 301, 601, 1201,
+2401, 4801. Observed order 1.21 to 1.39 (payoff kink and far-field
+boundary interaction). Richardson extrapolation from (2401, 4801)
+gives V_star = 166.686, so the production 1201-node value carries
+about 0.037 % relative error, two orders of magnitude below the
+FW2 risk-premium envelope. Boundary sensitivity `|Delta V / V| <=
+0.024 %` across `n_std in {4, 5, 6, 7.5, 9}`. FW12b repaired the
+scenario-plumbing path so every FW9 and downstream pricing artefact
+uses the same climatology z path as `run_pde.py price`, and locked
+this into a test. Production grid (1201 nodes, 2 steps/hour, n_std
+= 6) is kept. See `outputs/fw12_convergence/`, `grid_recommendation.md`.
 
-### Category C — nice to have, time-permitting
+## What is left
 
-- [ ] **FW7 True TVTP-specific ablation** — if M8's own constant-
-  transition coefficients are ever located (they are absent from the
-  handoff bundle) or re-estimated on the shipped hourly series, run
-  the ablation described in Faz 5's original item (constant-transition
-  M8 vs TVTP M9, holding sigmas fixed).  Isolates the TVTP-specific
-  contribution the F2.5 comparison cannot separate on its own.
-- [ ] **FW8 Note (not implement) further stochastic extensions** —
-  jump-diffusion, stochastic-volatility overlays, non-Gaussian
-  innovations.  Suitable for the manuscript's "future work" paragraph
-  rather than for actual implementation in this project's scope.
+The engineering side of the project is finished. The remaining work
+is manuscript production and outreach:
 
----
+1. Paper v2. Fold the FW9 to FW12 findings into the manuscript,
+   principally (a) add the withdrawal of F2.5 and cite the FW6a
+   rebuild, (b) add the FW9 stationary-variance closeness and the
+   FW11 stability band across seven dates, (c) add the FW10b PIT
+   and forward-residual decomposition and the VEP quote staleness
+   finding, (d) add the FW12 convergence table and the 0.04 %
+   Richardson-extrapolated error, (e) note the 2026 break in
+   `sd / L` and the constant scale-mapping caveat.
+2. Advisor read on the v2 draft.
+3. SSRN v2 (or arXiv q-fin.PR) once the read comes back.
+4. Journal submission.
 
-## Legacy notes retained for audit continuity
+## Second-paper future work
 
-*(Items that were listed as future work at some point but have since
-been resolved.  Kept for traceability.)*
+Items that a follow-up paper (or a follow-up chapter) should address;
+none of them are required for the current manuscript.
 
-- ~~**Reconcile yaml `phi` with the M9 CSV `phi`.**~~ Resolved in
-  F2.3; the yaml value 0.99961485 has been replaced with the M9 CSV
-  value 0.999995891734.  Pre-fix yaml archived.  See
-  `docs/tvtp_derivation_methodology.md`.
-- ~~**Legacy-explosion figure as motivation.**~~ Recorded as a paper
-  writing task (Faz 3 W3 / W4); the number
-  `exp(σ² / (4κ)) ≈ 4.66e+225` is the strongest available quantitative
-  argument for the "why we chose forward-centering over the legacy
-  transform" section and should be plotted from
-  `outputs/forward_centered_diagnostics/legacy_explosion_table.csv`.
+1. **Price-level-dependent scale or level-sensitive volatility.** The
+   FW11 sd/L break in 2026 (0.330 and 0.384 against the production value of 0.199) and the FW9 note on the structural upper bound of
+   the asinh + delta mapping at fixed `scale_P` both point at a
+   constant-scale limit. Candidates: rolling or shorter-window
+   re-estimation of `scale_P`, `scale_P` on a real (inflation-deflated)
+   series, or a level-sensitive residual volatility.
+2. **Regime-sensitive forward-curve error.** The FW10b PIT and
+   forward-residual decomposition attribute most of the 2026
+   out-of-sample error to the forward curve, not to the residual.
+   A regime-aware forward-curve error model (with a separate
+   treatment of solar oversupply hours) is a natural next step.
+3. **Risk-premium identification when option data exists.** If a
+   liquid Turkish electricity option or a comparable derivative
+   ever becomes available, the FW2 wiring can be reversed to
+   identify `(a, eta)` from prices rather than exercised as a
+   sensitivity envelope.

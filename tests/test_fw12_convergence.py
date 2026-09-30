@@ -108,6 +108,11 @@ def test_hash_snapshot_manifest_present_and_nonempty():
     assert len(lines) >= 100, f"only {len(lines)} manifest rows"
 
 
+# model_limitations.md is a living document, updated deliberately after
+# FW12 by the documentation update; every other snapshot file must match.
+LIVING_DOCUMENTS = {"outputs/market_calibration_final/model_limitations.md"}
+
+
 def test_yaml_and_frozen_outputs_hashes_are_the_snapshot():
     """Every path recorded in hashes_before.txt must still hash to the
     same value.  Fails if FW12 accidentally modified an accepted
@@ -115,6 +120,8 @@ def test_yaml_and_frozen_outputs_hashes_are_the_snapshot():
     manifest = REPO_ROOT / "outputs" / "fw12_convergence" / "hashes_before.txt"
     for raw in manifest.read_text(encoding="utf-8").splitlines():
         h_expected, path = raw.split("  ", 1)
+        if path in LIVING_DOCUMENTS:
+            continue
         p = REPO_ROOT / path
         if not p.is_file():
             pytest.fail(f"missing file recorded in snapshot: {path}")

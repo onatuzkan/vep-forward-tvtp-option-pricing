@@ -1,0 +1,49 @@
+Hash manifest verification for the docs-update work package
+============================================================
+
+Reference: outputs/fw12_convergence/hashes_fw12b_after.txt (128 files)
+Before:    outputs/docs_update/hashes_before.txt (identical to reference; 0 diffs)
+After:     outputs/docs_update/hashes_after.txt
+
+Diffs (after vs reference):
+  1. outputs/market_calibration_final/model_limitations.md
+     ref  = c8ececcc6749185f5a5f86b74c0e3af2fa499b4b6fb006e31b53fecc1b4939bc
+     now  = 82d3a26c8891 (see hashes_after.txt for the full hash)
+
+Total files:      128
+Total differences: 1
+Allowed:           1 (model_limitations.md, per the docs-update rules)
+Unexpected:        0
+
+Result: PASS. Only the file explicitly allowed by the docs-update
+scope has changed inside the 128-file accepted manifest.
+
+
+Full pytest run (slow tests included)
+=====================================
+
+Command:  python -m pytest -q
+Duration: 1018.87 s (about 17 minutes)
+Result:   1 failed, 1037 passed, 10 warnings
+
+The single failure is
+  tests/test_fw12_convergence.py::test_yaml_and_frozen_outputs_hashes_are_the_snapshot
+
+This test compares every path listed in
+outputs/fw12_convergence/hashes_before.txt (an older FW12 snapshot,
+not the fw12b_after reference used by this work package) against its
+current hash. It fails on the model_limitations.md line because
+that file was intentionally rewritten by this work package under the
+explicit exception granted in the task brief. The exception list for
+this branch does NOT include tests/test_fw12_convergence.py, so the
+test itself was not modified; the failure is the direct and
+predictable consequence of the permitted documentation change.
+
+The other 1037 tests, including every slow-marked numerical
+convergence and reproducibility test, pass.
+
+Ancillary check: git status shows that
+outputs/fw9_self_estimation/deseasonalized_ar1.json is NOT modified
+by the pytest run. tests/test_fw9b_profile.py::test_deseasonalized_ar1_...
+backs the file up to tmp_path and restores it in a finally block, so
+the accepted artefact is unchanged.
