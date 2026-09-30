@@ -1,0 +1,101 @@
+{
+  "work_package": "FW4-P",
+  "purpose": "price impact of the ramp covariate under FW9's own ramp series and FW9's estimated ramp slopes",
+  "inputs": {
+    "frozen_parameters": "inputs/historical/m2_frozen_parameters.yaml",
+    "tvtp2_parameters": "inputs/historical/tvtp2_frozen_parameters.yaml",
+    "quotes": "inputs/market/vep_monthly_quotes.csv",
+    "z_history": "inputs/historical/rd_standardized.csv",
+    "fw9_two_covariate_fit": "outputs/fw9_self_estimation/TVTP_2cov.pkl",
+    "fw9_ramp_builder": "scripts/fw9/build_ramp.py"
+  },
+  "settings": {
+    "option_type": "call",
+    "r_annual": 0.4,
+    "maturities_hours": [
+      24,
+      48,
+      72
+    ],
+    "strike_ladder": [
+      2000.0,
+      2500.0,
+      3000.0,
+      3500.0,
+      4000.0
+    ],
+    "atm_rule": "K = F(T) of the production curve at that maturity",
+    "n_space_nodes": 1201,
+    "n_std": 6.0,
+    "grid_rule": "one fixed grid per maturity: union of the auto-sized grids over all variants",
+    "scenario_mode": "climatology",
+    "covariate_lag_hours": 1,
+    "climatology_train_end_utc": "2022-12-31T20:00:00+00:00",
+    "curve_mode": "smooth_constrained",
+    "january_anchor_mode": "spot_to_next_linear",
+    "pi_filtered": [
+      0.931977,
+      0.068023
+    ]
+  },
+  "fw9_fit": {
+    "params": {
+      "mu_normal": -0.0006055136759165673,
+      "mu_stress": 0.0004157200685537357,
+      "sigma_normal": 0.007077551031312115,
+      "sigma_stress": 0.2412719098562312,
+      "phi": 0.9999987156151782,
+      "alpha01": -0.7186400378445027,
+      "gamma01": -0.42342788547418025,
+      "h01": -0.0794620425383459,
+      "alpha10": -1.7473382171981018,
+      "gamma10": 0.11640576681051883,
+      "h10": 0.38157298632138
+    },
+    "n_obs": 61368,
+    "loglik": 54792.89677435144,
+    "converged": false,
+    "grad_norm": 96.55371030339727,
+    "phi": 0.9999987156151782,
+    "caveat": "estimated on the RAW asinh level at the unit-root boundary (phi = 0.9999987156); the transition coefficients may be biased"
+  },
+  "ramp_scalers": {
+    "fw4_W9": {
+      "mean": 3.417142268311894e-05,
+      "std": 0.271450116132395,
+      "n": 78903,
+      "window_end_utc": "2024-12-31T20:00:00+00:00"
+    },
+    "fw9_train": {
+      "mean": 2.9624893381834632e-05,
+      "std": 0.26640045488623665,
+      "n": 61359,
+      "window_end_utc": "2022-12-31T20:00:00+00:00"
+    },
+    "std_ratio_fw4_over_fw9": 1.0189551524914429
+  },
+  "intercepts": {
+    "base_1d_w9": {
+      "alpha01": -1.045554311033635,
+      "alpha10": -1.8905912193011531
+    },
+    "fw9_ramp_matched": {
+      "alpha01": -1.0499001865768551,
+      "alpha10": -1.9507680652993844
+    },
+    "moment_targets": {
+      "duration_normal_h": 3.7591994835377665,
+      "duration_stress_h": 7.559715945771465,
+      "sample_end_utc": "2024-12-31T20:00:00+00:00"
+    }
+  },
+  "fw4_reference": {
+    "total_ramp_effect_72h_K3000_pct": -1.007972055471188,
+    "published_calls_on_fw4_grid": {
+      "R0_24h": 163.955886,
+      "R0_72h": 166.783189,
+      "R3_24h": 160.609207,
+      "R3_72h": 163.857946
+    }
+  }
+}
