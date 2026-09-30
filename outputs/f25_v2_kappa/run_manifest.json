@@ -1,0 +1,61 @@
+{
+  "work_package": "FW6a",
+  "purpose": "F2.5 pooled-vs-M9 comparison re-run under the v2 kappa of the production frozen-parameter file",
+  "source_report": "outputs/market_calibration_final/model_comparison_pooled_vs_M9.md",
+  "source_csv": "outputs/market_calibration_final/model_comparison_pooled_vs_M9.csv",
+  "inputs": {
+    "frozen_parameters": "inputs/historical/m2_frozen_parameters.yaml",
+    "quotes": "inputs/market/vep_monthly_quotes.csv",
+    "z_history": "inputs/historical/rd_standardized.csv",
+    "m0_estimates": "inputs/historical/archive/calibration_bundle/parameter_estimates.csv"
+  },
+  "settings": {
+    "strike_TRY_MWh": 3000.0,
+    "option_type": "call",
+    "r_annual": 0.4,
+    "maturities_hours": [
+      24,
+      72,
+      168,
+      336
+    ],
+    "n_space_nodes": 1201,
+    "n_std": 6.0,
+    "n_time_steps": "null -> max(96, 2 per hour)",
+    "curve_mode": "smooth_constrained",
+    "january_anchor_mode": "spot_to_next_linear",
+    "scenario_mode": "climatology",
+    "covariate_lag_hours": 1.0,
+    "train_end_utc": "2022-12-31T20:00:00+00:00",
+    "pi_filtered": [
+      0.931977,
+      0.068023
+    ]
+  },
+  "kappa_per_hour": {
+    "pre_v2_M9": 4.108274e-06,
+    "v2_M9": 0.078394,
+    "M0": 0.0008197329757428259,
+    "ratio_v2_over_pre_v2": 19081.97943954079
+  },
+  "pooled_baseline": {
+    "M0_sigma0": 0.0061226936433343,
+    "M0_sigma1": 0.1642551904411892,
+    "M0_phi": 0.9991806029135468,
+    "m9_stationary_pi": [
+      0.325422,
+      0.674578
+    ],
+    "pooled_sigma_y": 0.13495242449308223,
+    "sigma_split_relative": 0.0001
+  },
+  "volatility_level_mismatch": {
+    "pooled_sigma_y_from_M0": 0.13495242449308223,
+    "effective_sigma_y_of_M9": 0.07592286051356427,
+    "ratio_M9_over_pooled": 0.5625898222929381,
+    "M9_sigma_y": [
+      0.003534807,
+      0.0924066544
+    ]
+  }
+}
