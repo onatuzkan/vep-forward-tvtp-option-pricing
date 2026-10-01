@@ -1,0 +1,34 @@
+\section{Estimation details}
+\label{app:estimation}
+
+\paragraph{Residual construction.} Let $y_t=\operatorname{asinh}(P_t/s_P)$
+for hourly PTF from January 2019 to the valuation hour. The model-consistent
+residual is $y_t-\bar y_{m(t)}-g_{m(t)}(h(t))$, where $\bar y_m$ is the mean of
+$y$ over calendar month $m$ and $g_m$ the mean deviation from it at hour-of-week
+$h$ within that month. The construction removes the monthly level, which the
+forward curve supplies in the pricing model, and the hourly shape, which the
+curve also carries, so that what remains corresponds to $X$ in \eqref{eq:ou}.
+
+\paragraph{Likelihood.} The two-regime autoregression with regime-dependent
+mean and volatility and logistic transitions \eqref{eq:tvtp} is estimated by
+maximising the likelihood computed with the filter of \citet{Hamilton1989}.
+Each fit uses twenty random starting points and a bounded quasi-Newton
+optimiser; regime labels are ordered by volatility after estimation, and
+standard errors are taken from the inverse Hessian, with outer-product
+estimates as a check. The mean-reversion rate is $\kappa=-\ln\phi$ per hour.
+Likelihood-ratio statistics for time-varying against constant transitions are
+referred to a $\chi^2_2$ distribution.
+
+\paragraph{Boundary estimates.} On the transformed price level without the
+monthly level removed, the autoregressive coefficient converges to the unit-root
+boundary. Standard asymptotics do not apply there \citep{Andrews2001}, and the
+fit is reported through the profile likelihood over a grid of fixed $\phi$,
+whose maximum lies at $0.99999$ with a positive definite Hessian for the
+remaining parameters. These boundary fits are used only to explain the origin
+of the inherited persistence and do not enter pricing.
+
+\paragraph{Real prices.} Deflating PTF by the consumer price index of
+TÜİK (series TP.GENENDEKS.T1, base 2003\,=\,100) to December 2025 prices gives
+a scale of $3{,}092.05$\,\TRY{} under the documented definition and regime
+volatilities 22 to 33\% lower than in nominal terms, so inflation accounts for
+part, but not all, of the gap between inherited and re-estimated volatilities.

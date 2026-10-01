@@ -1,0 +1,113 @@
+\section{Parameter provenance and independent estimation}
+\label{sec:estimation}
+
+\subsection{Provenance}
+
+Each parameter is classified as \emph{calibrated} (fixed by market prices),
+\emph{inherited} (taken from a historical estimation under $\PP$ without
+adjustment), \emph{derived} (reconstructed from summary statistics of that
+estimation, without a standard error) or \emph{assumed}. Only the forward curve
+is calibrated (Table~\ref{tab:provenance}). The transition intercepts were not
+reported by the original estimation and were reconstructed by matching the
+reported mean regime durations of $3.76$ and $7.56$ hours
+(\ref{app:transitions}). The scale $s_P$ is documented as a training
+median of absolute prices, but the window that produced $282.48$\,\TRY{} is not
+available: the same definition gives $1{,}399.99$\,\TRY{} on 2019--2025 and
+$302.02$\,\TRY{} on 2019--2020, so the value is consistent with an early,
+pre-depreciation window.
+
+\begin{table}[htbp]
+\centering
+\caption{Production parameters, their provenance, and maximum-likelihood
+estimates on the model-consistent residual over 2019--2025 (standard errors in
+parentheses). Only $F(\cdot)$ is identified by market prices.}
+\label{tab:provenance}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lllr@{}}
+\toprule
+Parameter & Production & Status & Re-estimated \\
+\midrule
+$F(\cdot)$ & exact on six quotes & Calibrated & -- \\
+January level & linear anchor & Assumed & -- \\
+$\kappa$ (h$^{-1}$) & $0.0784$ & Inherited & $0.152$ \\
+$\sigma^y_0$ & $0.00354$ & Inherited & $0.078\ (0.006)$ \\
+$\sigma^y_1$ & $0.0924$ & Inherited & $0.320\ (0.011)$ \\
+$\alpha_{01}$ & $-1.016$ & Derived & $-2.615\ (0.038)$ \\
+$\alpha_{10}$ & $-1.895$ & Derived & $-1.071\ (0.038)$ \\
+$\gamma_{01}$ & $-0.584$ & Inherited & $-0.759\ (0.034)$ \\
+$\gamma_{10}$ & $+0.078$ & Inherited & $+0.692\ (0.041)$ \\
+$s_P$ (\TRY) & $282.48$ & Assumed & -- \\
+$\pi_1$ at last known hour & $0.068$ & Inherited & -- \\
+$a_i$, $\eta_{ij}$ & $0$ & Assumed & -- \\
+$r$ (annual) & $0.40$ & Assumed & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Re-estimation on a model-consistent residual}
+
+The inherited parameters were tested by estimating the residual process
+independently. The object that \eqref{eq:ou} describes is a deviation from the
+forward curve, so the estimation series is built to match it: the transformed
+price minus its calendar-month mean minus the within-month hour-of-week shape.
+The two-regime model with time-varying transitions is estimated by maximum
+likelihood with the filter of \citet{Hamilton1989}, using multiple starting
+points and Hessian-based standard errors (\ref{app:estimation}).
+
+Three results stand out. First, mean reversion on this residual is fast:
+single-regime fits give $\kappa$ between $0.19$ and $0.26$\,h$^{-1}$ in every
+year from 2019 to 2025, and the two-regime fit gives $\kappa=0.152$\,h$^{-1}$
+with an interior autoregressive coefficient of $0.859$. The production value
+of $0.078$\,h$^{-1}$ is reached in no year. Second, the production innovation
+scale is too narrow, $222$ against $359$\,\TRY{} per hour in 2025. Third,
+time-varying transitions are strongly supported: the likelihood-ratio
+statistic against constant transitions is $1{,}851$ on two degrees of freedom.
+
+The origin of the inherited persistence is visible from a fit to the
+transformed price level itself, without the monthly level removed. That fit
+places the autoregressive coefficient on the unit-root boundary, as the
+inherited estimate does, because over 2019--2025 the level is dominated by
+lira depreciation. A two-by-two comparison of scale and level removal
+confirms the attribution: removing the calendar-month level changes the
+estimated $\kappa$ by a factor of six to ten, whereas changing the scale from
+the transform to lira changes it by a factor of 1.3 to 1.7. An earlier version
+of the present model inherited $\kappa=4.11\times10^{-6}$\,h$^{-1}$, a
+half-life of nineteen years, from such a fit and priced the reference call at
+$687.04$\,\TRY, four times its present value. Persistence of the transformed
+price level and persistence of deviations around a forward curve are different
+objects, and only the second belongs in \eqref{eq:ou}.
+
+\subsection{What the inherited parameters get right}
+\label{sec:statvar}
+
+Mean reversion and innovation scale are individually wrong in opposite
+directions, and the errors offset in the quantity that governs option values
+at the reported maturities, the stationary variance. A regime-mixture
+approximation gives a stationary residual standard deviation of
+$582.5$\,\TRY{} at the valuation forward, and along the covariate path used in
+pricing the terminal standard deviation at 72 hours is $532.3$\,\TRY. The
+realised value for 2025 is $531$\,\TRY{} when the hour-of-week shape is
+estimated on 2025 alone and $624$\,\TRY{} when it is pooled over 2019--2025.
+In a long-path simulation the Kolmogorov--Smirnov distance to the realised 2025
+residual is $0.087$ for the production parameters, against $0.125$ for the
+full-window re-estimate and $0.159$ for a fit restricted to 2022--2025; no
+parameter set is accepted by the test, partly because the realised series is
+truncated by the price limits. The re-estimated sets imply stationary
+deviations of $929$ and $1{,}088$\,\TRY{} and overstate 2025 dispersion.
+The production parameters are therefore retained for pricing, and the
+re-estimated full-window set is carried as an alternative in the out-of-sample
+evaluation.
+
+Holding the stationary variance at its production value isolates the role of
+$\kappa$ (Figure~\ref{fig:sensitivity}a). In a single-regime reduction, the
+72-hour call at $K=3{,}000$ stays between $169$ and $176$\,\TRY{} across the
+estimated range $\kappa\in[0.15,0.22]$\,h$^{-1}$ and between $162$ and
+$187$\,\TRY{} across $[0.01,0.30]$, while the 1-hour call moves from $7$ to
+$98$\,\TRY. Mean reversion therefore matters at short maturities and not at the
+24 to 72 hours reported here, and values below about 12 hours are not reliable
+under the production parameters. The same reduction also measures what the
+regime mixture contributes at equal variance: at the production $\kappa$ the
+single-regime call is $183.4$\,\TRY{} against $166.75$\,\TRY{} for the
+two-regime process, a difference of $-9\%$ that reflects the heavier tails of
+the mixture.

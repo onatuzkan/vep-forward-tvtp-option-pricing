@@ -1,128 +1,130 @@
 \section{Introduction}
 \label{sec:intro}
 
-Valuing an electricity option requires a probability measure under which the
-expected discounted payoff is the price. Where a liquid option surface exists,
-that measure is recovered from traded instruments: implied volatilities pin down
-the diffusion and the forward curve pins down the drift. Neither ingredient is
-available in most emerging electricity markets. The Turkish market is a
-representative case. Its organised derivative segment, the \emph{Vadeli Elektrik
-Piyasası} (VEP) operated by EPİAŞ, lists monthly baseload futures, and
-exchange-traded options on power are effectively absent. A practitioner who needs
-the value of a call on the hourly spot price at a specific delivery hour
-therefore faces two gaps at once: the forward curve is observed only as a coarse
-strip of monthly averages, and the risk-neutral distribution around that curve is
-not observed at all.
+The value of an electricity option is the expectation of its discounted payoff
+under a pricing measure. Where options are traded, that measure is recovered
+from the market: the forward curve fixes the drift and implied volatilities fix
+the dispersion. Most emerging power markets supply neither in full, and the
+Turkish market is a representative case. Its organised derivative segment, the
+\emph{Vadeli Elektrik Piyasası} (VEP) operated by EPİAŞ, lists monthly baseload
+futures, while options on power are not traded. A call written on the
+day-ahead price of a given delivery hour therefore has to be valued with two
+gaps: the forward curve is observed only as a strip of monthly averages, and
+the distribution around that curve is not observed at all.
 
-Each gap has been addressed separately in a mature literature. On the
-distributional side, regime switching in power prices is well established.
-Building on \citet{Hamilton1989}, \citet{Huisman2003} and \citet{Deng2000} argue
-that spike behaviour is better represented by a switch between a calm
-mean-reverting state and a distinct spike state than by adding jumps to a single
-process. \citet{JanczuraWeron2010} compare specifications systematically and find
-that independent-spike-regime models with heavy tails dominate simpler
-alternatives, consistent with the tail evidence in \citet{Weron2009};
-\citet{Deschatre2021} survey the resulting model class. Allowing the switching
-probabilities to respond to fundamentals, following \citet{Diebold1994} and
-\citet{Filardo1994}, tightens the fit further: \citet{Mount2006} and
-\citet{KanamuraOhashi2008} make transition probabilities depend on load and
-reserve margin, and \citet{KarakatsaniBunn2008} show that intra-day regime
-dynamics carry economic content rather than statistical artefact. Residual
-demand, load net of non-dispatchable renewable generation, is the natural
-covariate. \citet{Wagner2014} and \citet{Do2021} document its role in price
-formation, and the merit-order literature
-\citep{Sensfuss2008,Ketterer2014,Clo2015} explains the mechanism: renewable
-output displaces the marginal thermal unit and shifts the supply stack. For
-Türkiye, \citet{SirinYilmaz2020} quantify the merit-order effect through quantile
-regression, while \citet{Ugurlu2018} and \citet{Ertugrul2022} document the
-forecasting properties of Turkish spot prices.
+Each gap is addressed by a mature literature. On the distributional side,
+regime switching is the established description of power prices. Following
+\citet{Hamilton1989}, spikes have been modelled as visits to a separate state
+rather than as jumps added to a single diffusion \citep{Deng2000,Huisman2003},
+and heavy-tailed regime specifications have been found to fit spot data better
+than single-regime alternatives \citep{Weron2009,JanczuraWeron2010}.
+Jump-diffusion and threshold models \citep{CarteaFigueroa2005,GemanRoncoroni2006}
+and their empirical comparison \citep{BenthKieselNazarova2012} complete the
+picture, which is surveyed by \citet{Weron2014} and \citet{Deschatre2021}. Once
+transition probabilities are allowed to depend on observed variables
+\citep{Diebold1994,Filardo1994}, load, reserve margin and intra-day conditions
+are found to carry information on switching
+\citep{Mount2006,KanamuraOhashi2008,KarakatsaniBunn2008}. Residual demand, load
+net of non-dispatchable renewable output, is the natural covariate
+\citep{Wagner2014,Do2021}, and the merit-order literature explains the
+mechanism \citep{Sensfuss2008,Ketterer2014,Clo2015}. For Türkiye the
+merit-order effect has been measured by \citet{SirinYilmaz2020}, and the
+forecasting properties of spot prices have been documented by
+\citet{Ugurlu2018} and \citet{Ertugrul2022}. Because prices at and below zero
+have become common, the area hyperbolic sine has largely replaced the
+logarithm as the transformation of choice \citep{Schneider2011,Uniejewski2018}.
 
-On the curve-construction side, turning coarse forward quotes into a granular
-curve is equally well studied. \citet{LuciaSchwartz2002} establish the
-decomposition of a power price into a deterministic component and a
-mean-reverting stochastic residual that underlies most subsequent work;
-\citet{FletenLemming2003} pose curve construction as a smoothing problem
-constrained to reproduce observed contract prices; \citet{Borak2008} model
-forward curve dynamics semi-parametrically; \citet{Kiesel2019} and
-\citet{Caldana2017} construct hourly curves for European markets. The common
-structure is a smoothness objective subject to arbitrage-free reproduction of the
-observed strip.
+On the curve side, the decomposition of a power price into a deterministic
+seasonal level and a mean-reverting residual \citep{LuciaSchwartz2002}, together
+with its two-factor commodity counterpart \citep{SchwartzSmith2000}, underlies
+most subsequent work. Building a granular curve from contracts that deliver
+over a period is posed as a smoothing problem constrained to reproduce the
+quoted averages \citep{FletenLemming2003,BenthKoekebakkerOllmar2007}, and
+hourly versions have been constructed for European markets
+\citep{Caldana2017,Kiesel2019}. Forward dynamics have been modelled
+semi-parametrically \citep{Borak2008} and with factor models that respect
+delivery-period averaging \citep{KieselSchindlmayrBorger2009,BenthBenthKoekebakker2008}.
 
-Pricing on a regime-switching state space is likewise a solved numerical problem.
-\citet{BuffingtonElliott2002} and \citet{JobertRogers2006} give the
-Markov-modulated framework, \citet{BoyleDraviam2007} and \citet{Huang2011}
-develop finite-difference schemes for the coupled systems,
-\citet{ChenForsyth2010} apply them to gas storage, and \citet{Zeng2017} compare
-finite-difference and Monte Carlo approaches directly. The closest antecedent to
-the present study is \citet{Paraschiv2015}, who combine spot and forward
-information within a regime-shifting specification. Our departure is to treat the
-boundary between the two as an identification question rather than an estimation
-one.
+Valuation on a regime-switching state is equally well developed. The
+Markov-modulated framework goes back to \citet{Naik1993} and was extended by
+\citet{BuffingtonElliott2002} and \citet{JobertRogers2006}, while changes of
+measure acting on the switching intensities are treated by
+\citet{ElliottChanSiu2005}. Finite-difference schemes for the coupled systems
+are given by \citet{BoyleDraviam2007} and \citet{Huang2011}, applied to gas
+storage by \citet{ChenForsyth2010}, and compared with Monte Carlo by
+\citet{Zeng2017}. For electricity, derivatives are priced within a
+regime-switching model through explicit risk premia by \citet{Janczura2014},
+and spot and forward information are combined under regime shifts by
+\citet{Paraschiv2015}, the closest antecedent to the present study.
 
-That question is what remains open. When a market supplies a forward strip and
-nothing else, which parameters of such a model are determined by data, and which
-are assumptions the analyst has imported? The distinction is easily obscured. A
-model calibrated to reproduce a forward strip to numerical precision looks
-calibrated. Where switching parameters and volatilities have been estimated on a
-historical sample under the physical measure $\PP$ and are then used for pricing
-under $\Q$ without adjustment, the resulting value embeds an untested assumption
-that the market charges no premium for regime or volatility risk.
-\citet{Janczura2014} constructs such premia explicitly within a regime-switching
-framework, \citet{BessembinderLemmon2002} derive equilibrium forward premia from
-hedging pressure, and \citet{LongstaffWang2004} and \citet{Algieri2021} measure
-them empirically. The premium is a real economic object; it does not vanish
-because it was not estimated.
+What remains open is a question of identification. When a market supplies a
+forward strip and nothing else, it has to be established which parameters of
+such a model are determined by data and which are assumptions brought in by
+the analyst. The distinction is easily obscured. A model that reproduces the
+strip to numerical precision appears calibrated, yet volatilities and
+switching parameters estimated under the physical measure $\PP$ and used under
+$\Q$ without adjustment carry the assumption that no premium is charged for
+volatility or regime risk. Forward premia in power markets are documented
+empirically \citep{LongstaffWang2004,Viehmann2011,WeronZator2014,Algieri2021},
+explained in equilibrium \citep{BessembinderLemmon2002,BenthCarteaKiesel2008}
+and linked to systematic forecast errors \citep{Redl2009}. A premium that has
+not been estimated is not thereby equal to zero.
 
 \paragraph{Contribution.}
-The separation is made explicit here, and a valuation framework is built around
-it. Four contributions follow.
+A valuation framework is built here around that separation, and four
+contributions follow from it.
 
-First, a \emph{forward-centred} representation is proposed, in which the spot
-price is written as $P_t = F(t) + X_t - \E^{\Q}[X_t]$, with $F$ the
-equality-constrained hourly curve and $X$ a two-regime Ornstein--Uhlenbeck
-residual with time-varying transition probabilities. Subtracting the residual's
-own mean is not a normalisation of convenience: it renders $\E^{\Q}[P_t]=F(t)$ an
-algebraic identity holding for every admissible parameter vector, so that the
-market-identified first moment is structurally insulated from the unidentified
-higher moments. This is established in Proposition~\ref{prop:centering} and
-verified numerically across the parameter space explored below, including under
-measure changes.
+First, a forward-centred representation is proposed in which the spot price is
+written as $P_t = F(t) + X_t - \E^{\Q}[X_t]$, with $F$ an equality-constrained
+hourly forward curve and $X$ a two-regime Ornstein--Uhlenbeck residual with
+time-varying transition probabilities. Subtracting the residual's own mean
+makes $\E^{\Q}[P_t]=F(t)$ an identity for every admissible parameter vector
+(Proposition~\ref{prop:centering}). The identity is a design property rather
+than a deep result, but it insulates the one moment identified by the market
+from those that are not, and it continues to hold under the two risk-premium
+channels implemented here, a shift in the residual drift and a change in the
+switching intensities.
 
-Second, the unidentified inputs are made auditable rather than invisible. Every
-parameter carries a provenance label distinguishing calibrated quantities from
-inherited historical estimates, derived reconstructions and outright assumptions
-(Table~\ref{tab:provenance}), and each is subjected to a controlled sensitivity
-experiment in which it alone varies. The risk-neutral drift channel is
-implemented as an explicit, switchable perturbation whose default value of zero
-reproduces the physical-measure baseline exactly, which makes the zero-premium
-assumption a visible choice rather than a silent default.
+Second, the inherited residual parameters are tested rather than assumed. The
+residual process is re-estimated by maximum likelihood on a series constructed
+to match the model, net of the calendar-month level and the hour-of-week shape.
+The mean-reversion speed and the innovation scale of the production parameters
+each differ markedly from these estimates, yet the two discrepancies offset:
+the implied stationary standard deviation of the residual is 582.5\,\TRY{} at
+the valuation forward, against 531 to 624\,\TRY{} realised in 2025. Because
+option values at the reported maturities of 24 to 72 hours are governed by that
+variance, the 72-hour call at a strike of 3\,000\,\TRY{} remains between 169 and
+176\,\TRY{} across the estimated range of mean-reversion speeds when the
+variance is held fixed, whereas values at maturities below about 12 hours are
+not reliable. Time-varying transitions are strongly supported by
+likelihood-ratio tests.
 
-Third, the framework's principal weakness is shown to lie outside its pricing
-layer. Using $5{,}088$ hours of spot prices realised after the valuation date, we
-find that the December 2025 forward strip missed the subsequent outcome by a mean
-of $-1{,}019$ \TRY, with monthly signed errors from $-24\%$ to $-76\%$, during a
-period of exceptionally strong hydrological conditions and record renewable
-output. Replaying the curve construction at seven valuation dates from 2022
-onward places that outcome in context: it is large but not exceptional, and the
-strip's error is negative on average yet unstable in sign. To our knowledge the
-predictive performance of the Turkish monthly forward strip has not previously
-been measured over a multi-year sample, and the resulting distribution bounds
-what forward-anchored valuation can deliver here.
+Third, the framework is evaluated out of sample. Under a valuation rule that
+respects day-ahead publication times, predictive distributions are formed on 60
+dates in 2026 with every parameter frozen at the end of 2025. The error is
+dominated by the forward curve, which exceeds realised prices by 385 to
+794\,\TRY{} on average across horizons, while the realised residual is 1.33 to
+1.55 times wider than the model implies. When the variance comparison is
+repeated at earlier dates, agreement holds from mid-2023 to the end of 2025,
+with ratios of realised to implied dispersion between 0.93 and 1.13, and fails
+in 2026. The failure is traced to the level-proportional scaling implied by a
+fixed-scale transformation, which is identified as the main specification limit
+of the model.
 
-Fourth, a methodological failure and its correction are documented in full. An
-initial specification inherited its mean-reversion speed from an autoregressive
-fit to the untransformed price level, producing a within-regime half-life of
-roughly nineteen years and residual dispersion seven to thirteen times wider than
-the realised sample exhibits. Diagnosis required separating within-regime
-persistence from the marginal persistence of the switching process, quantities
-that differ here by four orders of magnitude. A framework whose sensitivity to a
-single inherited coefficient exceeds a factor of four is one whose provenance
-discipline is not optional, and the episode is reported on that basis.
+Fourth, the monthly strip is shown to bound what forward-anchored valuation can
+deliver in this market. When the curve construction is replayed at seven
+valuation dates from 2022 onwards, the December 2025 strip, above which
+realised monthly prices fell by 1\,019\,\TRY{} on average, is found to lie
+inside a distribution whose bias is large and unstable in sign. The daily
+reference price of the monthly contracts changed on 1.0\% of contract-days for
+2026 deliveries, so a delta hedge in the strip had no effectiveness over the
+evaluation window. To the authors' knowledge, the predictive and hedging
+performance of the Turkish monthly strip has not previously been measured.
 
-Section~\ref{sec:market} describes the market, contract and data;
-Section~\ref{sec:curve} develops the hourly curve; Section~\ref{sec:residual}
-specifies the residual dynamics and the centring identity;
-Section~\ref{sec:valuation} derives the moment system and pricing equation;
-Section~\ref{sec:provenance} sets out parameter provenance; and
-Section~\ref{sec:results} reports calibration quality, the option surface, the
-sensitivity battery and the realised evaluation.
+The market, contract and data are described in Section~\ref{sec:market}, the
+hourly curve in Section~\ref{sec:curve}, the residual dynamics and the
+centring identity in Section~\ref{sec:residual}, and the valuation equations in
+Section~\ref{sec:valuation}. Estimation and validation of the residual process
+are reported in Section~\ref{sec:estimation}, results in
+Section~\ref{sec:results}, and their implications and limits in
+Section~\ref{sec:discussion}; Section~\ref{sec:conclusion} concludes.

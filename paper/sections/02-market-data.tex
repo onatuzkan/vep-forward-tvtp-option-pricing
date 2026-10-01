@@ -1,77 +1,58 @@
 \section{Market, contract and data}
 \label{sec:market}
 
-\subsection{The Turkish wholesale electricity market}
-
-Wholesale electricity in Türkiye clears through EPİAŞ, the market operator. The
-day-ahead market produces an hourly clearing price, the \emph{Piyasa Takas
-Fiyatı} (PTF), for every delivery hour of the following day \citep{EPIAS2025}.
-PTF is the reference price for physical settlement and the underlying taken here
-for option valuation. Prices are quoted in Turkish lira per megawatt-hour and are
-subject to administratively set ceiling and floor levels revised periodically
-\citep{EPDK2024}.
-
-The organised forward segment, VEP, lists monthly baseload futures. A contract
-for delivery month $m$, denoted \texttt{EBM}$mm$\texttt{yy}, settles against the
-arithmetic mean of PTF over every delivery hour of that month. This averaging
-structure is the first source of the identification problem addressed here. A
-monthly baseload quote constrains the \emph{average} of $720$ to $744$ hourly
-forward prices and says nothing about how that average is distributed across
-hours. Two curves with identical monthly means but different intraday shapes are
-equally consistent with the same quote, yet imply materially different values for
-an option written on a single delivery hour.
-
-Two features make the market a useful laboratory for these questions. Renewable
-penetration has grown quickly, so residual demand fluctuates over a wide range
-and the merit-order mechanism transmitting it into price is strong
-\citep{SirinYilmaz2020}. And the lira has depreciated substantially over the
-period from which historical parameters must be drawn, so nominal price series
-mix genuine dynamics with monetary trend. Consequences of the second feature are
-taken up in Section~\ref{sec:limitations}.
+Wholesale electricity in Türkiye is cleared by EPİAŞ. The day-ahead market
+sets an hourly price, the \emph{Piyasa Takas Fiyatı} (PTF), for each hour of
+the following day, and the auction results for day $D+1$ are published at
+about 14:00 local time (TRT, UTC+3) on day $D$ \citep{EPIAS2025}. Prices are
+quoted in Turkish lira per megawatt-hour and are bounded by administratively
+set floor and ceiling levels \citep{EPDK2024}. The forward segment, VEP, lists
+monthly baseload futures that settle against the arithmetic mean of PTF over
+all hours of the delivery month. A quote therefore restricts the average of
+672 to 744 hourly forward prices and is silent on how that average is
+distributed across hours, which is the first source of the identification
+problem studied here.
 
 \subsection{The contract}
 
-The instrument valued here is a European call on the PTF observed at a single
-expiry hour $T$,
+The instrument valued is a European call on the PTF of a single expiry hour
+$T$,
 \begin{equation}
-  V_0 \;=\; e^{-rT}\,\E^{\Q}\!\left[(P_T-K)^+\right],
+  V_0 = e^{-rT}\,\E^{\Q}\!\left[(P_T-K)^{+}\right],
   \label{eq:payoff}
 \end{equation}
-where $P_T$ is the hourly clearing price at $T$, $K$ the strike and $r$ a flat
-continuously compounded annual rate. This is not the monthly baseload contract
-that VEP quotes. The distinction is enforced in the implementation: monthly
-quotes are represented by an object that raises an error if accessed as a point
-forward, since conflating the two is the shortcut the data structure most invites.
+with strike $K$ and a flat continuously compounded rate $r$. The payoff is
+written on one hourly price and not on the monthly average that VEP settles,
+and the two are kept apart in the implementation: a monthly quote cannot be
+read as a point forward.
 
-\subsection{Valuation date and samples}
+\subsection{Valuation instant and samples}
+\label{sec:timing}
 
-The valuation timestamp is 2025-12-31 20:00 UTC, the final hour of the historical
-sample, at which the observed spot is $2{,}917.78$ \TRY. Six monthly baseload
-quotes were observed at that date, for delivery months February through July 2026
-(Table~\ref{tab:quotes}). January 2026 carries no quote. This is not an avoidable
-data gap: the nearest delivery month is the one whose option values matter most
-for short-dated contracts, and it is precisely the month the strip does not
-price. Section~\ref{sec:anchor} treats it explicitly.
+Because day-ahead prices are published a day in advance, the valuation instant
+has to be placed so that no payoff is already known. Valuation is set at 11:00
+TRT on 31 December 2025. At that time the last published price is that of
+31 December, 23:00 TRT, which equals $2{,}917.78$\,\TRY{} and serves as the
+observed spot, and all maturities are counted from that hour. The forward
+curve is built from the last VEP reference prices published before 11:00, those
+of 30 December. They are identical to the quotes of 31 December for every
+contract, so the curve, and every option value reported below, coincides with
+a construction that uses the year-end quotes.
 
-Two further samples enter. The regime covariate is a standardised residual demand
-series $z_t$ at hourly frequency, standardised using the training scaler of the
-underlying estimation exercise ($N=61{,}361$). The realised evaluation uses hourly
-PTF for January through July 2026, $5{,}088$ hours, retrieved from the EPİAŞ
-transparency platform after the fact. The evaluation sample is strictly posterior
-to the valuation timestamp; no observation from it enters calibration, parameter
-estimation or model selection. This is verified structurally rather than by
-assertion, through a guard test that fails if any fitting routine is exposed to a
-timestamp at or beyond the valuation cutoff.
+Six monthly contracts were quoted, for delivery from February to July 2026
+(Table~\ref{tab:quotes}); January carried no quote. The strip falls from
+February to June and then rises by 58\% into July, a seasonal step that the
+hourly curve has to accommodate.
 
 \begin{table}[htbp]
 \centering
-\caption{Observed VEP monthly baseload quotes at the valuation date
-(2025-12-31), in \TRY.}
+\caption{VEP monthly baseload reference prices used for the valuation of
+31 December 2025. January 2026 was not quoted.}
 \label{tab:quotes}
 \small
 \begin{tabular}{@{}llrr@{}}
 \toprule
-Contract & Delivery month & Delivery hours & Quote \\
+Contract & Delivery month & Hours & Price (\TRY) \\
 \midrule
 EBM0226 & February 2026 & 672 & 2{,}900.99 \\
 EBM0326 & March 2026    & 744 & 2{,}556.31 \\
@@ -79,16 +60,15 @@ EBM0426 & April 2026    & 720 & 2{,}500.66 \\
 EBM0526 & May 2026      & 744 & 2{,}506.25 \\
 EBM0626 & June 2026     & 720 & 2{,}245.33 \\
 EBM0726 & July 2026     & 744 & 3{,}558.19 \\
-\midrule
-\multicolumn{2}{@{}l}{January 2026} & 744 & \emph{unquoted} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The strip carries information worth noting before any modelling. The market
-priced a pronounced decline from February to June followed by a sharp July
-rebound of roughly $58\%$ over the June level, a shape consistent with
-cooling-driven summer peaks and high spring hydro and solar availability. The
-hourly curve must therefore accommodate a large discontinuity at the June--July
-boundary originating in the data rather than in the interpolation method, a point
-verified in Section~\ref{sec:curvefit}.
+Three further samples are used. Hourly PTF from January 2019 to the valuation
+hour (61{,}368 observations) is used to re-estimate the residual process in
+Section~\ref{sec:estimation}. The transition covariate is hourly residual
+demand, load net of wind and solar output, standardised with the scaler of the
+original estimation sample. Realised PTF from 1 January to 27 September 2026
+serves only for evaluation. No observation after the valuation cutoff enters
+any calibration, estimation or model choice, and this is enforced by tests
+that fail if a fitting routine is given a later timestamp.

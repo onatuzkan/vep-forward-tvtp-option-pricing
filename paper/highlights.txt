@@ -1,0 +1,5 @@
+Hourly forward curve reproduces Turkish monthly futures quotes exactly
+Centred regime-switching residual keeps the expected price equal to the forward
+Inherited parameters fail individually but match the stationary price dispersion
+In 2026 the forward curve, not the residual model, drives out-of-sample error
+The unquoted front month bounds the precision of short-dated option values

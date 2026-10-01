@@ -5,9 +5,12 @@ authors:
   - family-names: Uzkan
     given-names: Onat
     affiliation: "Ozyegin University"
+    orcid: "https://orcid.org/0009-0009-8619-4507"
   - family-names: "Sacli"
     given-names: "Koray Omercan"
     affiliation: "Istanbul Technical University"
+    orcid: "https://orcid.org/0009-0009-2398-7112"
 license: MIT
 repository-code: "https://github.com/onatuzkan/vep-forward-tvtp-option-pricing"
 type: software
+doi: "10.5281/zenodo.23083820"
