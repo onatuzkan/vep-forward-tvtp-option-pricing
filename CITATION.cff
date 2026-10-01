@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Code and data for: Anchoring Options to an Incomplete Forward Curve: Identification and Out-of-Sample Evidence from Turkish Electricity"
+authors:
+  - family-names: Uzkan
+    given-names: Onat
+    affiliation: "Ozyegin University"
+  - family-names: "Sacli"
+    given-names: "Koray Omercan"
+    affiliation: "Istanbul Technical University"
+license: MIT
+repository-code: "https://github.com/onatuzkan/vep-forward-tvtp-option-pricing"
+type: software

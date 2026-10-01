@@ -1,0 +1,12 @@
+{
+  "title": "Code and data for: Anchoring Options to an Incomplete Forward Curve: Identification and Out-of-Sample Evidence from Turkish Electricity",
+  "upload_type": "software",
+  "description": "Forward-centred option valuation for the Turkish day-ahead electricity market: equality-constrained hourly forward curve from EPIAS VEP monthly baseload quotes, two-regime Markov-switching residual with time-varying transition probabilities, PDE and Monte Carlo pricing, independent re-estimation of the residual process, and out-of-sample evaluation on 2026 data. Code is released under the MIT licence; the manuscript under CC BY-NC-ND 4.0; documentation and derived data under CC BY 4.0; raw EPIAS data remain under the EPIAS Seffaflik Platformu terms of use. See LICENSE in the archive for the full terms.",
+  "creators": [
+    {"name": "Uzkan, Onat", "affiliation": "Ozyegin University"},
+    {"name": "Sacli, Koray Omercan", "affiliation": "Istanbul Technical University"}
+  ],
+  "license": "MIT",
+  "keywords": ["electricity derivatives", "forward curve", "regime switching", "time-varying transition probabilities", "option pricing", "Turkish electricity market"],
+  "access_right": "open"
+}
